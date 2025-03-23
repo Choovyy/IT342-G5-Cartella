@@ -32,12 +32,23 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // Automatically set timestamps before saving to DB
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
     // Constructors
     public User() {}
 
     public User(String username, String password, String email, String phoneNumber, 
-                String dateOfBirth, Gender gender, Role role, 
-                LocalDateTime createdAt, LocalDateTime updatedAt) {
+                String dateOfBirth, Gender gender, Role role) {
         this.username = username;
         this.password = password;
         this.email = email;
@@ -45,8 +56,6 @@ public class User {
         this.dateOfBirth = dateOfBirth;
         this.gender = gender;
         this.role = role;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
     }
 
     // Getters
@@ -121,13 +130,5 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

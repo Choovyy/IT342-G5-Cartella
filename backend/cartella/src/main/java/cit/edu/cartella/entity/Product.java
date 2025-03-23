@@ -19,14 +19,13 @@ public class Product {
     @Column(nullable = false)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false)
     private BigDecimal price;
 
     @Column(nullable = false)
-    private Integer stockQuantity;
+    private int stockQuantity;
 
     @Column(nullable = false)
     private String category;
@@ -34,19 +33,18 @@ public class Product {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Default Constructor
+    // Constructors
     public Product() {}
 
-    // Parameterized Constructor
-    public Product(Vendor vendor, String name, String description, BigDecimal price, Integer stockQuantity, String category, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Product(Vendor vendor, String name, String description, BigDecimal price, int stockQuantity, String category) {
         this.vendor = vendor;
         this.name = name;
         this.description = description;
         this.price = price;
         this.stockQuantity = stockQuantity;
         this.category = category;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     // Getters and Setters
@@ -90,11 +88,11 @@ public class Product {
         this.price = price;
     }
 
-    public Integer getStockQuantity() {
+    public int getStockQuantity() {
         return stockQuantity;
     }
 
-    public void setStockQuantity(Integer stockQuantity) {
+    public void setStockQuantity(int stockQuantity) {
         this.stockQuantity = stockQuantity;
     }
 

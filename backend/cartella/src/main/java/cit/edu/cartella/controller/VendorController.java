@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/vendors")
@@ -17,6 +17,12 @@ public class VendorController {
     @Autowired
     public VendorController(VendorService vendorService) {
         this.vendorService = vendorService;
+    }
+
+    @PostMapping("/{userId}")
+    public ResponseEntity<Vendor> createVendor(@PathVariable Long userId, @RequestBody Vendor vendor) {
+        Vendor createdVendor = vendorService.createVendor(userId, vendor);
+        return ResponseEntity.ok(createdVendor);
     }
 
     @GetMapping
@@ -31,9 +37,17 @@ public class VendorController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public Vendor createVendor(@RequestBody Vendor vendor) {
-        return vendorService.saveVendor(vendor);
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Vendor> getVendorByUserId(@PathVariable Long userId) {
+        return vendorService.getVendorByUserId(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Vendor> updateVendor(@PathVariable Long id, @RequestBody Vendor vendorDetails) {
+        Vendor updatedVendor = vendorService.updateVendor(id, vendorDetails);
+        return ResponseEntity.ok(updatedVendor);
     }
 
     @DeleteMapping("/{id}")

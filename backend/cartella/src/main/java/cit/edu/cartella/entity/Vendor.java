@@ -12,8 +12,8 @@ public class Vendor {
     private Long vendorId;
 
     @OneToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user; // A vendor is linked to a user
 
     @Column(nullable = false, unique = true)
     private String businessName;
@@ -30,69 +30,67 @@ public class Vendor {
     // Constructors
     public Vendor() {}
 
-    public Vendor(User user, String businessName, String businessAddress, String businessRegistrationNumber, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Vendor(User user, String businessName, String businessAddress, String businessRegistrationNumber) {
         this.user = user;
         this.businessName = businessName;
         this.businessAddress = businessAddress;
         this.businessRegistrationNumber = businessRegistrationNumber;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
     }
 
-    // Getters and Setters
+    // Getters
     public Long getVendorId() {
         return vendorId;
-    }
-
-    public void setVendorId(Long vendorId) {
-        this.vendorId = vendorId;
     }
 
     public User getUser() {
         return user;
     }
 
-    public void setUser(User user) {
-        this.user = user;
-    }
-
     public String getBusinessName() {
         return businessName;
-    }
-
-    public void setBusinessName(String businessName) {
-        this.businessName = businessName;
     }
 
     public String getBusinessAddress() {
         return businessAddress;
     }
 
-    public void setBusinessAddress(String businessAddress) {
-        this.businessAddress = businessAddress;
-    }
-
     public String getBusinessRegistrationNumber() {
         return businessRegistrationNumber;
-    }
-
-    public void setBusinessRegistrationNumber(String businessRegistrationNumber) {
-        this.businessRegistrationNumber = businessRegistrationNumber;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    // Setters
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public void setBusinessName(String businessName) {
+        this.businessName = businessName;
+    }
+
+    public void setBusinessAddress(String businessAddress) {
+        this.businessAddress = businessAddress;
+    }
+
+    public void setBusinessRegistrationNumber(String businessRegistrationNumber) {
+        this.businessRegistrationNumber = businessRegistrationNumber;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

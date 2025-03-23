@@ -19,26 +19,36 @@ public class ProductController {
         this.productService = productService;
     }
 
+    @PostMapping("/{vendorId}")
+    public ResponseEntity<Product> createProduct(@PathVariable Long vendorId, @RequestBody Product product) {
+        return ResponseEntity.ok(productService.createProduct(vendorId, product));
+    }
+
     @GetMapping
     public List<Product> getAllProducts() {
         return productService.getAllProducts();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        return productService.getProductById(id)
+    @GetMapping("/{productId}")
+    public ResponseEntity<Product> getProductById(@PathVariable Long productId) {
+        return productService.getProductById(productId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public Product createProduct(@RequestBody Product product) {
-        return productService.saveProduct(product);
+    @GetMapping("/vendor/{vendorId}")
+    public ResponseEntity<List<Product>> getProductsByVendor(@PathVariable Long vendorId) {
+        return ResponseEntity.ok(productService.getProductsByVendor(vendorId));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        productService.deleteProduct(id);
+    @PutMapping("/{productId}")
+    public ResponseEntity<Product> updateProduct(@PathVariable Long productId, @RequestBody Product product) {
+        return ResponseEntity.ok(productService.updateProduct(productId, product));
+    }
+
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
+        productService.deleteProduct(productId);
         return ResponseEntity.noContent().build();
     }
 }
