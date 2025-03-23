@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -19,26 +19,25 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @GetMapping
-    public List<Order> getAllOrders() {
-        return orderService.getAllOrders();
+    @PostMapping("/{userId}/{addressId}")
+    public ResponseEntity<Order> placeOrder(@PathVariable Long userId, @PathVariable Long addressId) {
+        return ResponseEntity.ok(orderService.placeOrder(userId, addressId));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
-        return orderService.getOrderById(id)
+    @GetMapping("/{userId}")
+    public ResponseEntity<List<Order>> getUserOrders(@PathVariable Long userId) {
+        return ResponseEntity.ok(orderService.getUserOrders(userId));
+    }
+
+    @GetMapping("/{orderId}/details")
+    public ResponseEntity<Order> getOrderDetails(@PathVariable Long orderId) {
+        return orderService.getOrderById(orderId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public Order createOrder(@RequestBody Order order) {
-        return orderService.saveOrder(order);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
-        orderService.deleteOrder(id);
-        return ResponseEntity.noContent().build();
+    @PutMapping("/{orderId}/status")
+    public ResponseEntity<Order> updateOrderStatus(@PathVariable Long orderId, @RequestParam String status) {
+        return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
     }
 }

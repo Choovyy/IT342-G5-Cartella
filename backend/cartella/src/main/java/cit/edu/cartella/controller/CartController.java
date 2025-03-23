@@ -1,11 +1,11 @@
 package cit.edu.cartella.controller;
 
 import cit.edu.cartella.entity.Cart;
+import cit.edu.cartella.entity.CartItem;
 import cit.edu.cartella.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 
 @RestController
 @RequestMapping("/api/cart")
@@ -20,19 +20,25 @@ public class CartController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<Cart> getCartByUserId(@PathVariable Long userId) {
-        return cartService.getCartByUserId(userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(cartService.getCartByUserId(userId));
     }
 
-    @PostMapping
-    public Cart createCart(@RequestBody Cart cart) {
-        return cartService.saveCart(cart);
+    @PostMapping("/{userId}")
+    public ResponseEntity<Cart> createCart(@PathVariable Long userId) {
+        return ResponseEntity.ok(cartService.createCart(userId));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCart(@PathVariable Long id) {
-        cartService.deleteCart(id);
+    @PostMapping("/{userId}/add/{productId}")
+    public ResponseEntity<CartItem> addProductToCart(
+            @PathVariable Long userId,
+            @PathVariable Long productId,
+            @RequestParam int quantity) {
+        return ResponseEntity.ok(cartService.addProductToCart(userId, productId, quantity));
+    }
+
+    @DeleteMapping("/remove/{cartItemId}")
+    public ResponseEntity<Void> removeCartItem(@PathVariable Long cartItemId) {
+        cartService.removeCartItem(cartItemId);
         return ResponseEntity.noContent().build();
     }
 }

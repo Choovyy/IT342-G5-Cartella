@@ -19,28 +19,27 @@ public class Notification {
     private String message;
 
     @Column(nullable = false)
-    private boolean isRead;
+    private boolean isRead = false;
 
     private LocalDateTime createdAt;
 
-    // Default Constructor
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    // Constructors
     public Notification() {}
 
-    // Parameterized Constructor
-    public Notification(User user, String message, boolean isRead, LocalDateTime createdAt) {
+    public Notification(User user, String message) {
         this.user = user;
         this.message = message;
-        this.isRead = isRead;
-        this.createdAt = createdAt;
+        this.isRead = false;
     }
 
     // Getters and Setters
     public Long getNotificationId() {
         return notificationId;
-    }
-
-    public void setNotificationId(Long notificationId) {
-        this.notificationId = notificationId;
     }
 
     public User getUser() {
@@ -69,9 +68,5 @@ public class Notification {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 }

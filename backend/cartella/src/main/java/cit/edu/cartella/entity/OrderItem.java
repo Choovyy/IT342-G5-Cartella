@@ -25,7 +25,7 @@ public class OrderItem {
     @Column(nullable = false)
     private BigDecimal priceAtTimeOfOrder;
 
-    // Default Constructor
+    // Default constructor (Required by JPA)
     public OrderItem() {}
 
     // Parameterized Constructor

@@ -1,10 +1,10 @@
 package cit.edu.cartella.service;
 
-import cit.edu.cartella.entity.Order;
-import cit.edu.cartella.repository.OrderRepository;
+import cit.edu.cartella.entity.*;
+import cit.edu.cartella.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,29 +12,49 @@ import java.util.Optional;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final CartRepository cartRepository;
+    private final AddressRepository addressRepository;
 
     @Autowired
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, AddressRepository addressRepository) {
         this.orderRepository = orderRepository;
+        this.cartRepository = cartRepository;
+        this.addressRepository = addressRepository;
     }
 
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+    public Order placeOrder(Long userId, Long addressId) {
+        Cart cart = cartRepository.findByUserUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Cart not found for user"));
+
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new RuntimeException("Address not found"));
+
+        if (cart.getCartItems().isEmpty()) {
+            throw new RuntimeException("Cart is empty");
+        }
+
+        BigDecimal totalAmount = cart.getCartItems().stream()
+                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Order order = new Order(cart.getUser(), address, totalAmount, OrderStatus.PENDING);
+        orderRepository.save(order);
+
+        return order;
     }
 
-    public Optional<Order> getOrderById(Long id) {
-        return orderRepository.findById(id);
+    public List<Order> getUserOrders(Long userId) {
+        return orderRepository.findByUserUserId(userId);
     }
 
-    public List<Order> getOrdersByUser(Long userId) {
-        return orderRepository.findByUser_UserId(userId);
+    public Optional<Order> getOrderById(Long orderId) {
+        return orderRepository.findById(orderId);
     }
 
-    public Order saveOrder(Order order) {
+    public Order updateOrderStatus(Long orderId, String status) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        order.setStatus(OrderStatus.valueOf(status.toUpperCase()));
         return orderRepository.save(order);
-    }
-
-    public void deleteOrder(Long id) {
-        orderRepository.deleteById(id);
     }
 }
