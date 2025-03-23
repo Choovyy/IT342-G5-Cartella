@@ -41,13 +41,23 @@ public class Order {
     public Order() {}
 
     // Parameterized Constructor
-    public Order(User user, Address address, BigDecimal totalAmount, OrderStatus status, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Order(User user, Address address, BigDecimal totalAmount, OrderStatus status) {
         this.user = user;
         this.address = address;
         this.totalAmount = totalAmount;
         this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+    }
+
+    // Auto-set timestamps
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     // Getters and Setters
@@ -95,16 +105,8 @@ public class Order {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     public List<OrderItem> getOrderItems() {

@@ -7,7 +7,6 @@ import cit.edu.cartella.repository.VendorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,36 +22,39 @@ public class ProductService {
         this.vendorRepository = vendorRepository;
     }
 
+    // Create a product
     public Product createProduct(Long vendorId, Product productDetails) {
-        Optional<Vendor> vendorOptional = vendorRepository.findById(vendorId);
+        Vendor vendor = vendorRepository.findById(vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
 
-        if (vendorOptional.isEmpty()) {
-            throw new RuntimeException("Vendor not found");
-        }
-
-        Vendor vendor = vendorOptional.get();
-        Product product = new Product(vendor, productDetails.getName(), productDetails.getDescription(),
-                productDetails.getPrice(), productDetails.getStockQuantity(), productDetails.getCategory());
-
-        return productRepository.save(product);
+        productDetails.setVendor(vendor);
+        return productRepository.save(productDetails);
     }
 
+    // Get all products
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
 
+    // Get product by ID
     public Optional<Product> getProductById(Long productId) {
         return productRepository.findById(productId);
     }
 
+    // Get products by vendor
     public List<Product> getProductsByVendor(Long vendorId) {
-        Optional<Vendor> vendorOptional = vendorRepository.findById(vendorId);
-        if (vendorOptional.isEmpty()) {
-            throw new RuntimeException("Vendor not found");
-        }
-        return productRepository.findByVendor(vendorOptional.get());
+        Vendor vendor = vendorRepository.findById(vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+
+        return productRepository.findByVendor(vendor);
     }
 
+    // Get products by category
+    public List<Product> getProductsByCategory(String category) {
+        return productRepository.findByCategory(category);
+    }
+
+    // Update product
     public Product updateProduct(Long productId, Product productDetails) {
         return productRepository.findById(productId).map(product -> {
             product.setName(productDetails.getName());
@@ -60,11 +62,11 @@ public class ProductService {
             product.setPrice(productDetails.getPrice());
             product.setStockQuantity(productDetails.getStockQuantity());
             product.setCategory(productDetails.getCategory());
-            product.setUpdatedAt(LocalDateTime.now());
             return productRepository.save(product);
         }).orElseThrow(() -> new RuntimeException("Product not found"));
     }
 
+    // Delete product
     public void deleteProduct(Long productId) {
         productRepository.deleteById(productId);
     }
