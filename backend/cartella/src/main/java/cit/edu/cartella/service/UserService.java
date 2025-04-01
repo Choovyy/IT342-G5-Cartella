@@ -46,12 +46,21 @@ public class UserService {
     }
 
     public User registerUser(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword())); 
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("Username is already taken");
+        }
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email is already registered");
+        }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
     public boolean authenticateUser(String username, String password) {
-        Optional<User> user = userRepository.findByUsername(username);
-        return user.isPresent() && passwordEncoder.matches(password, user.get().getPassword());
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return passwordEncoder.matches(password, user.getPassword());
     }
+    
 }
+
