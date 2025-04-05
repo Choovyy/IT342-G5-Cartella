@@ -37,7 +37,7 @@ public class User {
 
     // Automatically set timestamps before saving to DB
     @PrePersist
-    protected void onCreate() {
+    public void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +9,13 @@ const Register = () => {
     password: "",
   });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("authToken");
+    if (token) {
+      navigate("/dashboard"); // Redirect to dashboard if already logged in
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import cit.edu.cartella.util.JwtUtil;
 
 @Service
 public class UserService {
@@ -20,6 +21,8 @@ public class UserService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
+    @Autowired
+    private JwtUtil jwtUtil; // Inject JwtUtil
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -57,9 +60,16 @@ public class UserService {
     }
 
     public boolean authenticateUser(String username, String password) {
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Optional<User> userOptional = userRepository.findByUsername(username);
+        if (userOptional.isEmpty()) {
+            return false; // User not found
+        }
+        User user = userOptional.get();
         return passwordEncoder.matches(password, user.getPassword());
+    }
+
+    public String generateToken(String username) {
+        return jwtUtil.generateToken(username);
     }
     
 }

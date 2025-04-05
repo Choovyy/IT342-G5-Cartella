@@ -1,27 +1,62 @@
 package cit.edu.cartella.config;
 
-import cit.edu.cartella.service.CustomOAuth2UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 
-
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig implements WebMvcConfigurer {
+public class SecurityConfig {
 
-    private final CustomOAuth2UserService oAuth2UserService;
+    private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
 
-    public SecurityConfig(CustomOAuth2UserService oAuth2UserService) {
-        this.oAuth2UserService = oAuth2UserService;
+    @Autowired
+    public SecurityConfig(CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
+        this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
+        return http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
+                .csrf(csrf -> csrf.disable()) // Disable CSRF for testing, enable in production
+                .authorizeHttpRequests(auth -> 
+                    auth.requestMatchers("/", "/api/users/register", "/api/users/login", "/oauth2/authorization/google").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth -> 
+                    oauth.successHandler(customOAuth2SuccessHandler) // Use custom success handler
+                )
+                .logout(logout -> 
+                    logout.logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository)) // Redirect after logout
+                )
+                .build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173")); // Allow frontend
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     @Bean
@@ -29,29 +64,9 @@ public class SecurityConfig implements WebMvcConfigurer {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/", "/login", "/register", "/products", "/api/users/register", "/api/users/login").permitAll() // Public endpoints
-                    .anyRequest().authenticated() // All other requests require authentication
-                )
-                .oauth2Login(oauth -> oauth
-                    .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService)) // Custom OAuth2 user service
-                    .defaultSuccessUrl("/oauth2/success", true) // Redirect after successful login
-                )
-                .logout(logout -> logout.logoutSuccessUrl("/")) // Redirect to home page after logout
-                .csrf(csrf -> csrf.disable()) // Disable CSRF for simplicity in this case
-                .build();
-    }
-
-    // CORS configuration using WebMvcConfigurer
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173") // Allow the frontend to make requests to the backend
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true);
+    private OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
+        OidcClientInitiatedLogoutSuccessHandler successHandler = new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
+        successHandler.setPostLogoutRedirectUri("http://localhost:5173"); // Redirect to frontend after logout
+        return successHandler;
     }
 }
