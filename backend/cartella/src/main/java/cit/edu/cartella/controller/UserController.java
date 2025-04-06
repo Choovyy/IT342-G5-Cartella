@@ -5,8 +5,7 @@ import cit.edu.cartella.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+
 
 import java.util.*;
 
@@ -24,10 +23,15 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
+public ResponseEntity<?> registerUser(@RequestBody User user) {
+    try {
         User registeredUser = userService.registerUser(user);
         return ResponseEntity.ok(registeredUser);
+    } catch (IllegalArgumentException ex) {
+        // Return a 400 Bad Request with the error message
+        return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     }
+}
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> loginUser(@RequestBody Map<String, String> loginData) {

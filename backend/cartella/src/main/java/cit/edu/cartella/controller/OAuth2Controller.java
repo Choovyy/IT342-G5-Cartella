@@ -1,7 +1,6 @@
 package cit.edu.cartella.controller;
 
 import cit.edu.cartella.entity.User;
-import cit.edu.cartella.entity.Role;
 import cit.edu.cartella.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

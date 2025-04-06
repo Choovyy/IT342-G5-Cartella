@@ -13,7 +13,7 @@ const Register = () => {
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     if (token) {
-      navigate("/dashboard"); // Redirect to dashboard if already logged in
+      navigate("/dashboard");
     }
   }, [navigate]);
 
@@ -24,11 +24,13 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:8080/api/users/register", formData);
+      const response = await axios.post("http://localhost:8080/api/users/register", formData);
+      console.log("Registration response:", response.data);
       alert("Registration Successful!");
       navigate("/login");
     } catch (error) {
-      alert("Error registering user");
+      console.error("Registration error:", error.response?.data);
+      alert(error.response?.data?.error || "An error occurred during registration.");
     }
   };
 
@@ -36,11 +38,30 @@ const Register = () => {
     <div>
       <h2>Register</h2>
       <form onSubmit={handleSubmit}>
-        <input type="text" name="username" placeholder="Username" onChange={handleChange} required />
-        <input type="email" name="email" placeholder="Email" onChange={handleChange} required />
-        <input type="password" name="password" placeholder="Password" onChange={handleChange} required />
+        <input
+          type="text"
+          name="username"
+          placeholder="Username"
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          onChange={handleChange}
+          required
+        />
         <button type="submit">Register</button>
       </form>
+      <p>Already have an account? <a href="/login">Login</a></p>
     </div>
   );
 };
