@@ -1,0 +1,208 @@
+/* EXISTING STYLES FOR THE LOGIN FORM */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+@font-face {
+  font-family: 'GDS Didot';
+  src: url('https://db.onlinewebfonts.com/t/5e0ec1d5f3e8f99eb6a5a8480c446f5d.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  overflow: hidden; 
+  zoom: 100%; 
+}
+
+.login-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: fixed; 
+  top: 0;
+  left: 0;
+}
+
+/* LEFT SIDE */
+.login-branding {
+  background-color: #1a1a1a;
+  color: white;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+  height: 100%;
+}
+
+.logo-image {
+  width: 300px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.login-branding h2 {
+  font-family: 'GDS Didot', serif;
+  font-size: 96px;
+  margin: 10px 0;
+}
+
+.login-branding p {
+  font-size: 36px;
+  color: #FFFFFF;
+}
+
+/* TOP OF FORM LOGO*/
+.logo-light-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px; 
+  position: absolute; 
+  top: 20px; 
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.logo-light-image {
+  width: 70px;
+  height: auto;
+  margin-right: 10px;
+}
+
+.logo-light-name {
+  font-family: 'GDS Didot', serif;
+  font-size: 36px;
+  color: #1a1a1a; 
+  margin: 0;
+}
+
+/* Google Login button */
+.google-login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  background-color: white; 
+  color: #000000; 
+  border: 1px solid #ccc; 
+  border-radius: 5px; 
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  width: 100%; 
+}
+
+.google-login-button:hover {
+  background-color: #f1f1f1; /* Light gray hover effect */
+}
+
+/* Google Logo */
+.google-logo {
+  width: 20px; 
+  height: 20px; 
+}
+
+/* RIGHT SIDE */
+.login-form-container {
+  width: 50%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+  position: relative;
+  margin-top: 30px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 320px;
+  padding: 30px;
+  border: 1px solid #dcdcdc;
+  border-radius: 10px; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background-color: white;
+}
+
+form h2 {
+  text-align: center;
+  font-weight: 600;
+  font-size: 32px;
+  margin-bottom: 10px;
+  margin-top: -10px;
+  font-family: 'Poppins', sans-serif;
+}
+
+input[type="text"],
+input[type="password"] {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px; 
+  font-size: 14px;
+  outline: none;
+}
+
+button[type="submit"] {
+  background-color: #D32F2E;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 5px; 
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+button[type="submit"]:hover {
+  background-color: #bb1d1d;
+}
+
+button[style] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px; 
+  background-color: white;
+  cursor: pointer;
+}
+
+p {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+a {
+  color: #D32F2E;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* OR DIVIDER*/
+.or-divider {
+  text-align: center;
+  margin: 10px 0;
+  position: relative;
+}
+
+.vendor-link {
+  margin-top: -25px; 
+  margin-bottom: -10px;
+}
