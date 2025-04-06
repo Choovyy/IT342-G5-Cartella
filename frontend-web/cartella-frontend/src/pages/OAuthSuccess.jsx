@@ -10,7 +10,7 @@ const OAuthSuccess = () => {
     if (token) {
       try {
         sessionStorage.setItem("authToken", token); // Save token
-        console.log("Token successfully stored:", token); // Debugging: Log the token
+        
         navigate("/dashboard"); // Redirect to dashboard
       } catch (error) {
         console.error("Error storing token:", error); // Debugging: Log the error

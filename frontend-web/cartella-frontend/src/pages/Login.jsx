@@ -21,7 +21,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post("http://localhost:8080/api/users/login", formData);
-      console.log("Login response:", response.data); // Debugging: Log the response
+      
 
       // Save the token in sessionStorage
       sessionStorage.setItem("authToken", response.data.token);
