@@ -2,8 +2,11 @@ package cit.edu.cartella.controller;
 
 import cit.edu.cartella.entity.User;
 import cit.edu.cartella.service.UserService;
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -23,12 +26,21 @@ public class UserController {
     }
 
     @PostMapping("/register")
-public ResponseEntity<?> registerUser(@RequestBody User user) {
+    public ResponseEntity<?> registerUser(@Valid @RequestBody User user, BindingResult bindingResult) {
+    // Check for validation errors
+    if (bindingResult.hasErrors()) {
+        Map<String, String> errors = new HashMap<>();
+        bindingResult.getFieldErrors().forEach(error -> 
+            errors.put(error.getField(), error.getDefaultMessage()));
+        return ResponseEntity.badRequest().body(errors);
+    }
+    
     try {
+        // Attempt to register the user
         User registeredUser = userService.registerUser(user);
         return ResponseEntity.ok(registeredUser);
     } catch (IllegalArgumentException ex) {
-        // Return a 400 Bad Request with the error message
+        // Handle duplicate username, email, or phone number
         return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     }
 }
