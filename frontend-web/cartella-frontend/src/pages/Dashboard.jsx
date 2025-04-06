@@ -8,7 +8,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
-    console.log("Retrieved Token:", token); // Debugging: Log the token
+    
 
     if (!token) {
       alert("You must be logged in to access the dashboard.");
