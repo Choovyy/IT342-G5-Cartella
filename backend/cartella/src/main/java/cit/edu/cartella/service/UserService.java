@@ -9,9 +9,15 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import cit.edu.cartella.util.JwtUtil;
+import java.util.regex.Pattern;
 
 @Service
 public class UserService {
+
+    private static final Pattern EMAIL_PATTERN = 
+        Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    private static final Pattern PHONE_PATTERN = 
+        Pattern.compile("^\\d{11}$");
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder; 
@@ -49,12 +55,32 @@ public class UserService {
     }
 
     public User registerUser(User user) {
+        // Validate email format
+        if (!EMAIL_PATTERN.matcher(user.getEmail()).matches()) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+    
+        // Validate phone number (exactly 11 digits)
+        if (!PHONE_PATTERN.matcher(user.getPhoneNumber()).matches()) {
+            throw new IllegalArgumentException("Phone number must be exactly 11 digits");
+        }
+    
+        // Check for existing username
         if (userRepository.findByUsername(user.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username is already taken");
         }
+    
+        // Check for existing email
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email is already registered");
         }
+    
+        // Check for existing phone number
+        if (userRepository.findByPhoneNumber(user.getPhoneNumber()).isPresent()) {
+            throw new IllegalArgumentException("Phone number is already registered");
+        }
+    
+        // Encrypt password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }

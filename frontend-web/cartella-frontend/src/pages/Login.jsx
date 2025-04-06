@@ -20,49 +20,82 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:8080/api/users/login", formData);
-      
-
-      // Save the token in sessionStorage
+      const response = await axios.post(
+        "http://localhost:8080/api/users/login", 
+        formData
+      );
       sessionStorage.setItem("authToken", response.data.token);
-
       alert("Login Successful!");
-      navigate("/dashboard"); // Redirect to dashboard
+      navigate("/dashboard");
     } catch (error) {
-      console.error("Login error:", error.response?.data); // Debugging: Log the error
+      console.error("Login error:", error.response?.data);
       alert(error.response?.data?.error || "Invalid credentials");
     }
   };
 
   const handleGoogleLogin = () => {
-    // Redirect to the backend's Google OAuth2 login endpoint
     window.location.href = "http://localhost:8080/oauth2/authorization/google";
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          name="username"
-          placeholder="Username"
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          onChange={handleChange}
-          required
-        />
-        <button type="submit">Login</button>
-      </form>
-      <p>Don't have an account? <a href="/register">Register</a></p>
-      <button onClick={handleGoogleLogin} style={{ marginTop: "10px" }}>
-        Login with Google
-      </button>
+    <div className="login-container">
+      {/* LEFT SIDE - BRANDING */}
+      <div className="login-branding">
+        <img src={logo} alt="Cartella Logo" className="logo-image" />
+        <h2>Cartella</h2>
+        <p>Your ultimate destination for seamless shopping</p>
+      </div>
+
+      {/* RIGHT SIDE - FORM */}
+      <div className="login-form-container">
+        {/* TOP - LIGHT LOGO AND NAME */}
+        <div className="logo-light-container">
+          <img src={logoLight} alt="Cartella Light Logo" className="logo-light-image" />
+          <h2 className="logo-light-name">Cartella</h2>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <h2>LOG IN</h2>
+          <input
+            type="text"
+            name="username"
+            placeholder="Username"
+            onChange={handleChange}
+            required
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            onChange={handleChange}
+            required
+          />
+          <button type="submit">Log in</button>
+          
+          {/* OR Divider */}
+          <div className="or-divider" style={{ color: '#949494' }}>
+            ━━━━━━━━━ OR ━━━━━━━━━
+          </div>
+          
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="google-login-button"
+          >
+            <img
+              src={googleLogo}
+              alt="Google Logo"
+              className="google-logo"
+            />
+            Log in with Google
+          </button>
+          
+          <p>New to Cartella? <a href="/register">Register</a></p>
+          <p className="vendor-link">
+            <a href="/vendor-login">Become Vendor at Cartella</a>
+          </p>
+        </form>
+      </div>
     </div>
   );
 };
