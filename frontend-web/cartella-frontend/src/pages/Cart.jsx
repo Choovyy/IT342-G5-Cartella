@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase
@@ -19,7 +18,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 const drawerWidth = 240;
 
-const Dashboard = () => {
+const Cart = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
@@ -28,23 +27,10 @@ const Dashboard = () => {
     const token = sessionStorage.getItem("authToken");
 
     if (!token) {
-      alert("You must be logged in to access the dashboard.");
+      alert("You must be logged in to access this page.");
       navigate("/login");
       return;
     }
-
-    axios
-      .get("/login", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .catch((error) => {
-        console.error("Error verifying auth:", error);
-        alert("Session expired. Please log in again.");
-        sessionStorage.removeItem("authToken");
-        navigate("/login");
-      });
   }, [navigate]);
 
   const handleLogout = () => {
@@ -91,7 +77,6 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* App Bar */}
       <AppBar
         position="fixed"
         elevation={0}
@@ -104,29 +89,10 @@ const Dashboard = () => {
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box display="flex" alignItems="center">
             <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
-            <Typography
-              variant="h2"
-              sx={{
-                fontFamily: "GDS Didot, serif",
-                fontSize: "26px",
-                color: "inherit",
-                marginRight: 3,
-              }}
-            >
+            <Typography variant="h2" sx={{ fontFamily: "GDS Didot, serif", fontSize: "26px", color: "inherit", marginRight: 3 }}>
               Cartella
             </Typography>
-
-            {/* Search Bar */}
-            <Box
-              display="flex"
-              alignItems="center"
-              sx={{
-                backgroundColor: "#fff",
-                borderRadius: 2,
-                px: 2,
-                width: 400,
-              }}
-            >
+            <Box display="flex" alignItems="center" sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}>
               <IconButton onClick={handleSearch}>
                 <SearchIcon sx={{ color: "#1A1A1A" }} />
               </IconButton>
@@ -137,29 +103,23 @@ const Dashboard = () => {
                 sx={{
                   flex: 1,
                   color: "#000",
-                  "& input": {
-                    border: "none",
-                    outline: "none",
-                  },
+                  "& input": { border: "none", outline: "none" },
                 }}
               />
             </Box>
           </Box>
-
-          {/* Theme Toggle */}
           <IconButton sx={{ ml: 2 }} onClick={toggleTheme} color="inherit">
             {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
           </IconButton>
         </Toolbar>
       </AppBar>
 
-      {/* Drawer */}
       <Drawer
         variant="permanent"
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
+          "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
             backgroundColor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
@@ -170,7 +130,6 @@ const Dashboard = () => {
         {drawer}
       </Drawer>
 
-      {/* Main Content */}
       <Box
         component="main"
         sx={{
@@ -179,18 +138,13 @@ const Dashboard = () => {
           p: 3,
           mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
-          display: "flex",
-          flexDirection: "column",
-          minHeight: `calc(100vh - 64px)`,
         }}
       >
-        <Typography variant="h4">Categories</Typography>
-        <Typography paragraph>
-          Welcome to your dashboard. Choose a section from the left.
-        </Typography>
+        <Typography variant="h4">My Cart</Typography>
+        <Typography paragraph>All your selected items will appear here.</Typography>
       </Box>
     </Box>
   );
 };
 
-export default Dashboard;
+export default Cart;
