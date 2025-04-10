@@ -16,7 +16,7 @@ const ThemeContextProvider = ({ children }) => {
     localStorage.setItem("themeMode", newMode);
   };
 
-  // ✨ Apply data-theme to <html> for CSS variable targeting
+  //Apply data-theme to <html> for CSS variable targeting
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", mode);
   }, [mode]);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase
@@ -16,9 +17,12 @@ import HistoryIcon from "@mui/icons-material/History";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
+import LightLogo from "../images/Cartella Logo (Light).jpeg";
+import DarkLogo from "../images/Cartella Logo (Dark2).jpeg";
+
 const drawerWidth = 240;
 
-const MyPurchase = () => {
+const WomenApparel = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
@@ -28,7 +32,16 @@ const MyPurchase = () => {
     if (!token) {
       alert("You must be logged in to access this page.");
       navigate("/login");
+      return;
     }
+
+    axios.get("/login", {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {
+      alert("Session expired. Please log in again.");
+      sessionStorage.removeItem("authToken");
+      navigate("/login");
+    });
   }, [navigate]);
 
   const handleLogout = () => {
@@ -42,15 +55,14 @@ const MyPurchase = () => {
     }
   };
 
-  const logoSrc = mode === "light"
-    ? "src/images/Cartella Logo (Light).jpeg"
-    : "src/images/Cartella Logo (Dark2).jpeg";
+  const logoSrc = mode === "light" ? LightLogo : DarkLogo;
 
   const drawer = (
     <Box display="flex" flexDirection="column" height="100%">
       <Toolbar />
       <List sx={{ flexGrow: 1 }}>
-        {[{ text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
+        {[
+          { text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
           { text: "Cart", path: "/cart", icon: <ShoppingCartIcon /> },
           { text: "My Purchase", path: "/mypurchase", icon: <HistoryIcon /> },
           { text: "Notifications", path: "/notifications", icon: <NotificationsIcon /> },
@@ -74,8 +86,11 @@ const MyPurchase = () => {
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <AppBar position="fixed" elevation={0}
-        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1,
-              backgroundColor: mode === "dark" ? "#3A3A3A" : "#D32F2F", color: "#fff" }}>
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          backgroundColor: mode === "dark" ? "#3A3A3A" : "#D32F2F",
+          color: "#fff"
+        }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box display="flex" alignItems="center">
             <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
@@ -84,12 +99,8 @@ const MyPurchase = () => {
             </Typography>
             <Box display="flex" alignItems="center" sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}>
               <IconButton onClick={handleSearch}><SearchIcon sx={{ color: "#1A1A1A" }} /></IconButton>
-              <InputBase
-                placeholder="Search items"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                sx={{ flex: 1, color: "#000", "& input": { border: "none", outline: "none" } }}
-              />
+              <InputBase placeholder="Search items" value={searchText} onChange={(e) => setSearchText(e.target.value)}
+                sx={{ flex: 1, color: "#000", "& input": { border: "none", outline: "none" } }} />
             </Box>
           </Box>
           <IconButton sx={{ ml: 2 }} onClick={toggleTheme} color="inherit">
@@ -98,35 +109,30 @@ const MyPurchase = () => {
         </Toolbar>
       </AppBar>
 
-      <Drawer variant="permanent"
-        sx={{
+      <Drawer variant="permanent" sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        [`& .MuiDrawer-paper`]: {
           width: drawerWidth,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: drawerWidth,
-            boxSizing: "border-box",
-            backgroundColor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
-            color: mode === "light" ? "#000" : "#FFF",
-          },
-        }}
-      >
+          boxSizing: "border-box",
+          backgroundColor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+          color: mode === "light" ? "#000" : "#FFF",
+        },
+      }}>
         {drawer}
       </Drawer>
 
-      <Box component="main"
-        sx={{
-          flexGrow: 1,
-          bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
-          p: 3,
-          mt: 8,
-          color: mode === "light" ? "#000" : "#FFF",
-        }}
-      >
-        <Typography variant="h4">My Purchase</Typography>
-        <Typography paragraph>Here you can view your past orders and receipts.</Typography>
+      <Box component="main" sx={{
+        flexGrow: 1,
+        bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+        p: 3,
+        mt: 8,
+        color: mode === "light" ? "#000" : "#FFF"
+      }}>
+        <Typography variant="h4" gutterBottom>Women's Apparel</Typography>
       </Box>
     </Box>
   );
 };
 
-export default MyPurchase;
+export default WomenApparel;

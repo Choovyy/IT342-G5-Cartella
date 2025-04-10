@@ -47,14 +47,14 @@ const Cart = () => {
   const logoSrc =
     mode === "light"
       ? "src/images/Cartella Logo (Light).jpeg"
-      : "src/images/Cartella Logo (Dark).jpeg";
+      : "src/images/Cartella Logo (Dark2).jpeg";
 
   const drawer = (
     <Box display="flex" flexDirection="column" height="100%">
       <Toolbar />
       <List sx={{ flexGrow: 1 }}>
         {[
-          { text: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
+          { text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
           { text: "Cart", path: "/cart", icon: <ShoppingCartIcon /> },
           { text: "My Purchase", path: "/mypurchase", icon: <HistoryIcon /> },
           { text: "Notifications", path: "/notifications", icon: <NotificationsIcon /> },
@@ -82,7 +82,7 @@ const Cart = () => {
         elevation={0}
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: mode === "dark" ? "#1A1A1A" : "#D32F2F",
+          backgroundColor: mode === "dark" ? "#3A3A3A" : "#D32F2F",
           color: "#fff",
         }}
       >
