@@ -44,13 +44,13 @@ const Notification = () => {
 
   const logoSrc = mode === "light"
     ? "src/images/Cartella Logo (Light).jpeg"
-    : "src/images/Cartella Logo (Dark).jpeg";
+    : "src/images/Cartella Logo (Dark2).jpeg";
 
   const drawer = (
     <Box display="flex" flexDirection="column" height="100%">
       <Toolbar />
       <List sx={{ flexGrow: 1 }}>
-        {[{ text: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
+        {[{ text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
           { text: "Cart", path: "/cart", icon: <ShoppingCartIcon /> },
           { text: "My Purchase", path: "/mypurchase", icon: <HistoryIcon /> },
           { text: "Notifications", path: "/notifications", icon: <NotificationsIcon /> },
@@ -75,7 +75,7 @@ const Notification = () => {
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <AppBar position="fixed" elevation={0}
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 1,
-              backgroundColor: mode === "dark" ? "#1A1A1A" : "#D32F2F", color: "#fff" }}>
+              backgroundColor: mode === "dark" ? "#3A3A3A" : "#D32F2F", color: "#fff" }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box display="flex" alignItems="center">
             <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />

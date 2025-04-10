@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase
+  ListItemText, IconButton, InputBase, Grid
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -16,6 +16,13 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import HistoryIcon from "@mui/icons-material/History";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+
+import ClothesImg from "../images/clothes.png";
+import BlenderImg from "../images/blender.png";
+import WatchImg from "../images/watch.png";
+import ShadesImg from "../images/shades.png";
+import IphoneImg from "../images/iphone.png";
+import GamingImg from "../images/gaming.png";
 
 const drawerWidth = 240;
 
@@ -61,14 +68,38 @@ const Dashboard = () => {
   const logoSrc =
     mode === "light"
       ? "src/images/Cartella Logo (Light).jpeg"
-      : "src/images/Cartella Logo (Dark).jpeg";
+      : "src/images/Cartella Logo (Dark2).jpeg";
+
+  const categories = [
+  { name: "Clothes", image: ClothesImg, path: "/category/clothes" },
+  { name: "Men’s Accessories", image: WatchImg, path: "/category/mens-accessories" },
+  { name: "Mobiles & Gadgets", image: IphoneImg, path: "/category/mobiles-gadgets" },
+  { name: "Home Appliances", image: BlenderImg, path: "/category/home-appliances" },
+  { name: "Women’s Accessories", image: ShadesImg, path: "/category/womens-accessories" },
+  { name: "Gaming", image: GamingImg, path: "/category/gaming" },
+];
+
+  const itemStyle = {
+    cursor: "pointer",
+    textAlign: "center",
+    transition: "transform 0.2s",
+    "&:hover": {
+      transform: "scale(1.05)",
+    },
+  };
+
+  const imageStyle = {
+    width: "230px",
+    height: "250px",
+    mb: 1,
+  };
 
   const drawer = (
     <Box display="flex" flexDirection="column" height="100%">
       <Toolbar />
       <List sx={{ flexGrow: 1 }}>
         {[
-          { text: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
+          { text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
           { text: "Cart", path: "/cart", icon: <ShoppingCartIcon /> },
           { text: "My Purchase", path: "/mypurchase", icon: <HistoryIcon /> },
           { text: "Notifications", path: "/notifications", icon: <NotificationsIcon /> },
@@ -97,7 +128,7 @@ const Dashboard = () => {
         elevation={0}
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: mode === "dark" ? "#1A1A1A" : "#D32F2F",
+          backgroundColor: mode === "dark" ? "#3A3A3A" : "#D32F2F",
           color: "#fff",
         }}
       >
@@ -179,15 +210,34 @@ const Dashboard = () => {
           p: 3,
           mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
-          display: "flex",
-          flexDirection: "column",
-          minHeight: `calc(100vh - 64px)`,
         }}
       >
-        <Typography variant="h4">Categories</Typography>
-        <Typography paragraph>
-          Welcome to your dashboard. Choose a section from the left.
-        </Typography>
+        <Typography variant="h4" gutterBottom>Categories</Typography>
+        <Grid container spacing={20} justifyContent="center">
+          {/* Top Row */}
+          {[0, 1, 2].map((i) => {
+            const { name, image, path } = categories[i];
+            return (
+              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
+                <Box component="img" src={image} alt={name} sx={imageStyle} />
+                <Typography variant="subtitle1">{name}</Typography>
+              </Grid>
+            );
+          })}
+        </Grid>
+
+        <Grid container spacing={20} sx={{ mt: 1 }} justifyContent="center">
+          {/* Bottom Row */}
+          {[3, 4, 5].map((i) => {
+            const { name, image, path } = categories[i];
+            return (
+              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
+                <Box component="img" src={image} alt={name} sx={imageStyle} />
+                <Typography variant="subtitle1">{name}</Typography>
+              </Grid>
+            );
+          })}
+        </Grid>
       </Box>
     </Box>
   );
