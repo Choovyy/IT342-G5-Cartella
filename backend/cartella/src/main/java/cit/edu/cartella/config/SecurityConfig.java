@@ -34,7 +34,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for testing, enable in production
                 .authorizeHttpRequests(auth -> 
-                    auth.requestMatchers("/", "/api/users/register", "/api/users/login", "/oauth2/authorization/google").permitAll()
+                    auth.requestMatchers("/", "/api/users/register", "/api/users/login", "/oauth2/authorization/google", "/api/vendors/login", "/api/vendors/register").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> 

@@ -18,6 +18,9 @@ import Gaming from "./pages/Gaming";
 import MenApparel from "./pages/MenApparel";
 import WomenApparel from "./pages/WomenApparel";
 import ThemeContextProvider from "./ThemeContext";
+import VendorLogin from "./Vendor_Page/VendorLogin";
+import VendorRegister from "./Vendor_Page/VendorRegister";
+import VendorDashboard from "./Vendor_Page/VendorDashboard";
 
 const App = () => {
   return (
@@ -27,7 +30,8 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
+        <Route path="/vendor-login" element={<VendorLogin />} />
+        <Route path="/vendor-register" element={<VendorRegister />} />
         {/* Authenticated App Routes (With Theme Context) */}
         <Route
           path="/*"
@@ -35,6 +39,7 @@ const App = () => {
             <ThemeContextProvider>
               <Routes>
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/vendor-dashboard" element={<VendorDashboard />} />
                 <Route path="/category/clothes" element={<Clothes />} />
                 <Route path="/category/home-appliances" element={<HomeAppliance />} />
                 <Route path="/category/mens-accessories" element={<MenAccessories />} />
