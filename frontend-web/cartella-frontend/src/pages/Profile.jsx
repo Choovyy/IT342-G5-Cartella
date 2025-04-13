@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, TextField, Button,
-  FormControl, FormLabel, RadioGroup, FormControlLabel, Radio
+  FormControl, FormLabel, RadioGroup, FormControlLabel, Radio,
+  CircularProgress, Alert
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -16,6 +17,9 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import HistoryIcon from "@mui/icons-material/History";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+
+
+import userService from "../api/userService";
 
 const drawerWidth = 240;
 
@@ -30,15 +34,46 @@ const Profile = () => {
     phone: "",
     address: "",
     dob: "",
-    gender: "",
+    gender: ""
   });
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     if (!token) {
       alert("You must be logged in to access this page.");
       navigate("/login");
+      return;
     }
+
+    // Fetch user data
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        const userId = 1;
+        const userData = await userService.getUserById(userId);
+        
+        // Map backend data to form fields
+        setFormData({
+          username: userData.username || "",
+          password: "", // Don't display password
+          email: userData.email || "",
+          phone: userData.phoneNumber || "",
+          address: "", // Not in User entity, might be in another entity
+          dob: userData.dateOfBirth || "",
+          gender: userData.gender ? userData.gender.toLowerCase() : ""
+        });
+        
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError("Failed to load user data. Please try again later.");
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -57,8 +92,31 @@ const Profile = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    console.log("Profile updated:", formData);
+  const handleSubmit = async () => {
+    try {
+      // For demo purposes, we'll use a hardcoded user ID
+      const userId = sessionStorage.getItem("userId"); // Replace with actual user ID from token
+      
+      // Map form data to backend format
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        phoneNumber: formData.phone,
+        dateOfBirth: formData.dob,
+        gender: formData.gender ? formData.gender.toUpperCase() : null
+      };
+      
+      // Only include password if it's been changed
+      if (formData.password) {
+        userData.password = formData.password;
+      }
+      
+      await userService.updateUser(userId, userData);
+      alert("Profile updated successfully!");
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      alert("Failed to update profile. Please try again.");
+    }
   };
 
   const logoSrc = mode === "light"
@@ -150,74 +208,82 @@ const Profile = () => {
       >
         <Box sx={{ alignSelf: "flex-start" }}>
           <Typography variant="h4" sx={{ mb: 0 }}>My Profile</Typography>
-          <Typography variant="body2" sx={{ mb: 4, mt: 0.5, color: "#000" }}>
+          <Typography variant="body2" sx={{ mb: 4, mt: 0.5, color: mode === "light" ? "#000" : "#FFF" }}>
             Manage and protect your account
           </Typography>
         </Box>
 
-        <Box
-          component="form"
-          noValidate
-          autoComplete="off"
-          sx={{
-            width: "100%",
-            maxWidth: "1000px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 1,
-            bgcolor: mode === "dark" ? "#2A2A2A" : "#f9f9f9",
-            p: 4,
-            borderRadius: 2,
-            boxShadow: 2,
-            position: "relative",
-            color: mode === "dark" ? "#fff" : "#000",
-          }}
-        >
-          <TextField label="Username" name="username" value={formData.username} onChange={handleChange} fullWidth />
-          <TextField label="Password" name="password" type="password" value={formData.password} onChange={handleChange} fullWidth />
-          <TextField label="Email" name="email" value={formData.email} onChange={handleChange} fullWidth />
-          <TextField label="Phone number" name="phone" value={formData.phone} onChange={handleChange} fullWidth />
-          <TextField label="Address" name="address" value={formData.address} onChange={handleChange} fullWidth />
-          
-          <Box>
-            <Typography sx={{ color: mode === "dark" ? "#ccc" : "#000", mb: 1 }}>
-              Date of Birth
-            </Typography>
-            <TextField
-              name="dob"
-              type="date"
-              value={formData.dob}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              InputProps={{ style: { color: mode === "dark" ? "#fff" : "#000" } }}
-              fullWidth
-            />
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+            <CircularProgress />
           </Box>
-
-          <FormControl>
-            <FormLabel sx={{ color: mode === "dark" ? "#ccc" : undefined }}>Gender</FormLabel>
-            <RadioGroup
-              row
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-            >
-              <FormControlLabel value="male" control={<Radio />} label="Male" />
-              <FormControlLabel value="female" control={<Radio />} label="Female" />
-              <FormControlLabel value="other" control={<Radio />} label="Other" />
-            </RadioGroup>
-          </FormControl>
-
-          <Button
-            variant="contained"
-            color="error"
-            size="small"
-            onClick={handleSubmit}
-            sx={{ alignSelf: "flex-end", mt: 2 }}
+        ) : error ? (
+          <Alert severity="error" sx={{ width: '100%', maxWidth: '1000px' }}>{error}</Alert>
+        ) : (
+          <Box
+            component="form"
+            noValidate
+            autoComplete="off"
+            sx={{
+              width: "100%",
+              maxWidth: "1000px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+              bgcolor: mode === "dark" ? "#2A2A2A" : "#f9f9f9",
+              p: 4,
+              borderRadius: 2,
+              boxShadow: 2,
+              position: "relative",
+              color: mode === "dark" ? "#fff" : "#000",
+            }}
           >
-            Save Profile
-          </Button>
-        </Box>
+            <TextField label="Username" name="username" value={formData.username} onChange={handleChange} fullWidth />
+            <TextField label="Password" name="password" type="password" placeholder="Leave blank to keep current password" onChange={handleChange} fullWidth />
+            <TextField label="Email" name="email" value={formData.email} onChange={handleChange} fullWidth />
+            <TextField label="Phone number" name="phone" value={formData.phone} onChange={handleChange} fullWidth />
+            <TextField label="Address" name="address" value={formData.address} onChange={handleChange} fullWidth />
+            
+            <Box>
+              <Typography sx={{ color: mode === "dark" ? "#ccc" : "#000", mb: 1 }}>
+                Date of Birth
+              </Typography>
+              <TextField
+                name="dob"
+                type="date"
+                value={formData.dob}
+                onChange={handleChange}
+                InputLabelProps={{ shrink: true }}
+                InputProps={{ style: { color: mode === "dark" ? "#fff" : "#000" } }}
+                fullWidth
+              />
+            </Box>
+
+            <FormControl>
+              <FormLabel sx={{ color: mode === "dark" ? "#ccc" : undefined }}>Gender</FormLabel>
+              <RadioGroup
+                row
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+              >
+                <FormControlLabel value="male" control={<Radio />} label="Male" />
+                <FormControlLabel value="female" control={<Radio />} label="Female" />
+                <FormControlLabel value="other" control={<Radio />} label="Other" />
+              </RadioGroup>
+            </FormControl>
+
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              onClick={handleSubmit}
+              sx={{ alignSelf: "flex-end", mt: 2 }}
+            >
+              Save Profile
+            </Button>
+          </Box>
+        )}
       </Box>
     </Box>
   );

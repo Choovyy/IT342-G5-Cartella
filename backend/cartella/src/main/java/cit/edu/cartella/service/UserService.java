@@ -47,6 +47,46 @@ public class UserService {
     }
 
     public User saveUser(User user) {
+        // If password is provided and not already encrypted, encrypt it
+        if (user.getPassword() != null && !user.getPassword().isEmpty() && 
+            !user.getPassword().startsWith("$2a$")) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+        
+        // Validate email format if provided
+        if (user.getEmail() != null && !EMAIL_PATTERN.matcher(user.getEmail()).matches()) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+        
+        // Validate phone number if provided
+        if (user.getPhoneNumber() != null && !PHONE_PATTERN.matcher(user.getPhoneNumber()).matches()) {
+            throw new IllegalArgumentException("Phone number must be exactly 11 digits");
+        }
+        
+        // Check for duplicate username if username is being updated
+        if (user.getUsername() != null) {
+            Optional<User> existingUser = userRepository.findByUsername(user.getUsername());
+            if (existingUser.isPresent() && !existingUser.get().getUserId().equals(user.getUserId())) {
+                throw new IllegalArgumentException("Username is already taken");
+            }
+        }
+        
+        // Check for duplicate email if email is being updated
+        if (user.getEmail() != null) {
+            Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+            if (existingUser.isPresent() && !existingUser.get().getUserId().equals(user.getUserId())) {
+                throw new IllegalArgumentException("Email is already registered");
+            }
+        }
+        
+        // Check for duplicate phone number if phone number is being updated
+        if (user.getPhoneNumber() != null) {
+            Optional<User> existingUser = userRepository.findByPhoneNumber(user.getPhoneNumber());
+            if (existingUser.isPresent() && !existingUser.get().getUserId().equals(user.getUserId())) {
+                throw new IllegalArgumentException("Phone number is already registered");
+            }
+        }
+        
         return userRepository.save(user);
     }
 
