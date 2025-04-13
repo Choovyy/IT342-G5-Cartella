@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Grid
+  ListItemText, IconButton, InputBase
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -17,16 +16,9 @@ import HistoryIcon from "@mui/icons-material/History";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
-import ClothesImg from "../images/clothes.png";
-import BlenderImg from "../images/blender.png";
-import WatchImg from "../images/watch.png";
-import ShadesImg from "../images/shades.png";
-import IphoneImg from "../images/iphone.png";
-import GamingImg from "../images/gaming.png";
-
 const drawerWidth = 240;
 
-const Dashboard = () => {
+const Cart = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
@@ -35,23 +27,10 @@ const Dashboard = () => {
     const token = sessionStorage.getItem("authToken");
 
     if (!token) {
-      alert("You must be logged in to access the dashboard.");
+      alert("You must be logged in to access this page.");
       navigate("/login");
       return;
     }
-
-    axios
-      .get("/login", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .catch((error) => {
-        console.error("Error verifying auth:", error);
-        alert("Session expired. Please log in again.");
-        sessionStorage.removeItem("authToken");
-        navigate("/login");
-      });
   }, [navigate]);
 
   const handleLogout = () => {
@@ -69,30 +48,6 @@ const Dashboard = () => {
     mode === "light"
       ? "src/images/Cartella Logo (Light).jpeg"
       : "src/images/Cartella Logo (Dark2).jpeg";
-
-  const categories = [
-  { name: "Clothes", image: ClothesImg, path: "/category/clothes" },
-  { name: "Men’s Accessories", image: WatchImg, path: "/category/mens-accessories" },
-  { name: "Mobiles & Gadgets", image: IphoneImg, path: "/category/mobiles-gadgets" },
-  { name: "Home Appliances", image: BlenderImg, path: "/category/home-appliances" },
-  { name: "Women’s Accessories", image: ShadesImg, path: "/category/womens-accessories" },
-  { name: "Gaming", image: GamingImg, path: "/category/gaming" },
-];
-
-  const itemStyle = {
-    cursor: "pointer",
-    textAlign: "center",
-    transition: "transform 0.2s",
-    "&:hover": {
-      transform: "scale(1.05)",
-    },
-  };
-
-  const imageStyle = {
-    width: "230px",
-    height: "250px",
-    mb: 1,
-  };
 
   const drawer = (
     <Box display="flex" flexDirection="column" height="100%">
@@ -122,7 +77,6 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* App Bar */}
       <AppBar
         position="fixed"
         elevation={0}
@@ -135,29 +89,10 @@ const Dashboard = () => {
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box display="flex" alignItems="center">
             <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
-            <Typography
-              variant="h2"
-              sx={{
-                fontFamily: "GDS Didot, serif",
-                fontSize: "26px",
-                color: "inherit",
-                marginRight: 3,
-              }}
-            >
+            <Typography variant="h2" sx={{ fontFamily: "GDS Didot, serif", fontSize: "26px", color: "inherit", marginRight: 3 }}>
               Cartella
             </Typography>
-
-            {/* Search Bar */}
-            <Box
-              display="flex"
-              alignItems="center"
-              sx={{
-                backgroundColor: "#fff",
-                borderRadius: 2,
-                px: 2,
-                width: 400,
-              }}
-            >
+            <Box display="flex" alignItems="center" sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}>
               <IconButton onClick={handleSearch}>
                 <SearchIcon sx={{ color: "#1A1A1A" }} />
               </IconButton>
@@ -168,29 +103,23 @@ const Dashboard = () => {
                 sx={{
                   flex: 1,
                   color: "#000",
-                  "& input": {
-                    border: "none",
-                    outline: "none",
-                  },
+                  "& input": { border: "none", outline: "none" },
                 }}
               />
             </Box>
           </Box>
-
-          {/* Theme Toggle */}
           <IconButton sx={{ ml: 2 }} onClick={toggleTheme} color="inherit">
             {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
           </IconButton>
         </Toolbar>
       </AppBar>
 
-      {/* Drawer */}
       <Drawer
         variant="permanent"
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
+          "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
             backgroundColor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
@@ -201,7 +130,6 @@ const Dashboard = () => {
         {drawer}
       </Drawer>
 
-      {/* Main Content */}
       <Box
         component="main"
         sx={{
@@ -212,35 +140,11 @@ const Dashboard = () => {
           color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Typography variant="h4" gutterBottom>Categories</Typography>
-        <Grid container spacing={20} justifyContent="center">
-          {/* Top Row */}
-          {[0, 1, 2].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
-        </Grid>
-
-        <Grid container spacing={20} sx={{ mt: 1 }} justifyContent="center">
-          {/* Bottom Row */}
-          {[3, 4, 5].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
-        </Grid>
+        <Typography variant="h4">My Cart</Typography>
+        <Typography paragraph>All your selected items will appear here.</Typography>
       </Box>
     </Box>
   );
 };
 
-export default Dashboard;
+export default Cart;

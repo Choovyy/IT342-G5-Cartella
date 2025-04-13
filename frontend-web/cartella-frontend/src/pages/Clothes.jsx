@@ -17,16 +17,14 @@ import HistoryIcon from "@mui/icons-material/History";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
-import ClothesImg from "../images/clothes.png";
-import BlenderImg from "../images/blender.png";
-import WatchImg from "../images/watch.png";
-import ShadesImg from "../images/shades.png";
-import IphoneImg from "../images/iphone.png";
-import GamingImg from "../images/gaming.png";
+import LightLogo from "../images/Cartella Logo (Light).jpeg";
+import DarkLogo from "../images/Cartella Logo (Dark2).jpeg";
+import LongsleeveImg from "../images/longsleeve.png";
+import DressImg from "../images/dress.png";
 
 const drawerWidth = 240;
 
-const Dashboard = () => {
+const Clothes = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
@@ -35,7 +33,7 @@ const Dashboard = () => {
     const token = sessionStorage.getItem("authToken");
 
     if (!token) {
-      alert("You must be logged in to access the dashboard.");
+      alert("You must be logged in to access the clothes page.");
       navigate("/login");
       return;
     }
@@ -65,19 +63,12 @@ const Dashboard = () => {
     }
   };
 
-  const logoSrc =
-    mode === "light"
-      ? "src/images/Cartella Logo (Light).jpeg"
-      : "src/images/Cartella Logo (Dark2).jpeg";
+  const logoSrc = mode === "light" ? LightLogo : DarkLogo;
 
   const categories = [
-  { name: "Clothes", image: ClothesImg, path: "/category/clothes" },
-  { name: "Men’s Accessories", image: WatchImg, path: "/category/mens-accessories" },
-  { name: "Mobiles & Gadgets", image: IphoneImg, path: "/category/mobiles-gadgets" },
-  { name: "Home Appliances", image: BlenderImg, path: "/category/home-appliances" },
-  { name: "Women’s Accessories", image: ShadesImg, path: "/category/womens-accessories" },
-  { name: "Gaming", image: GamingImg, path: "/category/gaming" },
-];
+    { name: "Men’s Apparel", image: LongsleeveImg, path: "/category/clothes/mens-apparel" },
+    { name: "Women’s Apparel", image: DressImg, path: "/category/clothes/womens-apparel" },
+  ];
 
   const itemStyle = {
     cursor: "pointer",
@@ -89,8 +80,8 @@ const Dashboard = () => {
   };
 
   const imageStyle = {
-    width: "230px",
-    height: "250px",
+    width: "330px",
+    height: "370px",
     mb: 1,
   };
 
@@ -212,35 +203,18 @@ const Dashboard = () => {
           color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Typography variant="h4" gutterBottom>Categories</Typography>
-        <Grid container spacing={20} justifyContent="center">
-          {/* Top Row */}
-          {[0, 1, 2].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
-        </Grid>
-
-        <Grid container spacing={20} sx={{ mt: 1 }} justifyContent="center">
-          {/* Bottom Row */}
-          {[3, 4, 5].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
+        <Typography variant="h4" gutterBottom>Clothes Categories</Typography>
+        <Grid container spacing={25} justifyContent="center" sx={{ maxWidth: 900, mt: 11, mx: 'auto' }}>
+          {categories.map(({ name, image, path }) => (
+            <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
+              <Box component="img" src={image} alt={name} sx={imageStyle} />
+              <Typography variant="subtitle1">{name}</Typography>
+            </Grid>
+          ))}
         </Grid>
       </Box>
     </Box>
   );
 };
 
-export default Dashboard;
+export default Clothes;

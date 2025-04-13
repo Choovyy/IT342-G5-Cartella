@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import logo from "../images/Cartella Logo (Dark).jpeg";
-import logoLight from "../images/Cartella Logo (Light).jpeg";
+import logoLight from "../images/Cartella Logo (Light2).jpeg";
 import googleLogo from "../images/google logo.png";
 import "./design/Login.css";
 
