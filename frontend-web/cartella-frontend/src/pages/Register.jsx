@@ -159,7 +159,7 @@ const Register = () => {
           />
           <button type="submit">Sign Up</button>
           <p>
-            Already have an account? <a href="/login">Log in</a>
+            Already have an account? <a href="/login">Log In</a>
           </p>
           <p className="vendor-link">
             <a href="/vendor-login">Become Vendor at Cartella</a>

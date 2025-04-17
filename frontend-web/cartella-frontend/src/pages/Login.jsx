@@ -74,7 +74,7 @@ const Login = () => {
             onChange={handleChange}
             required
           />
-          <button type="submit">Log in</button>
+          <button type="submit">Log In</button>
           
           {/* OR Divider */}
           <div className="or-divider" style={{ color: '#949494' }}>
