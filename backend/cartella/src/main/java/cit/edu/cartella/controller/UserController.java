@@ -54,10 +54,10 @@ public class UserController {
     if (isAuthenticated) {
         // Generate a JWT token for the authenticated user
         String token = userService.generateToken(username);
-
         // Prepare the response with the token
         Map<String, Object> response = new HashMap<>();
         response.put("token", token);
+        
 
         return ResponseEntity.ok(response);
     } else {
@@ -77,11 +77,141 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-   
+    @GetMapping("/username/{username}")
+    public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
+        return userService.getUserByUsername(username)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/email/{email}")
+    public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
+        return userService.getUserByEmail(email)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @Valid @RequestBody User userDetails) {
+        try {
+            // Get the existing user
+            Optional<User> existingUserOpt = userService.getUserById(id);
+            if (existingUserOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            User existingUser = existingUserOpt.get();
+            
+            // Update only the fields that are provided
+            if (userDetails.getUsername() != null) {
+                existingUser.setUsername(userDetails.getUsername());
+            }
+            if (userDetails.getEmail() != null) {
+                existingUser.setEmail(userDetails.getEmail());
+            }
+            if (userDetails.getPhoneNumber() != null) {
+                existingUser.setPhoneNumber(userDetails.getPhoneNumber());
+            }
+            if (userDetails.getDateOfBirth() != null) {
+                existingUser.setDateOfBirth(userDetails.getDateOfBirth());
+            }
+            if (userDetails.getGender() != null) {
+                existingUser.setGender(userDetails.getGender());
+            }
+            if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+                existingUser.setPassword(userDetails.getPassword());
+            }
+            
+            // Save the updated user
+            User updatedUser = userService.saveUser(existingUser);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/username/{username}")
+    public ResponseEntity<?> updateUserByUsername(@PathVariable String username, @Valid @RequestBody User userDetails) {
+        try {
+            // Get the existing user
+            Optional<User> existingUserOpt = userService.getUserByUsername(username);
+            if (existingUserOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            User existingUser = existingUserOpt.get();
+            
+            // Update only the fields that are provided
+            if (userDetails.getUsername() != null) {
+                existingUser.setUsername(userDetails.getUsername());
+            }
+            if (userDetails.getEmail() != null) {
+                existingUser.setEmail(userDetails.getEmail());
+            }
+            if (userDetails.getPhoneNumber() != null) {
+                existingUser.setPhoneNumber(userDetails.getPhoneNumber());
+            }
+            if (userDetails.getDateOfBirth() != null) {
+                existingUser.setDateOfBirth(userDetails.getDateOfBirth());
+            }
+            if (userDetails.getGender() != null) {
+                existingUser.setGender(userDetails.getGender());
+            }
+            if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+                existingUser.setPassword(userDetails.getPassword());
+            }
+            
+            // Save the updated user
+            User updatedUser = userService.saveUser(existingUser);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/email/{email}")
+    public ResponseEntity<?> updateUserByEmail(@PathVariable String email, @Valid @RequestBody User userDetails) {
+        try {
+            // Get the existing user
+            Optional<User> existingUserOpt = userService.getUserByEmail(email);
+            if (existingUserOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            User existingUser = existingUserOpt.get();
+            
+            // Update only the fields that are provided
+            if (userDetails.getUsername() != null) {
+                existingUser.setUsername(userDetails.getUsername());
+            }
+            if (userDetails.getEmail() != null) {
+                existingUser.setEmail(userDetails.getEmail());
+            }
+            if (userDetails.getPhoneNumber() != null) {
+                existingUser.setPhoneNumber(userDetails.getPhoneNumber());
+            }
+            if (userDetails.getDateOfBirth() != null) {
+                existingUser.setDateOfBirth(userDetails.getDateOfBirth());
+            }
+            if (userDetails.getGender() != null) {
+                existingUser.setGender(userDetails.getGender());
+            }
+            if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+                existingUser.setPassword(userDetails.getPassword());
+            }
+            
+            // Save the updated user
+            User updatedUser = userService.saveUser(existingUser);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
+    
 }

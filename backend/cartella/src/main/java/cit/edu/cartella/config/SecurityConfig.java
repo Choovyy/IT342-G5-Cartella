@@ -1,5 +1,7 @@
 package cit.edu.cartella.config;
 
+
+import cit.edu.cartella.service.CustomOAuth2UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +16,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-
 import java.util.List;
 
 @Configuration
@@ -22,26 +23,43 @@ import java.util.List;
 public class SecurityConfig {
 
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
 
     @Autowired
-    public SecurityConfig(CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
+    public SecurityConfig(CustomOAuth2SuccessHandler customOAuth2SuccessHandler,
+                          CustomOAuth2UserService customOAuth2UserService) {
         this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
+        this.customOAuth2UserService = customOAuth2UserService;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         return http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
-                .csrf(csrf -> csrf.disable()) // Disable CSRF for testing, enable in production
-                .authorizeHttpRequests(auth -> 
-                    auth.requestMatchers("/", "/api/users/register", "/api/users/login", "/oauth2/authorization/google").permitAll()
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth ->
+                        auth.requestMatchers(
+                                "/",
+                                "/api/users/register",
+                                "/api/users/login",
+                                "/api/vendors/login",
+                                "/api/vendors/register",
+                                "/api/users/**",
+                                "/login/google",
+                                "/oauth2/success",
+                                "/dashboard",
+                                "/oauth2/authorization/google",
+                                "/api/addresses/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth -> 
-                    oauth.successHandler(customOAuth2SuccessHandler) // Use custom success handler
+                .oauth2Login(oauth ->
+                        oauth
+                            .successHandler(customOAuth2SuccessHandler)
+                            .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                 )
-                .logout(logout -> 
-                    logout.logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository)) // Redirect after logout
+                .logout(logout ->
+                        logout.logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository))
                 )
                 .build();
     }
@@ -49,7 +67,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173")); // Allow frontend
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
@@ -65,8 +83,9 @@ public class SecurityConfig {
     }
 
     private OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
-        OidcClientInitiatedLogoutSuccessHandler successHandler = new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
-        successHandler.setPostLogoutRedirectUri("http://localhost:5173"); // Redirect to frontend after logout
+        OidcClientInitiatedLogoutSuccessHandler successHandler =
+                new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
+        successHandler.setPostLogoutRedirectUri("http://localhost:5173");
         return successHandler;
     }
 }

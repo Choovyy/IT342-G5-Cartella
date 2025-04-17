@@ -29,6 +29,7 @@ const Login = () => {
         formData
       );
       sessionStorage.setItem("authToken", response.data.token);
+      sessionStorage.setItem("username", formData.username);
       alert("Login Successful!");
       navigate("/dashboard");
     } catch (error) {
@@ -38,7 +39,10 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:8080/oauth2/authorization/google";
+    console.log("Initiating Google login...");
+    const googleAuthUrl = "http://localhost:8080/oauth2/authorization/google";
+    console.log("Redirecting to:", googleAuthUrl);
+    window.location.href = googleAuthUrl;
   };
 
   return (
