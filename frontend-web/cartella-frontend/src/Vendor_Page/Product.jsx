@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase
@@ -19,23 +19,10 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 const drawerWidth = 240;
 
-const VendorDashboard = () => {
+const Product = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
-
-  const [userDetails, setUserDetails] = useState({
-    username: "",
-    userId: "",
-    vendorId: "",
-  });
-
-  useEffect(() => {
-    const username = sessionStorage.getItem("username");
-    const userId = sessionStorage.getItem("userId");
-    const vendorId = sessionStorage.getItem("vendorId");
-    setUserDetails({ username, userId, vendorId });
-  }, []);
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
@@ -153,15 +140,11 @@ const VendorDashboard = () => {
         }}
       >
         <Typography variant="h4" gutterBottom>
-          Sales Overview
-        </Typography>
-        <Typography variant="body1">
-          <strong>User ID:</strong> {userDetails.userId || "N/A"}<br />
-          <strong>Vendor ID:</strong> {userDetails.vendorId || "N/A"}
+          Products
         </Typography>
       </Box>
     </Box>
   );
 };
 
-export default VendorDashboard;
+export default Product;

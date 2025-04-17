@@ -19,22 +19,30 @@ import Gaming from "./pages/Gaming";
 import MenApparel from "./pages/MenApparel";
 import WomenApparel from "./pages/WomenApparel";
 import ThemeContextProvider from "./ThemeContext";
+
 import VendorLogin from "./Vendor_Page/VendorLogin";
 import VendorRegister from "./Vendor_Page/VendorRegister";
+import VendorRegister2 from "./Vendor_Page/VendorRegister2";
 import VendorDashboard from "./Vendor_Page/VendorDashboard";
+import Product from "./Vendor_Page/Product";
+import Inventory from "./Vendor_Page/Inventory";
+import Order from "./Vendor_Page/Order";
+import VendorProfile from "./Vendor_Page/VendorProfile";
 
 const App = () => {
   return (
     <Router>
       <Routes>
-        {/* Public Routes (NO Theme Context) */}
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/vendor-login" element={<VendorLogin />} />
         <Route path="/vendor-register" element={<VendorRegister />} />
+        <Route path="/vendor-register-step2" element={<VendorRegister2 />} />
         <Route path="/oauth-success" element={<OAuthSuccess />} />
-        {/* Authenticated App Routes (With Theme Context) */}
+
+        {/* Protected Routes */}
         <Route
           path="/*"
           element={
@@ -42,6 +50,10 @@ const App = () => {
               <Routes>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+                <Route path="/vendor-products" element={<Product />} />
+                <Route path="/vendor-inventory" element={<Inventory />} />
+                <Route path="/vendor-orders" element={<Order />} />
+                <Route path="/vendor-profile" element={<VendorProfile />} />
                 <Route path="/category/clothes" element={<Clothes />} />
                 <Route path="/category/home-appliances" element={<HomeAppliance />} />
                 <Route path="/category/mens-accessories" element={<MenAccessories />} />
