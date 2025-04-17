@@ -9,6 +9,7 @@ import Cart from "./pages/Cart";
 import MyPurchase from "./pages/MyPurchase";
 import Notification from "./pages/Notification";
 import Profile from "./pages/Profile";
+import Address from "./pages/Address";
 import Clothes from "./pages/Clothes";
 import HomeAppliance from "./pages/HomeAppliance";
 import MenAccessories from "./pages/MenAccessories";
@@ -61,11 +62,11 @@ const App = () => {
                 <Route path="/category/gaming" element={<Gaming />} />
                 <Route path="/category/clothes/mens-apparel" element={<MenApparel />} />
                 <Route path="/category/clothes/womens-apparel" element={<WomenApparel />} />
-                <Route path="/oauth-success" element={<OAuthSuccess />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/mypurchase" element={<MyPurchase />} />
                 <Route path="/notifications" element={<Notification />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/address" element={<Address />} />
               </Routes>
             </ThemeContextProvider>
           }
