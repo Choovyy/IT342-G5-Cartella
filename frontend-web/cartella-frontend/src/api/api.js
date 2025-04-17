@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: 'http://localhost:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -27,6 +27,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       sessionStorage.removeItem('authToken');
+      sessionStorage.removeItem('username');
+      sessionStorage.removeItem('email');
       // Optionally redirect to login here or let components handle it
     }
     return Promise.reject(error);

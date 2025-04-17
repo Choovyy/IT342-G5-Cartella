@@ -4,7 +4,7 @@ import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, TextField, Button,
   FormControl, FormLabel, RadioGroup, FormControlLabel, Radio,
-  CircularProgress, Alert
+  CircularProgress, Alert, InputAdornment
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -17,8 +17,11 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import HistoryIcon from "@mui/icons-material/History";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
-
+import axios from "axios";
 import userService from "../api/userService";
 
 const drawerWidth = 240;
@@ -38,6 +41,8 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -46,14 +51,33 @@ const Profile = () => {
       navigate("/login");
       return;
     }
-
-    // Fetch user data
+  
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const userId = 1;
-        const userData = await userService.getUserById(userId);
-        
+  
+        const email = sessionStorage.getItem("email"); // Fetch email from sessionStorage
+        let userData;
+  
+        if (email) {
+          // Google login: Fetch user data by email
+          console.log("Fetching user data for email:", email);
+          setIsGoogleUser(true);
+          const response = await axios.get(`http://localhost:8080/dashboard`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          console.log("Dashboard response:", response.data);
+          userData = response.data;
+        } else {
+          // Normal login: Fetch user data by username
+          const username = sessionStorage.getItem("username");
+          console.log("Fetching user data for username:", username);
+          setIsGoogleUser(false);
+          userData = await userService.getUserByUsername(username);
+        }
+  
         // Map backend data to form fields
         setFormData({
           username: userData.username || "",
@@ -62,22 +86,26 @@ const Profile = () => {
           phone: userData.phoneNumber || "",
           address: "", // Not in User entity, might be in another entity
           dob: userData.dateOfBirth || "",
-          gender: userData.gender ? userData.gender.toLowerCase() : ""
+          gender: userData.gender ? userData.gender.toLowerCase() : "",
         });
-        
+  
         setLoading(false);
       } catch (err) {
         console.error("Error fetching user data:", err);
-        setError("Failed to load user data. Please try again later.");
+        console.error("Error details:", err.response?.data);
+        setError(`Failed to load user data: ${err.response?.data || err.message}`);
         setLoading(false);
       }
     };
-
+  
     fetchUserData();
   }, [navigate]);
+  
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("username");
+    sessionStorage.removeItem("email");
     navigate("/login");
   };
 
@@ -92,10 +120,21 @@ const Profile = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
   const handleSubmit = async () => {
     try {
-      // For demo purposes, we'll use a hardcoded user ID
-      const userId = sessionStorage.getItem("userId"); // Replace with actual user ID from token
+      const token = sessionStorage.getItem("authToken");
+      const username = sessionStorage.getItem("username");
+      const email = sessionStorage.getItem("email");
+      
+      if (!token) {
+        alert("You must be logged in to update your profile.");
+        navigate("/login");
+        return;
+      }
       
       // Map form data to backend format
       const userData = {
@@ -106,16 +145,36 @@ const Profile = () => {
         gender: formData.gender ? formData.gender.toUpperCase() : null
       };
       
-      // Only include password if it's been changed
-      if (formData.password) {
+      // Only include password if it's been changed and user is not a Google user
+      if (formData.password && !isGoogleUser) {
         userData.password = formData.password;
       }
       
-      await userService.updateUser(userId, userData);
+      console.log("Updating user profile with data:", userData);
+      
+      let response;
+      
+      if (email) {
+        // Google OAuth user - use the userService
+        console.log("Updating Google OAuth user with email:", email);
+        response = await userService.updateUserByEmail(email, userData);
+      } else if (username) {
+        // Regular user - use the username endpoint
+        console.log("Updating regular user with username:", username);
+        response = await userService.updateUserByUsername(username, userData);
+      } else {
+        throw new Error("No username or email found in session storage");
+      }
+      
+      console.log("Profile update response:", response);
       alert("Profile updated successfully!");
+      
+      // Refresh the page to show updated data
+      window.location.reload();
     } catch (err) {
       console.error("Error updating profile:", err);
-      alert("Failed to update profile. Please try again.");
+      console.error("Error details:", err.response?.data);
+      alert(`Failed to update profile: ${err.response?.data?.error || err.message}`);
     }
   };
 
@@ -239,10 +298,55 @@ const Profile = () => {
             }}
           >
             <TextField label="Username" name="username" value={formData.username} onChange={handleChange} fullWidth />
-            <TextField label="Password" name="password" type="password" placeholder="Leave blank to keep current password" onChange={handleChange} fullWidth />
+            
+            {isGoogleUser ? (
+              <TextField 
+                label="Password" 
+                name="password" 
+                type="password" 
+                value="********" 
+                disabled 
+                fullWidth 
+                helperText="Password cannot be changed for Google accounts"
+              />
+            ) : (
+              <TextField 
+                label="Password" 
+                name="password" 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Leave blank to keep current password" 
+                onChange={handleChange} 
+                fullWidth 
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={handleClickShowPassword}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
+            
             <TextField label="Email" name="email" value={formData.email} onChange={handleChange} fullWidth />
             <TextField label="Phone number" name="phone" value={formData.phone} onChange={handleChange} fullWidth />
-            <TextField label="Address" name="address" value={formData.address} onChange={handleChange} fullWidth />
+            
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="subtitle1">Address</Typography>
+              <Button 
+                variant="outlined" 
+                color="error" 
+                startIcon={<LocationOnIcon />}
+                onClick={() => navigate('/address')}
+              >
+                Manage Addresses
+              </Button>
+            </Box>
             
             <Box>
               <Typography sx={{ color: mode === "dark" ? "#ccc" : "#000", mb: 1 }}>

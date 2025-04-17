@@ -12,7 +12,6 @@ const Login = () => {
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
-    const userId = sessionStorage.getItem("userid");
     if (token) {
       navigate("/dashboard"); // Redirect to dashboard if already logged in
     }
@@ -30,7 +29,7 @@ const Login = () => {
         formData
       );
       sessionStorage.setItem("authToken", response.data.token);
-      sessionStorage.setItem("userid", response.data.userId);
+      sessionStorage.setItem("username", formData.username);
       alert("Login Successful!");
       navigate("/dashboard");
     } catch (error) {
@@ -40,7 +39,10 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:8080/oauth2/authorization/google";
+    console.log("Initiating Google login...");
+    const googleAuthUrl = "http://localhost:8080/oauth2/authorization/google";
+    console.log("Redirecting to:", googleAuthUrl);
+    window.location.href = googleAuthUrl;
   };
 
   return (
