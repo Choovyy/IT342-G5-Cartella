@@ -13,7 +13,6 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import InventoryIcon from "@mui/icons-material/Inventory";
-import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
@@ -140,8 +139,7 @@ const VendorDashboard = () => {
 
   const drawerItems = [
     { text: "Sales Overview", icon: <AssessmentIcon />, path: "/vendor-dashboard" },
-    { text: "Products", icon: <ShoppingBasketIcon />, path: "/vendor-products" },
-    { text: "Inventory", icon: <InventoryIcon />, path: "/vendor-inventory" },
+    { text: "Products", icon: <InventoryIcon />, path: "/vendor-products" },
     { text: "Orders", icon: <ListAltIcon />, path: "/vendor-orders" },
     { text: "My Profile", icon: <AccountCircleIcon />, path: "/vendor-profile" },
   ];

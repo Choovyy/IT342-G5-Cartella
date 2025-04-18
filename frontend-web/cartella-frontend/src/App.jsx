@@ -1,4 +1,4 @@
-import React from "react";
+import React from "react"; 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -25,11 +25,20 @@ import VendorRegister from "./Vendor_Page/VendorRegister";
 import VendorRegister2 from "./Vendor_Page/VendorRegister2";
 import VendorDashboard from "./Vendor_Page/VendorDashboard";
 import Product from "./Vendor_Page/Product";
-import Inventory from "./Vendor_Page/Inventory";
 import Order from "./Vendor_Page/Order";
 import VendorProfile from "./Vendor_Page/VendorProfile";
 import AddProduct from "./Vendor_Page/AddProduct"; 
+import EditProduct from "./Vendor_Page/EditProduct";
 import ViewProduct from "./Vendor_Page/ViewProduct";
+import ViewOrder from "./Vendor_Page/ViewOrder";
+import VendorClothes from "./Vendor_Page/VendorClothes";
+import VendorMenApparel from "./Vendor_Page/VendorMenApparel";
+import VendorWomenApparel from "./Vendor_Page/VendorWomenApparel";
+import VendorMenAccessories from "./Vendor_Page/VendorMenAccessories";
+import VendorMobile from "./Vendor_Page/VendorMobile";
+import VendorHomeAppliance from "./Vendor_Page/VendorHomeAppliance";
+import VendorWomenAccessories from "./Vendor_Page/VendorWomenAccessories";
+import VendorGaming from "./Vendor_Page/VendorGaming";
 
 const App = () => {
   return (
@@ -53,11 +62,20 @@ const App = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/vendor-dashboard" element={<VendorDashboard />} />
                 <Route path="/vendor-products" element={<Product />} />
-                <Route path="/vendor-inventory" element={<Inventory />} />
+                <Route path="/vendor-products/clothes" element={<VendorClothes />} />
+                <Route path="/vendor-men-apparel" element={<VendorMenApparel />} />
+                <Route path="/vendor-women-apparel" element={<VendorWomenApparel />} />
+                <Route path="/vendor-products/mens-accessories" element={<VendorMenAccessories />} />
+                <Route path="/vendor-products/mobiles-gadgets" element={<VendorMobile />} />
+                <Route path="/vendor-products/home-appliances" element={<VendorHomeAppliance />} />
+                <Route path="/vendor-products/womens-accessories" element={<VendorWomenAccessories />} />
+                <Route path="/vendor-products/gaming" element={<VendorGaming />} />
                 <Route path="/vendor-orders" element={<Order />} />
                 <Route path="/vendor-profile" element={<VendorProfile />} />
                 <Route path="/vendor-add-product" element={<AddProduct />} /> 
+                <Route path="/vendor-edit-product" element={<EditProduct />} />
                 <Route path="/vendor-view-product" element={<ViewProduct />} />
+                <Route path="/vendor-view-order" element={<ViewOrder />} /> 
                 <Route path="/category/clothes" element={<Clothes />} />
                 <Route path="/category/home-appliances" element={<HomeAppliance />} />
                 <Route path="/category/mens-accessories" element={<MenAccessories />} />

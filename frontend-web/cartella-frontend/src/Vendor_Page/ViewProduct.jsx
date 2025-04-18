@@ -1,7 +1,16 @@
 import React, { useContext } from "react";
 import {
-  AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase
+  AppBar,
+  Toolbar,
+  Typography,
+  Drawer,
+  Box,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  InputBase,
+  Button
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -13,9 +22,10 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import InventoryIcon from "@mui/icons-material/Inventory";
-import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+
+import longsleeveImg from "../images/longsleeve.png";
 
 const drawerWidth = 240;
 
@@ -35,14 +45,14 @@ const ViewProduct = () => {
     }
   };
 
-  const logoSrc = mode === "light"
-    ? "src/images/Cartella Logo (Light).jpeg"
-    : "src/images/Cartella Logo (Dark2).jpeg";
+  const logoSrc =
+    mode === "light"
+      ? "src/images/Cartella Logo (Light).jpeg"
+      : "src/images/Cartella Logo (Dark2).jpeg";
 
   const drawerItems = [
     { text: "Sales Overview", icon: <AssessmentIcon />, path: "/vendor-dashboard" },
-    { text: "Products", icon: <ShoppingBasketIcon />, path: "/vendor-products" },
-    { text: "Inventory", icon: <InventoryIcon />, path: "/vendor-inventory" },
+    { text: "Products", icon: <InventoryIcon />, path: "/vendor-products" },
     { text: "Orders", icon: <ListAltIcon />, path: "/vendor-orders" },
     { text: "My Profile", icon: <AccountCircleIcon />, path: "/vendor-profile" },
   ];
@@ -67,12 +77,13 @@ const ViewProduct = () => {
     </Box>
   );
 
-  // Temporary product data
   const product = {
-    name: "Sample Product",
-    price: "599",
-    description: "This is a sample product used for display purposes.",
-    image: "https://via.placeholder.com/200",
+    name: "Nike Longsleeve",
+    price: 400,
+    description:
+      "A stylish and comfortable Nike longsleeve shirt designed for performance and everyday wear.",
+    stock: 50,
+    image: longsleeveImg,
   };
 
   return (
@@ -88,14 +99,30 @@ const ViewProduct = () => {
       >
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box display="flex" alignItems="center">
-            <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
-            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3, fontFamily: "GDS Didot, serif" }}>
+            <img
+              src={logoSrc}
+              alt="Logo"
+              style={{ height: 40, marginRight: 10 }}
+            />
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: "26px",
+                marginRight: 3,
+                fontFamily: "GDS Didot, serif",
+              }}
+            >
               Cartella
             </Typography>
             <Box
               display="flex"
               alignItems="center"
-              sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}
+              sx={{
+                backgroundColor: "#fff",
+                borderRadius: 2,
+                px: 2,
+                width: 400,
+              }}
             >
               <IconButton onClick={handleSearch}>
                 <SearchIcon sx={{ color: "#1A1A1A" }} />
@@ -126,7 +153,7 @@ const ViewProduct = () => {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
+          "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
             backgroundColor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
@@ -145,42 +172,90 @@ const ViewProduct = () => {
           p: 3,
           mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
+          overflow: "auto",
+          height: "92vh",
         }}
       >
-        <Typography variant="h4">Product Details</Typography>
+        <Typography variant="h4" sx={{ mb: 7 }}>
+          Product Details
+        </Typography>
 
         <Box
           sx={{
-            width: "60%",
-            mt: 9,
-            mx: "auto",
+            display: "flex",
+            maxWidth: 900,
+            margin: "auto",
+            backgroundColor: mode === "light" ? "#f9f9f9" : "#2A2A2A",
             p: 4,
             borderRadius: 2,
-            backgroundColor: mode === "light" ? "#f9f9f9" : "#2A2A2A",
             boxShadow: 3,
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
+            alignItems: "flex-start",
+            gap: 4,
           }}
         >
-          <Box display="flex">
-            <Typography sx={{ width: 150 }}>Name</Typography>
-            <Typography>{product.name}</Typography>
+          {/* Left: Product Image */}
+          <Box sx={{ flex: 1 }}>
+            <img
+              src={product.image}
+              alt="Product"
+              style={{ width: "100%", maxWidth: 300, borderRadius: 10 }}
+            />
           </Box>
 
-          <Box display="flex">
-            <Typography sx={{ width: 150 }}>Price</Typography>
-            <Typography>₱{product.price}.00</Typography>
-          </Box>
+          {/* Right: Info */}
+          <Box sx={{ flex: 1, pl: 2, display: "flex", flexDirection: "column" }}>
+            <Typography variant="h5" sx={{ mb: 1, mt:2 }}>
+              {product.name}
+            </Typography>
 
-          <Box display="flex">
-            <Typography sx={{ width: 150 }}>Description</Typography>
-            <Typography>{product.description}</Typography>
-          </Box>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              ₱ {product.price}.00
+            </Typography>
 
-          <Box display="flex">
-            <Typography sx={{ width: 150 }}>Image</Typography>
-            <img src={product.image} alt="Product" style={{ maxWidth: 200, borderRadius: 8 }} />
+            <Typography variant="body1" sx={{ mb: 12 }}>
+              {product.description}
+            </Typography>
+
+            <Typography variant="h6" sx={{ mb: 14 }}>
+              Stocks: {product.stock} left
+            </Typography>
+
+            <Box sx={{ mt: "auto", display: "flex", justifyContent: "flex-end", gap: 2 }}>
+              <Button
+                variant="contained"
+                sx={{
+                  width: 130,
+                  height: 40,
+                  backgroundColor: "#D32F2E",
+                  color: "#FFFFFF",
+                  textTransform: "none",
+                  fontSize: "16px",
+                  "&:hover": {
+                    backgroundColor: "#b71c1c",
+                  },
+                }}
+              >
+                Delete
+              </Button>
+
+              <Button
+                variant="contained"
+                onClick={() => navigate("/vendor-edit-product")}
+                sx={{
+                  width: 130,
+                  height: 40,
+                  backgroundColor: "#1976D2",
+                  color: "#FFFFFF",
+                  textTransform: "none",
+                  fontSize: "16px",
+                  "&:hover": {
+                    backgroundColor: "#115293",
+                  },
+                }}
+              >
+                Edit
+              </Button>
+            </Box>
           </Box>
         </Box>
       </Box>
