@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Button, Grid, Card, CardMedia, CardContent
+  ListItemText, IconButton, InputBase, Button, TextField
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -17,14 +17,18 @@ import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
-import longsleeveImage from "../images/longsleeve.png";
-
 const drawerWidth = 240;
 
-const Product = () => {
+const AddProduct = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    description: "",
+    image: null,
+  });
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
@@ -35,6 +39,19 @@ const Product = () => {
     if (searchText.trim()) {
       console.log("Searching for:", searchText);
     }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: files ? files[0] : value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Submitted Product:", form);
   };
 
   const logoSrc = mode === "light"
@@ -68,13 +85,6 @@ const Product = () => {
       </List>
     </Box>
   );
-
-  const sampleProducts = Array.from({ length: 9 }, (_, index) => ({
-    id: index + 1,
-    name: "Nike Longsleeve",
-    price: "₱ 400.00",
-    image: longsleeveImage,
-  }));
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -143,81 +153,124 @@ const Product = () => {
         sx={{
           flexGrow: 1,
           bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
-          color: mode === "light" ? "#000" : "#FFF",
           p: 3,
           mt: 8,
-          overflow: "auto",
-          height: "92vh",
+          color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4">Products</Typography>
-          <Button
-            variant="contained"
-            sx={{
-              width: 130,
-              height: 40,
-              backgroundColor: "#D32F2E",
-              color: "#FFFFFF",
-              textTransform: "none",
-              fontSize: "16px",
-              "&:hover": {
-                backgroundColor: "#b71c1c",
-              },
-            }}
-            onClick={() => navigate("/vendor-add-product")}
-          >
-            Add Product
-          </Button>
-        </Box>
+        <Typography variant="h4">
+          Add New Product
+        </Typography>
 
-        <Grid container spacing={3} justifyContent="center">
-          {sampleProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={2.4} key={product.id}>
-              <Card
-                onClick={() => navigate(`/vendor-products/${product.id}`)}
-                sx={{
-                  bgcolor: mode === "light" ? "#f5f5f5" : "#2c2c2c",
-                  height: 350,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-start",
-                  alignItems: "center",
-                  p: 4,
-                  cursor: "pointer",
-                  transition: "transform 0.2s",
-                  "&:hover": {
-                    transform: "scale(1.03)",
-                    boxShadow: 6,
-                  },
-                }}
-              >
-                <CardMedia
-                  component="img"
-                  image={product.image}
-                  alt={product.name}
-                  sx={{
-                    maxHeight: 210,
-                    maxWidth: "100%",
-                    objectFit: "contain",
-                    mx: "auto",
-                  }}
-                />
-                <CardContent sx={{ width: "100%" }}>
-                  <Typography align="center" fontWeight="bold">
-                    {product.name}
-                  </Typography>
-                  <Typography align="center" color="text.secondary">
-                    {product.price}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            width: "60%",
+            mt: 9,
+            mx: "auto",
+            p: 4,
+            borderRadius: 2,
+            backgroundColor: mode === "light" ? "#f9f9f9" : "#2A2A2A",
+            boxShadow: 3,
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+          }}
+        >
+          {/* Name */}
+          <Box display="flex" alignItems="center">
+            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Name</Typography>
+            <TextField
+              name="name"
+              required
+              variant="outlined"
+              fullWidth
+              value={form.name}
+              onChange={handleChange}
+            />
+          </Box>
+
+          {/* Price */}
+          <Box display="flex" alignItems="center">
+            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Price</Typography>
+            <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
+              <Typography sx={{ px: 2 }}>₱</Typography>
+              <TextField
+                name="price"
+                required
+                type="number"
+                variant="outlined"
+                fullWidth
+                value={form.price}
+                onChange={handleChange}
+                inputProps={{ min: 0 }}
+              />
+              <Typography sx={{ px: 2 }}>.00</Typography>
+            </Box>
+          </Box>
+
+          {/* Description */}
+          <Box display="flex" alignItems="center">
+            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Description</Typography>
+            <TextField
+              name="description"
+              required
+              variant="outlined"
+              multiline
+              fullWidth
+              rows={4}
+              value={form.description}
+              onChange={handleChange}
+            />
+          </Box>
+
+          {/* Image */}
+          <Box display="flex" alignItems="center">
+            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Image</Typography>
+            <input
+              type="file"
+              name="image"
+              required
+              accept="image/*"
+              onChange={handleChange}
+              style={{
+                padding: "12px 16px",
+                background: mode === "light" ? "#fff" : "#444",
+                border: "1px solid #ccc",
+                borderRadius: 4,
+                width: "100%",
+                color: mode === "light" ? "#000" : "#FFF",
+              }}
+            />
+          </Box>
+
+          {/* Submit Button */}
+          <Box display="flex" justifyContent="flex-end">
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{
+                width: 130,
+                height: 40,
+                backgroundColor: "#D32F2E",
+                color: "#FFFFFF",
+                textTransform: "none",
+                px: 2.5,
+                py: 1.25,
+                fontSize: "16px",
+                "&:hover": {
+                  backgroundColor: "#b71c1c",
+                },
+              }}
+            >
+              Add
+            </Button>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );
 };
 
-export default Product;
+export default AddProduct;

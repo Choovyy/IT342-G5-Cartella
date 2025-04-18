@@ -28,6 +28,8 @@ import Product from "./Vendor_Page/Product";
 import Inventory from "./Vendor_Page/Inventory";
 import Order from "./Vendor_Page/Order";
 import VendorProfile from "./Vendor_Page/VendorProfile";
+import AddProduct from "./Vendor_Page/AddProduct"; 
+import ViewProduct from "./Vendor_Page/ViewProduct";
 
 const App = () => {
   return (
@@ -54,6 +56,8 @@ const App = () => {
                 <Route path="/vendor-inventory" element={<Inventory />} />
                 <Route path="/vendor-orders" element={<Order />} />
                 <Route path="/vendor-profile" element={<VendorProfile />} />
+                <Route path="/vendor-add-product" element={<AddProduct />} /> 
+                <Route path="/vendor-view-product" element={<ViewProduct />} />
                 <Route path="/category/clothes" element={<Clothes />} />
                 <Route path="/category/home-appliances" element={<HomeAppliance />} />
                 <Route path="/category/mens-accessories" element={<MenAccessories />} />

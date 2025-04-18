@@ -1,7 +1,7 @@
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Button, Grid, Card, CardMedia, CardContent
+  ListItemText, IconButton, InputBase
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -17,14 +17,12 @@ import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
-import longsleeveImage from "../images/longsleeve.png";
-
 const drawerWidth = 240;
 
-const Product = () => {
+const ViewProduct = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = React.useState("");
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
@@ -69,12 +67,13 @@ const Product = () => {
     </Box>
   );
 
-  const sampleProducts = Array.from({ length: 9 }, (_, index) => ({
-    id: index + 1,
-    name: "Nike Longsleeve",
-    price: "₱ 400.00",
-    image: longsleeveImage,
-  }));
+  // Temporary product data
+  const product = {
+    name: "Sample Product",
+    price: "599",
+    description: "This is a sample product used for display purposes.",
+    image: "https://via.placeholder.com/200",
+  };
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -143,81 +142,50 @@ const Product = () => {
         sx={{
           flexGrow: 1,
           bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
-          color: mode === "light" ? "#000" : "#FFF",
           p: 3,
           mt: 8,
-          overflow: "auto",
-          height: "92vh",
+          color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4">Products</Typography>
-          <Button
-            variant="contained"
-            sx={{
-              width: 130,
-              height: 40,
-              backgroundColor: "#D32F2E",
-              color: "#FFFFFF",
-              textTransform: "none",
-              fontSize: "16px",
-              "&:hover": {
-                backgroundColor: "#b71c1c",
-              },
-            }}
-            onClick={() => navigate("/vendor-add-product")}
-          >
-            Add Product
-          </Button>
-        </Box>
+        <Typography variant="h4">Product Details</Typography>
 
-        <Grid container spacing={3} justifyContent="center">
-          {sampleProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={2.4} key={product.id}>
-              <Card
-                onClick={() => navigate(`/vendor-products/${product.id}`)}
-                sx={{
-                  bgcolor: mode === "light" ? "#f5f5f5" : "#2c2c2c",
-                  height: 350,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-start",
-                  alignItems: "center",
-                  p: 4,
-                  cursor: "pointer",
-                  transition: "transform 0.2s",
-                  "&:hover": {
-                    transform: "scale(1.03)",
-                    boxShadow: 6,
-                  },
-                }}
-              >
-                <CardMedia
-                  component="img"
-                  image={product.image}
-                  alt={product.name}
-                  sx={{
-                    maxHeight: 210,
-                    maxWidth: "100%",
-                    objectFit: "contain",
-                    mx: "auto",
-                  }}
-                />
-                <CardContent sx={{ width: "100%" }}>
-                  <Typography align="center" fontWeight="bold">
-                    {product.name}
-                  </Typography>
-                  <Typography align="center" color="text.secondary">
-                    {product.price}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <Box
+          sx={{
+            width: "60%",
+            mt: 9,
+            mx: "auto",
+            p: 4,
+            borderRadius: 2,
+            backgroundColor: mode === "light" ? "#f9f9f9" : "#2A2A2A",
+            boxShadow: 3,
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+          }}
+        >
+          <Box display="flex">
+            <Typography sx={{ width: 150 }}>Name</Typography>
+            <Typography>{product.name}</Typography>
+          </Box>
+
+          <Box display="flex">
+            <Typography sx={{ width: 150 }}>Price</Typography>
+            <Typography>₱{product.price}.00</Typography>
+          </Box>
+
+          <Box display="flex">
+            <Typography sx={{ width: 150 }}>Description</Typography>
+            <Typography>{product.description}</Typography>
+          </Box>
+
+          <Box display="flex">
+            <Typography sx={{ width: 150 }}>Image</Typography>
+            <img src={product.image} alt="Product" style={{ maxWidth: 200, borderRadius: 8 }} />
+          </Box>
+        </Box>
       </Box>
     </Box>
   );
 };
 
-export default Product;
+export default ViewProduct;

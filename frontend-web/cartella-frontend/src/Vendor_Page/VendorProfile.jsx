@@ -81,7 +81,7 @@ const VendorProfile = () => {
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box display="flex" alignItems="center">
             <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
-            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3 }}>
+            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3, fontFamily: "GDS Didot, serif" }}>
               Cartella
             </Typography>
             <Box
