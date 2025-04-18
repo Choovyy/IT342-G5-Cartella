@@ -13,7 +13,6 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import InventoryIcon from "@mui/icons-material/Inventory";
-import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
@@ -27,6 +26,7 @@ const AddProduct = () => {
     name: "",
     price: "",
     description: "",
+    stock: "",
     image: null,
   });
 
@@ -60,8 +60,7 @@ const AddProduct = () => {
 
   const drawerItems = [
     { text: "Sales Overview", icon: <AssessmentIcon />, path: "/vendor-dashboard" },
-    { text: "Products", icon: <ShoppingBasketIcon />, path: "/vendor-products" },
-    { text: "Inventory", icon: <InventoryIcon />, path: "/vendor-inventory" },
+    { text: "Products", icon: <InventoryIcon />, path: "/vendor-products" },
     { text: "Orders", icon: <ListAltIcon />, path: "/vendor-orders" },
     { text: "My Profile", icon: <AccountCircleIcon />, path: "/vendor-profile" },
   ];
@@ -158,16 +157,14 @@ const AddProduct = () => {
           color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Typography variant="h4">
-          Add New Product
-        </Typography>
+        <Typography variant="h4">Add New Product</Typography>
 
         <Box
           component="form"
           onSubmit={handleSubmit}
           sx={{
             width: "60%",
-            mt: 9,
+            mt: 5,
             mx: "auto",
             p: 4,
             borderRadius: 2,
@@ -222,6 +219,21 @@ const AddProduct = () => {
               rows={4}
               value={form.description}
               onChange={handleChange}
+            />
+          </Box>
+
+          {/* Stock */}
+          <Box display="flex" alignItems="center">
+            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Stock</Typography>
+            <TextField
+              name="stock"
+              required
+              type="number"
+              variant="outlined"
+              fullWidth
+              value={form.stock}
+              onChange={handleChange}
+              inputProps={{ min: 0 }}
             />
           </Box>
 

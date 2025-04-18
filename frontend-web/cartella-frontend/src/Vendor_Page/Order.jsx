@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase
+  ListItemText, IconButton, InputBase, Card, CardContent, CardActionArea
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -13,7 +13,6 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import InventoryIcon from "@mui/icons-material/Inventory";
-import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
@@ -41,8 +40,7 @@ const Order = () => {
 
   const drawerItems = [
     { text: "Sales Overview", icon: <AssessmentIcon />, path: "/vendor-dashboard" },
-    { text: "Products", icon: <ShoppingBasketIcon />, path: "/vendor-products" },
-    { text: "Inventory", icon: <InventoryIcon />, path: "/vendor-inventory" },
+    { text: "Products", icon: <InventoryIcon />, path: "/vendor-products" },
     { text: "Orders", icon: <ListAltIcon />, path: "/vendor-orders" },
     { text: "My Profile", icon: <AccountCircleIcon />, path: "/vendor-profile" },
   ];
@@ -66,6 +64,10 @@ const Order = () => {
       </List>
     </Box>
   );
+
+  const handleCardClick = () => {
+    navigate("/vendor-view-order");
+  };
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -137,11 +139,35 @@ const Order = () => {
           p: 3,
           mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
+          overflow: "auto",
+          height: "92vh",
         }}
       >
         <Typography variant="h4" gutterBottom>
           Orders
         </Typography>
+
+        {/* Clickable Order Card */}
+        <Box display="flex" justifyContent="center" mt={5}>
+          <Card sx={{ width: 1100, height: 120, bgcolor: mode === "light" ? "#f4f4f4" : "#2a2a2a" }}>
+            <CardActionArea onClick={handleCardClick} sx={{ height: "100%" }}>
+              <CardContent sx={{ display: "flex", alignItems: "center", gap: 3, height: "100%" }}>
+                <Box>
+                  <img
+                    src="src/images/longsleeve.png"
+                    alt="Nike Longsleeve"
+                    style={{ width: 60 }}
+                  />
+                </Box>
+                <Box>
+                  <Typography variant="body1">
+                    A customer has ordered one <strong>Nike Longsleeve</strong> for <strong>₱400.00</strong>, please prepare the item for delivery.
+                  </Typography>
+                </Box>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+        </Box>
       </Box>
     </Box>
   );

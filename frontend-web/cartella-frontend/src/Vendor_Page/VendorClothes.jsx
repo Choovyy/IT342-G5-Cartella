@@ -1,12 +1,11 @@
-import React, { useContext, useState } from "react";
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid
 } from "@mui/material";
 
-import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
-
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -16,16 +15,14 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
-import ClothesImg from "../images/clothes.png";
-import BlenderImg from "../images/blender.png";
-import WatchImg from "../images/watch.png";
-import ShadesImg from "../images/shades.png";
-import IphoneImg from "../images/iphone.png";
-import GamingImg from "../images/gaming.png";
+import LightLogo from "../images/Cartella Logo (Light).jpeg";
+import DarkLogo from "../images/Cartella Logo (Dark2).jpeg";
+import LongsleeveImg from "../images/longsleeve.png";
+import DressImg from "../images/dress.png";
 
 const drawerWidth = 240;
 
-const Product = () => {
+const VendorClothes = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
@@ -41,24 +38,18 @@ const Product = () => {
     }
   };
 
-  const logoSrc = mode === "light"
-    ? "src/images/Cartella Logo (Light).jpeg"
-    : "src/images/Cartella Logo (Dark2).jpeg";
+  const logoSrc = mode === "light" ? LightLogo : DarkLogo;
+
+  const categories = [
+    { name: "Men’s Apparel", image: LongsleeveImg, path: "/vendor-men-apparel" },
+    { name: "Women’s Apparel", image: DressImg, path: "/vendor-women-apparel" },
+  ];
 
   const drawerItems = [
     { text: "Sales Overview", icon: <AssessmentIcon />, path: "/vendor-dashboard" },
     { text: "Products", icon: <InventoryIcon />, path: "/vendor-products" },
     { text: "Orders", icon: <ListAltIcon />, path: "/vendor-orders" },
     { text: "My Profile", icon: <AccountCircleIcon />, path: "/vendor-profile" },
-  ];
-
-  const categories = [
-    { name: "Clothes", image: ClothesImg, path: "/vendor-products/clothes" },
-    { name: "Men’s Accessories", image: WatchImg, path: "/vendor-products/mens-accessories" },
-    { name: "Mobiles & Gadgets", image: IphoneImg, path: "/vendor-products/mobiles-gadgets" },
-    { name: "Home Appliances", image: BlenderImg, path: "/vendor-products/home-appliances" },
-    { name: "Women’s Accessories", image: ShadesImg, path: "/vendor-products/womens-accessories" },
-    { name: "Gaming", image: GamingImg, path: "/vendor-products/gaming" },
   ];
 
   const drawer = (
@@ -81,24 +72,8 @@ const Product = () => {
     </Box>
   );
 
-  const itemStyle = {
-    cursor: "pointer",
-    textAlign: "center",
-    transition: "transform 0.2s",
-    "&:hover": {
-      transform: "scale(1.05)",
-    },
-  };
-
-  const imageStyle = {
-    width: "230px",
-    height: "250px",
-    mb: 1,
-  };
-
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* App Bar */}
       <AppBar
         position="fixed"
         elevation={0}
@@ -111,9 +86,18 @@ const Product = () => {
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box display="flex" alignItems="center">
             <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
-            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3, fontFamily: "GDS Didot, serif" }}>
+            <Typography
+              variant="h2"
+              sx={{
+                fontFamily: "GDS Didot, serif",
+                fontSize: "26px",
+                color: "inherit",
+                marginRight: 3,
+              }}
+            >
               Cartella
             </Typography>
+
             <Box
               display="flex"
               alignItems="center"
@@ -137,13 +121,13 @@ const Product = () => {
               />
             </Box>
           </Box>
+
           <IconButton sx={{ ml: 2 }} onClick={toggleTheme} color="inherit">
             {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
           </IconButton>
         </Toolbar>
       </AppBar>
 
-      {/* Drawer */}
       <Drawer
         variant="permanent"
         sx={{
@@ -160,7 +144,6 @@ const Product = () => {
         {drawer}
       </Drawer>
 
-      {/* Category Grid */}
       <Box
         component="main"
         sx={{
@@ -171,34 +154,25 @@ const Product = () => {
           color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Typography variant="h4" gutterBottom>Categories</Typography>
-
-        <Grid container spacing={20} justifyContent="center">
-          {[0, 1, 2].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
-        </Grid>
-
-        <Grid container spacing={20} sx={{ mt: 1 }} justifyContent="center">
-          {[3, 4, 5].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
+        <Typography variant="h4" gutterBottom>Clothes Categories</Typography>
+        <Grid container spacing={25} justifyContent="center" sx={{ maxWidth: 900, mt: 11, mx: 'auto' }}>
+          {categories.map(({ name, image, path }) => (
+            <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={{
+              cursor: "pointer",
+              textAlign: "center",
+              transition: "transform 0.2s",
+              "&:hover": {
+                transform: "scale(1.05)",
+              },
+            }}>
+              <Box component="img" src={image} alt={name} sx={{ width: "330px", height: "370px", mb: 1 }} />
+              <Typography variant="subtitle1">{name}</Typography>
+            </Grid>
+          ))}
         </Grid>
       </Box>
     </Box>
   );
 };
 
-export default Product;
+export default VendorClothes;

@@ -1,9 +1,8 @@
 import React, { useContext, useState } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase
+  ListItemText, IconButton, InputBase, Button, Grid, Card, CardMedia, CardContent
 } from "@mui/material";
-
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
 
@@ -13,13 +12,14 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import InventoryIcon from "@mui/icons-material/Inventory";
-import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
+import longsleeveImage from "../images/longsleeve.png";
+
 const drawerWidth = 240;
 
-const Inventory = () => {
+const VendorMenApparel = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
@@ -41,8 +41,7 @@ const Inventory = () => {
 
   const drawerItems = [
     { text: "Sales Overview", icon: <AssessmentIcon />, path: "/vendor-dashboard" },
-    { text: "Products", icon: <ShoppingBasketIcon />, path: "/vendor-products" },
-    { text: "Inventory", icon: <InventoryIcon />, path: "/vendor-inventory" },
+    { text: "Products", icon: <InventoryIcon />, path: "/vendor-products" },
     { text: "Orders", icon: <ListAltIcon />, path: "/vendor-orders" },
     { text: "My Profile", icon: <AccountCircleIcon />, path: "/vendor-profile" },
   ];
@@ -66,6 +65,13 @@ const Inventory = () => {
       </List>
     </Box>
   );
+
+  const sampleProducts = Array.from({ length: 9 }, (_, index) => ({
+    id: index + 1,
+    name: "Men's Longsleeve",
+    price: "₱ 400.00",
+    image: longsleeveImage,
+  }));
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -134,17 +140,81 @@ const Inventory = () => {
         sx={{
           flexGrow: 1,
           bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+          color: mode === "light" ? "#000" : "#FFF",
           p: 3,
           mt: 8,
-          color: mode === "light" ? "#000" : "#FFF",
+          overflow: "auto",
+          height: "92vh",
         }}
       >
-        <Typography variant="h4" gutterBottom>
-          Inventory
-        </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4">Men's Apparel</Typography>
+          <Button
+            variant="contained"
+            sx={{
+              width: 130,
+              height: 40,
+              backgroundColor: "#D32F2E",
+              color: "#FFFFFF",
+              textTransform: "none",
+              fontSize: "16px",
+              "&:hover": {
+                backgroundColor: "#b71c1c",
+              },
+            }}
+            onClick={() => navigate("/vendor-add-product")}
+          >
+            Add Product
+          </Button>
+        </Box>
+
+        <Grid container spacing={3} justifyContent="center">
+          {sampleProducts.map((product) => (
+            <Grid item xs={12} sm={6} md={2.4} key={product.id}>
+              <Card
+                onClick={() => navigate(`/vendor-products/${product.id}`)}
+                sx={{
+                  bgcolor: mode === "light" ? "#f5f5f5" : "#2c2c2c",
+                  height: 350,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-start",
+                  alignItems: "center",
+                  p: 4,
+                  cursor: "pointer",
+                  transition: "transform 0.2s",
+                  "&:hover": {
+                    transform: "scale(1.03)",
+                    boxShadow: 6,
+                  },
+                }}
+              >
+                <CardMedia
+                  component="img"
+                  image={product.image}
+                  alt={product.name}
+                  sx={{
+                    maxHeight: 210,
+                    maxWidth: "100%",
+                    objectFit: "contain",
+                    mx: "auto",
+                  }}
+                />
+                <CardContent sx={{ width: "100%" }}>
+                  <Typography align="center" fontWeight="bold">
+                    {product.name}
+                  </Typography>
+                  <Typography align="center" color="text.secondary">
+                    {product.price}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       </Box>
     </Box>
   );
 };
 
-export default Inventory;
+export default VendorMenApparel;

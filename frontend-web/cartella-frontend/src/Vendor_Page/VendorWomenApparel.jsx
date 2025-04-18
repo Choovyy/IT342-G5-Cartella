@@ -1,9 +1,8 @@
 import React, { useContext, useState } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Grid
+  ListItemText, IconButton, InputBase, Button, Grid, Card, CardMedia, CardContent
 } from "@mui/material";
-
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
 
@@ -16,16 +15,11 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
-import ClothesImg from "../images/clothes.png";
-import BlenderImg from "../images/blender.png";
-import WatchImg from "../images/watch.png";
-import ShadesImg from "../images/shades.png";
-import IphoneImg from "../images/iphone.png";
-import GamingImg from "../images/gaming.png";
+import longsleeveImage from "../images/longsleeve.png";
 
 const drawerWidth = 240;
 
-const Product = () => {
+const VendorWomenApparel = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
@@ -52,15 +46,6 @@ const Product = () => {
     { text: "My Profile", icon: <AccountCircleIcon />, path: "/vendor-profile" },
   ];
 
-  const categories = [
-    { name: "Clothes", image: ClothesImg, path: "/vendor-products/clothes" },
-    { name: "Men’s Accessories", image: WatchImg, path: "/vendor-products/mens-accessories" },
-    { name: "Mobiles & Gadgets", image: IphoneImg, path: "/vendor-products/mobiles-gadgets" },
-    { name: "Home Appliances", image: BlenderImg, path: "/vendor-products/home-appliances" },
-    { name: "Women’s Accessories", image: ShadesImg, path: "/vendor-products/womens-accessories" },
-    { name: "Gaming", image: GamingImg, path: "/vendor-products/gaming" },
-  ];
-
   const drawer = (
     <Box display="flex" flexDirection="column" height="100%">
       <Toolbar />
@@ -81,24 +66,15 @@ const Product = () => {
     </Box>
   );
 
-  const itemStyle = {
-    cursor: "pointer",
-    textAlign: "center",
-    transition: "transform 0.2s",
-    "&:hover": {
-      transform: "scale(1.05)",
-    },
-  };
-
-  const imageStyle = {
-    width: "230px",
-    height: "250px",
-    mb: 1,
-  };
+  const sampleProducts = Array.from({ length: 9 }, (_, index) => ({
+    id: index + 1,
+    name: "Women's Longsleeve",
+    price: "₱ 420.00",
+    image: longsleeveImage,
+  }));
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* App Bar */}
       <AppBar
         position="fixed"
         elevation={0}
@@ -143,7 +119,6 @@ const Product = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Drawer */}
       <Drawer
         variant="permanent"
         sx={{
@@ -160,45 +135,87 @@ const Product = () => {
         {drawer}
       </Drawer>
 
-      {/* Category Grid */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+          color: mode === "light" ? "#000" : "#FFF",
           p: 3,
           mt: 8,
-          color: mode === "light" ? "#000" : "#FFF",
+          overflow: "auto",
+          height: "92vh",
         }}
       >
-        <Typography variant="h4" gutterBottom>Categories</Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4">Women's Apparel</Typography>
+          <Button
+            variant="contained"
+            sx={{
+              width: 130,
+              height: 40,
+              backgroundColor: "#D32F2E",
+              color: "#FFFFFF",
+              textTransform: "none",
+              fontSize: "16px",
+              "&:hover": {
+                backgroundColor: "#b71c1c",
+              },
+            }}
+            onClick={() => navigate("/vendor-add-product")}
+          >
+            Add Product
+          </Button>
+        </Box>
 
-        <Grid container spacing={20} justifyContent="center">
-          {[0, 1, 2].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
-        </Grid>
-
-        <Grid container spacing={20} sx={{ mt: 1 }} justifyContent="center">
-          {[3, 4, 5].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
+        <Grid container spacing={3} justifyContent="center">
+          {sampleProducts.map((product) => (
+            <Grid item xs={12} sm={6} md={2.4} key={product.id}>
+              <Card
+                onClick={() => navigate(`/vendor-products/${product.id}`)}
+                sx={{
+                  bgcolor: mode === "light" ? "#f5f5f5" : "#2c2c2c",
+                  height: 350,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-start",
+                  alignItems: "center",
+                  p: 4,
+                  cursor: "pointer",
+                  transition: "transform 0.2s",
+                  "&:hover": {
+                    transform: "scale(1.03)",
+                    boxShadow: 6,
+                  },
+                }}
+              >
+                <CardMedia
+                  component="img"
+                  image={product.image}
+                  alt={product.name}
+                  sx={{
+                    maxHeight: 210,
+                    maxWidth: "100%",
+                    objectFit: "contain",
+                    mx: "auto",
+                  }}
+                />
+                <CardContent sx={{ width: "100%" }}>
+                  <Typography align="center" fontWeight="bold">
+                    {product.name}
+                  </Typography>
+                  <Typography align="center" color="text.secondary">
+                    {product.price}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
       </Box>
     </Box>
   );
 };
 
-export default Product;
+export default VendorWomenApparel;
+  
