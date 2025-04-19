@@ -49,7 +49,10 @@ public class SecurityConfig {
                                 "/oauth2/success",
                                 "/dashboard",
                                 "/oauth2/authorization/google",
-                                "/api/addresses/**"
+                                "/api/addresses/**",
+                                "/api/vendor-dashboard/**",
+                                "/api/vendors/**",
+                                "/api/products/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
