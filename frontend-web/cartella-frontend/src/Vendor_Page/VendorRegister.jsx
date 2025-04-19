@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
 import "./design/VendorLogin.css";
@@ -26,6 +26,7 @@ const VendorRegister = () => {
   });
 
   const [serverError, setServerError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
@@ -34,6 +35,47 @@ const VendorRegister = () => {
   const dobRef = useRef(null);
 
   const navigate = useNavigate();
+
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password) => {
+    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+  };
+
+  const validatePhone = (phone) => {
+    // Exactly 11 digits
+    const phoneRegex = /^\d{11}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const validateUsername = (username) => {
+    // At least 4 characters, letters, numbers, underscore only
+    const usernameRegex = /^[a-zA-Z0-9_]{4,}$/;
+    return usernameRegex.test(username);
+  };
+
+  const validateDateOfBirth = (dob) => {
+    if (!dob) return false;
+    
+    const birthDate = new Date(dob);
+    const today = new Date();
+    
+    // Calculate age
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age >= 18;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -107,7 +149,26 @@ const VendorRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate("/vendor-register-step2", { state: formData });
+    
+    // Clear any previous server errors
+    setServerError("");
+    
+    // Validate the form
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Navigate to the next step with form data
+      navigate("/vendor-register-step2", { state: formData });
+    } catch (err) {
+      console.error("Registration error:", err);
+      setServerError("An unexpected error occurred. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -126,60 +187,95 @@ const VendorRegister = () => {
           <h2 className="logo-light-name">Cartella</h2>
         </div>
 
-        <form onSubmit={handleNext}>
+        <form onSubmit={handleSubmit}>
           <h2>VENDOR REGISTER</h2>
+          
+          {/* Server Error Display */}
+          {serverError && (
+            <div className="error-message" style={{ color: "red", marginBottom: "15px", textAlign: "center" }}>
+              {serverError}
+            </div>
+          )}
 
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="text"
-            name="phone"
-            placeholder="Phone"
-            onChange={handleChange}
-            required
-          />
+          <div className="form-field">
+            <input
+              type="text"
+              name="username"
+              placeholder="Username"
+              value={formData.username}
+              onChange={handleChange}
+              className={errors.username ? "error" : ""}
+              required
+            />
+            {errors.username && <div className="error-text">{errors.username}</div>}
+          </div>
+          
+          <div className="form-field">
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
+              className={errors.password ? "error" : ""}
+              required
+            />
+            {errors.password && <div className="error-text">{errors.password}</div>}
+          </div>
+          
+          <div className="form-field">
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
+              className={errors.email ? "error" : ""}
+              required
+            />
+            {errors.email && <div className="error-text">{errors.email}</div>}
+          </div>
+          
+          <div className="form-field">
+            <input
+              type="text"
+              name="phone"
+              placeholder="Phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className={errors.phone ? "error" : ""}
+              required
+            />
+            {errors.phone && <div className="error-text">{errors.phone}</div>}
+          </div>
 
           {/* Birth Date - Inline Label and Input */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", marginBottom: "10px" }}>
+          <div className="form-field" style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", marginBottom: "10px" }}>
             <label htmlFor="dob" style={{ fontSize: "14px", minWidth: "80px" }}>Birth Date</label>
             <input
               type="date"
               name="dob"
               id="dob"
+              value={formData.dob}
               onChange={handleChange}
+              className={errors.dob ? "error" : ""}
               required
               style={{ flex: 1 }}
             />
+            {errors.dob && <div className="error-text">{errors.dob}</div>}
           </div>
 
-          <button type="submit">Next</button>
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Processing..." : "Next"}
+          </button>
 
           <div style={{ marginTop: '15px', textAlign: 'center' }}>
             <p style={{ margin: '5px 0' }}>
               Already have a vendor account?
-              <a href="/vendor-login"> Log In</a>
+              <Link to="/vendor-login"> Log In</Link>
             </p>
             <p style={{ margin: '5px 0' }}>
-              <a href="/login">Customer Log In</a>
+              <Link to="/login">Customer Log In</Link>
             </p>
           </div>
         </form>

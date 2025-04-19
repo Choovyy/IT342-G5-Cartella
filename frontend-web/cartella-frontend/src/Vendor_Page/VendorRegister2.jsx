@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
@@ -255,10 +255,10 @@ const VendorRegister2 = () => {
           <div style={{ marginTop: '15px', textAlign: 'center' }}>
             <p style={{ margin: '5px 0' }}>
               Already have a vendor account?
-              <a href="/vendor-login"> Log In</a>
+              <Link to="/vendor-login"> Log In</Link>
             </p>
             <p style={{ margin: '5px 0' }}>
-              <a href="/login">Customer Log In</a>
+              <Link to="/login">Customer Log In</Link>
             </p>
           </div>
         </form>

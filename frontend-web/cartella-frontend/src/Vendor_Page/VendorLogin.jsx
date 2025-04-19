@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
 import axios from "axios";
-
+import logo from "../images/Cartella Logo (Dark).jpeg";
+import logoLight from "../images/Cartella Logo (Light2).jpeg";
 const VendorLogin = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
