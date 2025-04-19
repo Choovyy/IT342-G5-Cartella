@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, CircularProgress
+  ListItemText, IconButton, InputBase, CircularProgress, Alert, Snackbar
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -124,6 +124,12 @@ const VendorDashboard = () => {
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [searchText, setSearchText] = useState("");
+  const [error, setError] = useState("");
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  
+  const navigate = useNavigate();
+  const { mode, toggleTheme } = useContext(ColorModeContext);
 
   useEffect(() => {
     // Fetch user details from localStorage
@@ -146,6 +152,7 @@ const VendorDashboard = () => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
+        setError("");
         
         // Fetch summary data
         const summaryResponse = await fetch(`http://localhost:8080/api/vendor-dashboard/${vendorId}/summary`, {
@@ -197,7 +204,8 @@ const VendorDashboard = () => {
         });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        alert('Failed to load dashboard data. Please try again later.');
+        setError('Failed to load dashboard data. Please try again later.');
+        setOpenSnackbar(true);
       } finally {
         setIsLoading(false);
       }
@@ -221,7 +229,12 @@ const VendorDashboard = () => {
   const handleSearch = () => {
     if (searchText.trim()) {
       console.log("Searching for:", searchText);
+      // Implement search functionality here
     }
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
   };
 
   const logoSrc = mode === "light" ? logoLight : logoDark;
@@ -472,6 +485,18 @@ const VendorDashboard = () => {
           </>
         )}
       </Box>
+      
+      {/* Error Snackbar */}
+      <Snackbar 
+        open={openSnackbar} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
