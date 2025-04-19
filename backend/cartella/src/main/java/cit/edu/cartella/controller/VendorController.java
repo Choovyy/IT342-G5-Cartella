@@ -8,6 +8,8 @@ import cit.edu.cartella.repository.VendorRepository;
 import cit.edu.cartella.service.UserService;
 import cit.edu.cartella.service.VendorService;
 import cit.edu.cartella.util.JwtUtil;
+import java.util.regex.Pattern;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +26,8 @@ public class VendorController {
     private final VendorRepository vendorRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{11}$");
 
     @Autowired
     private UserService userService;
@@ -105,12 +109,18 @@ public class VendorController {
             return ResponseEntity.status(404).body(Map.of("error", "Vendor profile not found"));
         }
 
+        Vendor vendor = vendorOpt.get();
         String token = jwtUtil.generateToken(user.getUsername());
+        
+        // Format the joined date
+        String joinedDate = vendor.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"));
 
         return ResponseEntity.ok(Map.of(
             "token", token,
             "userId", user.getUserId(),
-            "vendorId", vendorOpt.get().getVendorId(),
+            "vendorId", vendor.getVendorId(),
+            "businessName", vendor.getBusinessName(),
+            "joinedDate", joinedDate,
             "message", "Vendor login successful"
         ));
     }
@@ -125,10 +135,42 @@ public ResponseEntity<?> registerVendor(@RequestBody Map<String, String> payload
         String phone = payload.get("phone");
         String dob = payload.get("dob");
         String gender = payload.get("gender");
-
         String businessName = payload.get("businessName");
         String businessAddress = payload.get("businessAddress");
         String businessRegNum = payload.get("businessRegistrationNumber");
+
+        // Validate email format
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+
+        // Validate phone number (exactly 11 digits)
+        if (!PHONE_PATTERN.matcher(phone).matches()) {
+            throw new IllegalArgumentException("Phone number must be exactly 11 digits");
+        }
+
+        // Check for existing username
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new IllegalArgumentException("Username is already taken");
+        }
+
+        // Check for existing email
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Email is already registered");
+        }
+
+        // Check for existing phone number
+        if (userRepository.findByPhoneNumber(phone).isPresent()) {
+            throw new IllegalArgumentException("Phone number is already registered");
+        }
+        if (dob == null || dob.isEmpty()) {
+            throw new IllegalArgumentException("Date of birth is required");
+            
+        }
+        //check if regisnum is duplicate
+        if (vendorRepository.findByBusinessRegistrationNumber(businessRegNum).isPresent()) {
+            throw new IllegalArgumentException("Business registration number is already registered");
+        }
 
         // Create user entity with role VENDOR
         User user = new User();
@@ -140,6 +182,8 @@ public ResponseEntity<?> registerVendor(@RequestBody Map<String, String> payload
         user.setGender(Enum.valueOf(cit.edu.cartella.entity.Gender.class, gender.toUpperCase()));
         user.setRole(cit.edu.cartella.entity.Role.VENDOR);
 
+        // Encrypt password before saving
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user = userService.saveUser(user); // saves and returns with userId
 
         // Create vendor entity and link to user
@@ -160,9 +204,13 @@ public ResponseEntity<?> registerVendor(@RequestBody Map<String, String> payload
             "userId", user.getUserId(),
             "vendorId", vendor.getVendorId()
         ));
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
         return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(Map.of("error", "An unexpected error occurred"));
     }
 }
+
+
 
 }

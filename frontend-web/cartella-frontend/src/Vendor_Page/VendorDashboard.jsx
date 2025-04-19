@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase
+  ListItemText, IconButton, InputBase, CircularProgress
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,9 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import logoLight from "../images/Cartella Logo (Light).jpeg";
+import logoDark from "../images/Cartella Logo (Dark2).jpeg";
+
 
 import {
   LineChart,
@@ -98,33 +101,121 @@ export const chartsCustomizations = {
 };
 
 const VendorDashboard = () => {
-  const navigate = useNavigate();
-  const { mode, toggleTheme } = useContext(ColorModeContext);
-  const [searchText, setSearchText] = useState("");
-
   const [userDetails, setUserDetails] = useState({
     username: "",
     userId: "",
     vendorId: "",
+    businessName: "",
+    joinedDate: "",
   });
 
-  const chartData = {
+  const [dashboardData, setDashboardData] = useState({
+    totalProducts: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    totalSoldItems: 0,
+  });
+
+  const [chartData, setChartData] = useState({
     labels: ["Jan", "Feb", "Mar", "Apr"],
-    products: [10, 20, 30, 34],
-    orders: [40, 60, 80, 118],
-    revenue: [3450, 2980, 4100, 3340],
-  };
+    products: [0, 0, 0, 0],
+    orders: [0, 0, 0, 0],
+    revenue: [0, 0, 0, 0],
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Fetch user details from localStorage
     const username = sessionStorage.getItem("username");
     const userId = sessionStorage.getItem("userId");
     const vendorId = sessionStorage.getItem("vendorId");
-    setUserDetails({ username, userId, vendorId });
-  }, []);
+    const businessName = sessionStorage.getItem("businessName");
+    const joinedDate = sessionStorage.getItem("joinedDate");
+    const authToken = sessionStorage.getItem("authToken");
+    
+    // Check if user is authenticated
+    if (!authToken || !vendorId) {
+      navigate("/vendor-login");
+      return;
+    }
+    
+    setUserDetails({ username, userId, vendorId, businessName, joinedDate });
+    
+    // Fetch dashboard data
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch summary data
+        const summaryResponse = await fetch(`http://localhost:8080/api/vendor-dashboard/${vendorId}/summary`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (!summaryResponse.ok) {
+          throw new Error('Failed to fetch summary data');
+        }
+        
+        const summaryData = await summaryResponse.json();
+        
+        // Update user details with data from API
+        setUserDetails(prev => ({
+          ...prev,
+          businessName: summaryData.businessName || prev.businessName,
+          joinedDate: summaryData.joinedDate || prev.joinedDate
+        }));
+        
+        // Set dashboard data
+        setDashboardData({
+          totalProducts: summaryData.totalProducts || 0,
+          totalOrders: summaryData.totalOrders || 0,
+          totalRevenue: summaryData.totalRevenue || 0,
+          totalSoldItems: summaryData.totalSoldItems || 0,
+        });
+        
+        // Fetch chart data
+        const chartResponse = await fetch(`http://localhost:8080/api/vendor-dashboard/${vendorId}/chart-data`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (!chartResponse.ok) {
+          throw new Error('Failed to fetch chart data');
+        }
+        
+        const chartData = await chartResponse.json();
+        
+        // Set chart data
+        setChartData({
+          labels: chartData.labels || ["Jan", "Feb", "Mar", "Apr"],
+          products: chartData.products || [0, 0, 0, 0],
+          orders: chartData.orders || [0, 0, 0, 0],
+          revenue: chartData.revenue || [0, 0, 0, 0],
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        alert('Failed to load dashboard data. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchDashboardData();
+  }, [navigate]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
-    navigate("/login");
+    sessionStorage.removeItem("username");
+    sessionStorage.removeItem("userId");
+    sessionStorage.removeItem("vendorId");
+    sessionStorage.removeItem("businessName");
+    sessionStorage.removeItem("joinedDate");
+    console.log("User logged out");
+    alert("You have been logged out successfully.");
+    navigate("/vendor-login");
   };
 
   const handleSearch = () => {
@@ -133,9 +224,7 @@ const VendorDashboard = () => {
     }
   };
 
-  const logoSrc = mode === "light"
-    ? "src/images/Cartella Logo (Light).jpeg"
-    : "src/images/Cartella Logo (Dark2).jpeg";
+  const logoSrc = mode === "light" ? logoLight : logoDark;
 
   const drawerItems = [
     { text: "Sales Overview", icon: <AssessmentIcon />, path: "/vendor-dashboard" },
@@ -245,71 +334,143 @@ const VendorDashboard = () => {
           Welcome, {userDetails.username || "Vendor"}
         </Typography>
         <Typography variant="body1" sx={{ mt: 1 }}>
-          Business Name Cartella Co.<br />
-          Joined Date March 2024
+          Business Name: {userDetails.businessName || "Cartella Co."}<br />
+          Joined Date: {userDetails.joinedDate || "March 2024"}
         </Typography>
 
-        {/* Charts Section */}
-        <Box sx={{ display: "flex", justifyContent: "center", gap: 4, my: 4, flexWrap: "wrap" }}>
-          <Box
-            sx={{
-              border: "1px solid",
-              borderColor: mode === "light" ? "#ccc" : "#444",
-              borderRadius: 2,
-              p: 2,
-              backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
-            }}
-          >
-            <Typography variant="h6" align="center">Total Orders</Typography>
-            <LineChart
-              xAxis={[{ data: chartData.labels }]}
-              series={[{ data: chartData.orders, label: "Orders", color: "#F44336" }]}
-              width={480}
-              height={280}
-              sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
-            />
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+            <CircularProgress />
           </Box>
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, my: 4, flexWrap: "wrap" }}>
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: mode === "light" ? "#ccc" : "#444",
+                  borderRadius: 2,
+                  p: 2,
+                  backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
+                  flex: 1,
+                  minWidth: 200,
+                  textAlign: "center",
+                }}
+              >
+                <Typography variant="h6">Total Products</Typography>
+                <Typography variant="h4">{dashboardData.totalProducts}</Typography>
+              </Box>
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: mode === "light" ? "#ccc" : "#444",
+                  borderRadius: 2,
+                  p: 2,
+                  backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
+                  flex: 1,
+                  minWidth: 200,
+                  textAlign: "center",
+                }}
+              >
+                <Typography variant="h6">Total Orders</Typography>
+                <Typography variant="h4">{dashboardData.totalOrders}</Typography>
+              </Box>
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: mode === "light" ? "#ccc" : "#444",
+                  borderRadius: 2,
+                  p: 2,
+                  backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
+                  flex: 1,
+                  minWidth: 200,
+                  textAlign: "center",
+                }}
+              >
+                <Typography variant="h6">Total Revenue</Typography>
+                <Typography variant="h4">₱{dashboardData.totalRevenue.toLocaleString()}</Typography>
+              </Box>
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: mode === "light" ? "#ccc" : "#444",
+                  borderRadius: 2,
+                  p: 2,
+                  backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
+                  flex: 1,
+                  minWidth: 200,
+                  textAlign: "center",
+                }}
+              >
+                <Typography variant="h6">Total Sold Items</Typography>
+                <Typography variant="h4">{dashboardData.totalSoldItems}</Typography>
+              </Box>
+            </Box>
 
-          <Box
-            sx={{
-              border: "1px solid",
-              borderColor: mode === "light" ? "#ccc" : "#444",
-              borderRadius: 2,
-              p: 2,
-              backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
-            }}
-          >
-            <Typography variant="h6" align="center">Total Products</Typography>
-            <LineChart
-              xAxis={[{ data: chartData.labels }]}
-              series={[{ data: chartData.products, label: "Products", color: "#2196F3" }]}
-              width={480}
-              height={280}
-              sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
-            />
-          </Box>
-        </Box>
+            {/* Charts Section */}
+            <Box sx={{ display: "flex", justifyContent: "center", gap: 4, my: 4, flexWrap: "wrap" }}>
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: mode === "light" ? "#ccc" : "#444",
+                  borderRadius: 2,
+                  p: 2,
+                  backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
+                }}
+              >
+                <Typography variant="h6" align="center">Total Orders</Typography>
+                <LineChart
+                  xAxis={[{ data: chartData.labels }]}
+                  series={[{ data: chartData.orders, label: "Orders", color: "#F44336" }]}
+                  width={480}
+                  height={280}
+                  sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
+                />
+              </Box>
 
-        <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-          <Box
-            sx={{
-              border: "1px solid",
-              borderColor: mode === "light" ? "#ccc" : "#444",
-              borderRadius: 2,
-              p: 2,
-              backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
-            }}
-          >
-            <Typography variant="h6" align="center">Total Revenue</Typography>
-            <LineChart
-              xAxis={[{ data: chartData.labels }]}
-              series={[{ data: chartData.revenue, label: "Revenue ($)", color: "#4CAF50" }]}
-              width={1000}
-              height={280}
-              sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
-            />
-          </Box>
-        </Box>
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: mode === "light" ? "#ccc" : "#444",
+                  borderRadius: 2,
+                  p: 2,
+                  backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
+                }}
+              >
+                <Typography variant="h6" align="center">Total Products</Typography>
+                <LineChart
+                  xAxis={[{ data: chartData.labels }]}
+                  series={[{ data: chartData.products, label: "Products", color: "#2196F3" }]}
+                  width={480}
+                  height={280}
+                  sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
+                />
+              </Box>
+            </Box>
+
+            <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: mode === "light" ? "#ccc" : "#444",
+                  borderRadius: 2,
+                  p: 2,
+                  backgroundColor: mode === "light" ? "#fff" : "#2a2a2a",
+                }}
+              >
+                <Typography variant="h6" align="center">Total Revenue</Typography>
+                <LineChart
+                  xAxis={[{ data: chartData.labels }]}
+                  series={[{ data: chartData.revenue, label: "Revenue (₱)", color: "#4CAF50" }]}
+                  width={1000}
+                  height={280}
+                  sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
+                />
+              </Box>
+            </Box>
+          </>
+        )}
       </Box>
     </Box>
   );

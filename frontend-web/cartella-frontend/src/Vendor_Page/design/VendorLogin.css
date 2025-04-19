@@ -166,6 +166,11 @@ button[type="submit"]:hover {
   background-color: #bb1d1d;
 }
 
+button[type="submit"]:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
 button[style] {
   display: flex;
   align-items: center;

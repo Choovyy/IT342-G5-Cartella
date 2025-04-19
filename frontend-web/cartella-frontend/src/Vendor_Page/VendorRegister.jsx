@@ -11,15 +11,101 @@ const VendorRegister = () => {
     email: "",
     phone: "",
     dob: "",
+    gender: "",
+    businessName: "",
+    businessAddress: "",
+    businessRegistrationNumber: "",
   });
+
+  const [errors, setErrors] = useState({
+    username: "",
+    password: "",
+    email: "",
+    phone: "",
+    dob: "",
+  });
+
+  const [serverError, setServerError] = useState("");
+
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const phoneRef = useRef(null);
+  const usernameRef = useRef(null);
+  const dobRef = useRef(null);
 
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear server error when user starts typing
+    setServerError("");
+    
+    // Validate on change
+    validateField(name, value);
   };
 
-  const handleNext = (e) => {
+  const validateField = (name, value) => {
+    let error = "";
+    
+    switch (name) {
+      case "email":
+        if (!value) {
+          error = "Email is required";
+        } else if (!validateEmail(value)) {
+          error = "Please enter a valid email address";
+        }
+        break;
+      case "password":
+        if (!value) {
+          error = "Password is required";
+        } else if (!validatePassword(value)) {
+          error = "Password must be 8+ characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character";
+        }
+        break;
+      case "phone":
+        if (!value) {
+          error = "Phone number is required";
+        } else if (!validatePhone(value)) {
+          error = "Phone number must be exactly 11 digits";
+        }
+        break;
+      case "username":
+        if (!value) {
+          error = "Username is required";
+        } else if (!validateUsername(value)) {
+          error = "Username must be at least 4 characters (letters, numbers, underscore only)";
+        }
+        break;
+      case "dob":
+        if (!value) {
+          error = "Date of birth is required";
+        } else if (!validateDateOfBirth(value)) {
+          error = "You must be at least 18 years old to register";
+        }
+        break;
+      default:
+        break;
+    }
+    
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return !error;
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    
+    // Validate all fields
+    Object.keys(formData).forEach(field => {
+      const fieldValid = validateField(field, formData[field]);
+      if (!fieldValid) isValid = false;
+    });
+    
+    return isValid;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     navigate("/vendor-register-step2", { state: formData });
   };

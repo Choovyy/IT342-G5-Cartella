@@ -1,16 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
 import axios from "axios";
-import logo from "../images/Cartella Logo (Dark).jpeg";
-import logoLight from "../images/Cartella Logo (Light2).jpeg";
-import "./design/VendorLogin.css";
 
 const VendorLogin = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("authToken");
     const vendorId = sessionStorage.getItem("vendorId");
     if (token && vendorId) {
       navigate("/vendor-dashboard");
@@ -21,22 +19,34 @@ const VendorLogin = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSubmit(e);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       const response = await axios.post(
         "http://localhost:8080/api/vendors/login",
         formData
       );
-      sessionStorage.setItem("token", response.data.token);
+      sessionStorage.setItem("authToken", response.data.token);
       sessionStorage.setItem("username", formData.username);
       sessionStorage.setItem("userId", response.data.userId);
       sessionStorage.setItem("vendorId", response.data.vendorId);
+      sessionStorage.setItem("businessName", response.data.businessName);
+      sessionStorage.setItem("joinedDate", response.data.joinedDate);
+      
       alert("Vendor Login Successful!");
       navigate("/vendor-dashboard");
     } catch (error) {
       console.error("Vendor Login error:", error.response?.data);
       alert(error.response?.data?.error || "Invalid credentials");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -64,6 +74,8 @@ const VendorLogin = () => {
             name="username"
             placeholder="Username"
             onChange={handleChange}
+            onKeyPress={handleKeyPress}
+            disabled={isLoading}
             required
           />
           <input
@@ -71,9 +83,13 @@ const VendorLogin = () => {
             name="password"
             placeholder="Password"
             onChange={handleChange}
+            onKeyPress={handleKeyPress}
+            disabled={isLoading}
             required
           />
-          <button type="submit">Log In</button>
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? "Logging In..." : "Log In"}
+          </button>
 
           <p>New Vendor? <a href="/vendor-register">Register</a></p>
           <p className="vendor-link">

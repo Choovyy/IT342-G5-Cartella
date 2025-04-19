@@ -19,4 +19,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // Get all products by category
     List<Product> findByCategory(String category);
+
+    List<Product> findByVendorVendorId(Long vendorId);
 }
