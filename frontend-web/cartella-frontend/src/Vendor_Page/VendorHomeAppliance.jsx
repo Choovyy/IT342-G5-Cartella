@@ -16,7 +16,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logoLight from "../images/Cartella Logo (Light).jpeg";
 import logoDark from "../images/Cartella Logo (Dark2).jpeg";
-import longsleeveImage from "../images/longsleeve.png";
+
 
 const drawerWidth = 240;
 

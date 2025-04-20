@@ -26,7 +26,7 @@ import DarkLogo from "../images/Cartella Logo (Dark2).jpeg";
 
 const drawerWidth = 240;
 
-const Gaming = () => {
+const WomenShoes = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
@@ -45,8 +45,8 @@ const Gaming = () => {
       return;
     }
 
-    // Fetch products for Gaming category
-    fetch("http://localhost:8080/api/products/category/Gaming", {
+    // Fetch products for Women's Shoes category
+    fetch("http://localhost:8080/api/products/category/Women's%20Shoes", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -201,7 +201,7 @@ const Gaming = () => {
         mt: 8,
         color: mode === "light" ? "#000" : "#FFF"
       }}>
-        <Typography variant="h4" gutterBottom>Gaming</Typography>
+        <Typography variant="h4" gutterBottom>Women's Shoes</Typography>
         
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
@@ -514,4 +514,4 @@ const Gaming = () => {
   );
 };
 
-export default Gaming;
+export default WomenShoes; 

@@ -1,5 +1,6 @@
 package cit.edu.cartella.controller;
 
+import cit.edu.cartella.dto.ProductDTO;
 import cit.edu.cartella.entity.Product;
 import cit.edu.cartella.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,12 +39,12 @@ public class ProductController {
 
     // Get products by vendor and category
     @GetMapping("/vendor/{vendorId}/category/{category}")
-    public ResponseEntity<List<Product>> getProductsByVendorAndCategory(
+    public ResponseEntity<List<ProductDTO>> getProductsByVendorAndCategory(
             @PathVariable Long vendorId,
             @PathVariable String category) {
         // Decode the category name from URL encoding
         String decodedCategory = UriUtils.decode(category, StandardCharsets.UTF_8);
-        List<Product> products = productService.getProductsByVendorAndCategory(vendorId, decodedCategory);
+        List<ProductDTO> products = productService.getProductsByVendorAndCategory(vendorId, decodedCategory);
         return ResponseEntity.ok(products);
     }
 
@@ -114,17 +115,17 @@ public class ProductController {
 
     // Get products by vendor
     @GetMapping("/vendor/{vendorId}")
-    public ResponseEntity<List<Product>> getProductsByVendor(@PathVariable Long vendorId) {
-        List<Product> products = productService.getProductsByVendor(vendorId);
+    public ResponseEntity<List<ProductDTO>> getProductsByVendor(@PathVariable Long vendorId) {
+        List<ProductDTO> products = productService.getProductsByVendor(vendorId);
         return ResponseEntity.ok(products);
     }
 
     // Get products by category
     @GetMapping("/category/{category}")
-    public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable String category) {
+    public ResponseEntity<List<ProductDTO>> getProductsByCategory(@PathVariable String category) {
         // Decode the category name from URL encoding
         String decodedCategory = UriUtils.decode(category, StandardCharsets.UTF_8);
-        List<Product> products = productService.getProductsByCategory(decodedCategory);
+        List<ProductDTO> products = productService.getProductsByCategory(decodedCategory);
         return ResponseEntity.ok(products);
     }
 
