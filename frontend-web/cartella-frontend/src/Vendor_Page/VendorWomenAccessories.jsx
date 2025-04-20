@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Button, Grid, Card, CardMedia, CardContent
@@ -24,6 +24,29 @@ const VendorWomenAccessories = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const vendorId = sessionStorage.getItem("vendorId");
+    const authToken = sessionStorage.getItem("authToken");
+    if (!vendorId || !authToken) {
+      setError("Not authenticated. Please log in again.");
+      setLoading(false);
+      return;
+    }
+    fetch(`http://localhost:8080/api/products/vendor/${vendorId}/category/Women's Accessories`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch products");
+        return res.json();
+      })
+      .then(data => setProducts(data))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
@@ -64,13 +87,6 @@ const VendorWomenAccessories = () => {
       </List>
     </Box>
   );
-
-  const sampleProducts = Array.from({ length: 9 }, (_, index) => ({
-    id: index + 1,
-    name: "Women's Handbag",
-    price: "₱ 650.00",
-    image: longsleeveImage,
-  }));
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -166,51 +182,75 @@ const VendorWomenAccessories = () => {
             Add Product
           </Button>
         </Box>
-
-        <Grid container spacing={3} justifyContent="center">
-          {sampleProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={2.4} key={product.id}>
-              <Card
-                onClick={() => navigate(`/vendor-products/${product.id}`)}
-                sx={{
-                  bgcolor: mode === "light" ? "#f5f5f5" : "#2c2c2c",
-                  height: 350,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-start",
-                  alignItems: "center",
-                  p: 4,
-                  cursor: "pointer",
-                  transition: "transform 0.2s",
-                  "&:hover": {
-                    transform: "scale(1.03)",
-                    boxShadow: 6,
-                  },
-                }}
-              >
-                <CardMedia
-                  component="img"
-                  image={product.image}
-                  alt={product.name}
+        {loading ? (
+          <Typography>Loading...</Typography>
+        ) : error ? (
+          <Typography color="error">{error}</Typography>
+        ) : products.length === 0 ? (
+          <Typography align="center" sx={{ mt: 10 }}>
+            You have no products posted here.
+          </Typography>
+        ) : (
+          <Grid container spacing={3} justifyContent="center">
+            {products.map((product) => (
+              <Grid item xs={12} sm={6} md={2.4} key={product.productId}>
+                <Card
+                  onClick={() => navigate(`/vendor-products/${product.productId}`)}
                   sx={{
-                    maxHeight: 210,
-                    maxWidth: "100%",
-                    objectFit: "contain",
-                    mx: "auto",
+                    bgcolor: mode === "light" ? "#f5f5f5" : "#2c2c2c",
+                    height: 350,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "flex-start",
+                    alignItems: "center",
+                    p: 4,
+                    cursor: "pointer",
+                    transition: "transform 0.2s",
+                    "&:hover": {
+                      transform: "scale(1.03)",
+                      boxShadow: 6,
+                    },
                   }}
-                />
-                <CardContent sx={{ width: "100%" }}>
-                  <Typography align="center" fontWeight="bold">
-                    {product.name}
-                  </Typography>
-                  <Typography align="center" color="text.secondary">
-                    {product.price}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+                >
+                  {product.imageUrl ? (
+                    <CardMedia
+                      component="img"
+                      image={`http://localhost:8080${product.imageUrl}`}
+                      alt={product.name}
+                      sx={{
+                        maxHeight: 210,
+                        maxWidth: "100%",
+                        objectFit: "contain",
+                        mx: "auto",
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        height: 210,
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        bgcolor: "#eee",
+                      }}
+                    >
+                      <Typography variant="caption">No Image</Typography>
+                    </Box>
+                  )}
+                  <CardContent sx={{ width: "100%" }}>
+                    <Typography align="center" fontWeight="bold">
+                      {product.name}
+                    </Typography>
+                    <Typography align="center" color="text.secondary">
+                      ₱ {product.price?.toLocaleString()}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
       </Box>
     </Box>
   );

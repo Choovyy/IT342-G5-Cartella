@@ -24,7 +24,7 @@ import VendorLogin from "./Vendor_Page/VendorLogin";
 import VendorRegister from "./Vendor_Page/VendorRegister";
 import VendorRegister2 from "./Vendor_Page/VendorRegister2";
 import VendorDashboard from "./Vendor_Page/VendorDashboard";
-import Product from "./Vendor_Page/Product";
+import VendorProducts from "./Vendor_Page/VendorProducts";
 import Order from "./Vendor_Page/Order";
 import VendorProfile from "./Vendor_Page/VendorProfile";
 import AddProduct from "./Vendor_Page/AddProduct"; 
@@ -61,7 +61,7 @@ const App = () => {
               <Routes>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/vendor-dashboard" element={<VendorDashboard />} />
-                <Route path="/vendor-products" element={<Product />} />
+                <Route path="/vendor-products" element={<VendorProducts />} />
                 <Route path="/vendor-products/clothes" element={<VendorClothes />} />
                 <Route path="/vendor-men-apparel" element={<VendorMenApparel />} />
                 <Route path="/vendor-women-apparel" element={<VendorWomenApparel />} />

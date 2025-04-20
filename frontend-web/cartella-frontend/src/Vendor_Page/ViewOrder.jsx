@@ -1,12 +1,13 @@
 // ViewOrder.jsx
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Paper, Divider,
-  Button, MenuItem, Select, FormControl, InputLabel
+  Button, MenuItem, Select, FormControl, InputLabel,
+  CircularProgress, Alert
 } from "@mui/material";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -22,28 +23,99 @@ const drawerWidth = 240;
 
 const ViewOrder = () => {
   const navigate = useNavigate();
+  const { orderId } = useParams();
   const { mode, toggleTheme } = useContext(ColorModeContext);
-  const [searchText, setSearchText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [order, setOrder] = useState(null);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [status, setStatus] = useState("");
 
+  useEffect(() => {
+    const authToken = sessionStorage.getItem("authToken");
+    
+    if (!authToken) {
+      setError("Not authenticated. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    if (!orderId) {
+      setError("No order ID provided");
+      setLoading(false);
+      return;
+    }
+
+    // Fetch order details
+    fetch(`http://localhost:8080/api/orders/${orderId}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch order");
+        return res.json();
+      })
+      .then(data => {
+        setOrder(data);
+        setOrderConfirmed(data.status !== "PENDING");
+        setStatus(data.status);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError("Failed to load order: " + err.message);
+        setLoading(false);
+      });
+  }, [orderId]);
+
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("vendorId");
     navigate("/login");
   };
 
-  const handleSearch = () => {
-    if (searchText.trim()) {
-      console.log("Searching for:", searchText);
-    }
-  };
-
   const handleConfirmOrder = () => {
-    setOrderConfirmed(true);
+    const authToken = sessionStorage.getItem("authToken");
+    
+    fetch(`http://localhost:8080/api/orders/${orderId}/confirm`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${authToken}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to confirm order");
+        return res.json();
+      })
+      .then(data => {
+        setOrderConfirmed(true);
+        setStatus(data.status);
+      })
+      .catch(err => {
+        setError("Failed to confirm order: " + err.message);
+      });
   };
 
   const handleStatusChange = (event) => {
-    setStatus(event.target.value);
+    const newStatus = event.target.value;
+    const authToken = sessionStorage.getItem("authToken");
+    
+    fetch(`http://localhost:8080/api/orders/${orderId}/status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ status: newStatus })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to update status");
+        return res.json();
+      })
+      .then(data => {
+        setStatus(newStatus);
+      })
+      .catch(err => {
+        setError("Failed to update status: " + err.message);
+      });
   };
 
   const logoSrc = mode === "light"
@@ -78,47 +150,20 @@ const ViewOrder = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box sx={{ display: "flex" }}>
       <AppBar
         position="fixed"
-        elevation={0}
         sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: mode === "dark" ? "#3A3A3A" : "#D32F2F",
-          color: "#fff",
+          width: `calc(100% - ${drawerWidth}px)`,
+          ml: `${drawerWidth}px`,
+          bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+          color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Toolbar sx={{ justifyContent: "space-between" }}>
-          <Box display="flex" alignItems="center">
-            <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
-            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3, fontFamily: "GDS Didot, serif" }}>
-              Cartella
-            </Typography>
-            <Box
-              display="flex"
-              alignItems="center"
-              sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}
-            >
-              <IconButton onClick={handleSearch}>
-                <SearchIcon sx={{ color: "#1A1A1A" }} />
-              </IconButton>
-              <InputBase
-                placeholder="Search items"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                sx={{
-                  flex: 1,
-                  color: "#000",
-                  "& input": {
-                    border: "none",
-                    outline: "none",
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-          <IconButton sx={{ ml: 2 }} onClick={toggleTheme} color="inherit">
-            {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
+        <Toolbar>
+          <Box sx={{ flexGrow: 1 }} />
+          <IconButton onClick={toggleTheme} color="inherit">
+            {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
         </Toolbar>
       </AppBar>
@@ -128,7 +173,7 @@ const ViewOrder = () => {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
+          "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
             backgroundColor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
@@ -151,104 +196,121 @@ const ViewOrder = () => {
           height: "92vh",
         }}
       >
-        <Typography variant="h4" sx={{ mb: 14}}>
+        <Typography variant="h4" sx={{ mb: 7 }}>
           Order Information
         </Typography>
 
-        <Paper elevation={2} sx={{ p: 3, position: "relative" }}>
-          <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={3}>
-            {/* Customer Info */}
-            <Box flex={1} minWidth="300px">
-              <Typography variant="h5" sx={{ mb: 3}}>
-                Customer Information
-              </Typography>
-              <Typography variant="subtitle1"><strong>Name:</strong> Juan Dela Cruz</Typography>
-              <Typography variant="subtitle1"><strong>Address:</strong> 123 Barangay St., Quezon City, PH</Typography>
-              <Typography variant="subtitle1"><strong>Contact Number:</strong> +63 912 345 6789</Typography>
-              <Typography variant="subtitle1"><strong>Gender:</strong> Male</Typography>
-            </Box>
-
-            <Divider orientation="vertical" flexItem sx={{ display: { xs: "none", md: "block" } }} />
-
-            {/* Order Info */}
-            <Box flex={2}>
-              <Typography variant="h5" sx={{ mb: 3}}>
-                Order Details
-              </Typography>
-
-              <Box display="flex" alignItems="flex-start" gap={3}>
-                <img
-                  src="src/images/longsleeve.png"
-                  alt="Nike Longsleeve"
-                  style={{ width: 160, height: "auto", borderRadius: 8 }}
-                />
-                <Box flex={1}>
-                  <Typography variant="h6">Nike Longsleeve</Typography>
-                  <Typography variant="body1" sx={{ mb: 3}}>
-                    Comfort fit, breathable fabric, ideal for cool weather workouts.
-                  </Typography>
-
-                  <Typography variant="subtitle1"><strong>Price:</strong> ₱1,499.00</Typography>
-                  <Typography variant="subtitle1"><strong>Quantity:</strong> 1</Typography>
-                  <Typography variant="subtitle1"><strong>Order ID:</strong> ORD-20250418-XYZ</Typography>
-                  <Typography variant="subtitle1" gutterBottom>
-                    <strong>Tracking ID:</strong> TRK-123456789-PH
-                  </Typography>
-                </Box>
+        {loading ? (
+          <Box display="flex" justifyContent="center">
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Alert severity="error">{error}</Alert>
+        ) : order ? (
+          <Paper elevation={2} sx={{ p: 3, position: "relative" }}>
+            <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={3}>
+              {/* Customer Info */}
+              <Box flex={1} minWidth="300px">
+                <Typography variant="h5" sx={{ mb: 3 }}>
+                  Customer Information
+                </Typography>
+                <Typography variant="subtitle1"><strong>Name:</strong> {order.customer.name}</Typography>
+                <Typography variant="subtitle1"><strong>Address:</strong> {order.shippingAddress}</Typography>
+                <Typography variant="subtitle1"><strong>Contact Number:</strong> {order.customer.phone}</Typography>
+                <Typography variant="subtitle1"><strong>Email:</strong> {order.customer.email}</Typography>
               </Box>
 
-              {/* Confirm Button (positioned bottom-right) */}
-              <Box display="flex" justifyContent="flex-end" mt={3}>
-                {!orderConfirmed ? (
-                  <Button
-                    onClick={handleConfirmOrder}
-                    sx={{
-                      width: 160,
-                      height: 40,
-                      backgroundColor: "#D32F2E",
-                      color: "#FFFFFF",
-                      textTransform: "none",
-                      fontSize: "16px",
-                      "&:hover": {
-                        backgroundColor: "#b71c1c",
-                      },
-                    }}
-                  >
-                    Confirm Order
-                  </Button>
-                ) : (
-                  <Box display="flex" alignItems="center" gap={2}>
-                    <FormControl size="small" sx={{ minWidth: 180 }}>
-                      <InputLabel>Status</InputLabel>
-                      <Select value={status} onChange={handleStatusChange} label="Status">
-                        <MenuItem value="warehouse">At Warehouse</MenuItem>
-                        <MenuItem value="cityHub">At City Hub</MenuItem>
-                        <MenuItem value="outForDelivery">Out for Delivery</MenuItem>
-                        <MenuItem value="delivered">Parcel Delivered</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <Button
-                      variant="contained"
+              <Divider orientation="vertical" flexItem sx={{ display: { xs: "none", md: "block" } }} />
+
+              {/* Order Info */}
+              <Box flex={2}>
+                <Typography variant="h5" sx={{ mb: 3 }}>
+                  Order Details
+                </Typography>
+
+                <Box display="flex" alignItems="flex-start" gap={3}>
+                  {order.product.imageUrl ? (
+                    <img
+                      src={`http://localhost:8080${order.product.imageUrl}`}
+                      alt={order.product.name}
+                      style={{ width: 160, height: "auto", borderRadius: 8 }}
+                    />
+                  ) : (
+                    <Box
                       sx={{
-                        height: 40,
-                        backgroundColor: "#1976d2",
-                        color: "#FFFFFF",
-                        textTransform: "none",
-                        px: 3,
-                        fontSize: "14px",
-                        "&:hover": {
-                          backgroundColor: "#115293",
-                        },
+                        width: 160,
+                        height: 160,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        bgcolor: "#eee",
+                        borderRadius: 2,
                       }}
                     >
-                      Save Status
-                    </Button>
+                      <Typography variant="caption">No Image</Typography>
+                    </Box>
+                  )}
+                  <Box flex={1}>
+                    <Typography variant="h6">{order.product.name}</Typography>
+                    <Typography variant="body1" sx={{ mb: 3 }}>
+                      {order.product.description}
+                    </Typography>
+
+                    <Typography variant="subtitle1"><strong>Price:</strong> ₱{order.product.price.toLocaleString()}</Typography>
+                    <Typography variant="subtitle1"><strong>Quantity:</strong> {order.quantity}</Typography>
+                    <Typography variant="subtitle1"><strong>Order ID:</strong> {order.orderId}</Typography>
+                    <Typography variant="subtitle1" gutterBottom>
+                      <strong>Tracking ID:</strong> {order.trackingId || "Not yet assigned"}
+                    </Typography>
                   </Box>
-                )}
+                </Box>
+
+                {/* Confirm Button (positioned bottom-right) */}
+                <Box display="flex" justifyContent="flex-end" mt={3}>
+                  {!orderConfirmed ? (
+                    <Button
+                      onClick={handleConfirmOrder}
+                      variant="contained"
+                      color="primary"
+                      sx={{
+                        width: 160,
+                        height: 40,
+                        textTransform: "none",
+                        fontSize: "16px",
+                      }}
+                    >
+                      Confirm Order
+                    </Button>
+                  ) : (
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <FormControl size="small" sx={{ minWidth: 180 }}>
+                        <InputLabel>Status</InputLabel>
+                        <Select value={status} onChange={handleStatusChange} label="Status">
+                          <MenuItem value="WAREHOUSE">At Warehouse</MenuItem>
+                          <MenuItem value="CITY_HUB">At City Hub</MenuItem>
+                          <MenuItem value="OUT_FOR_DELIVERY">Out for Delivery</MenuItem>
+                          <MenuItem value="DELIVERED">Parcel Delivered</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <Button
+                        variant="contained"
+                        onClick={handleStatusChange}
+                        sx={{
+                          height: 40,
+                          textTransform: "none",
+                          px: 3,
+                          fontSize: "14px",
+                        }}
+                      >
+                        Save Status
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
               </Box>
             </Box>
-          </Box>
-        </Paper>
+          </Paper>
+        ) : null}
       </Box>
     </Box>
   );
