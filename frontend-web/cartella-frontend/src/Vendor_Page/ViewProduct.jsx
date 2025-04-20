@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -10,10 +10,12 @@ import {
   ListItemText,
   IconButton,
   InputBase,
-  Button
+  Button,
+  CircularProgress,
+  Alert
 } from "@mui/material";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -25,30 +27,58 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
-import longsleeveImg from "../images/longsleeve.png";
-
 const drawerWidth = 240;
 
 const ViewProduct = () => {
   const navigate = useNavigate();
+  const { productId } = useParams();
   const { mode, toggleTheme } = useContext(ColorModeContext);
-  const [searchText, setSearchText] = React.useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [product, setProduct] = useState(null);
+
+  useEffect(() => {
+    const authToken = sessionStorage.getItem("authToken");
+    
+    if (!authToken) {
+      setError("Not authenticated. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    if (!productId) {
+      setError("No product ID provided");
+      setLoading(false);
+      return;
+    }
+
+    // Fetch product details
+    fetch(`http://localhost:8080/api/products/${productId}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch product");
+        return res.json();
+      })
+      .then(data => {
+        setProduct(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError("Failed to load product: " + err.message);
+        setLoading(false);
+      });
+  }, [productId]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("vendorId");
     navigate("/login");
   };
 
-  const handleSearch = () => {
-    if (searchText.trim()) {
-      console.log("Searching for:", searchText);
-    }
-  };
-
-  const logoSrc =
-    mode === "light"
-      ? "src/images/Cartella Logo (Light).jpeg"
-      : "src/images/Cartella Logo (Dark2).jpeg";
+  const logoSrc = mode === "light"
+    ? "src/images/Cartella Logo (Light).jpeg"
+    : "src/images/Cartella Logo (Dark2).jpeg";
 
   const drawerItems = [
     { text: "Sales Overview", icon: <AssessmentIcon />, path: "/vendor-dashboard" },
@@ -77,73 +107,21 @@ const ViewProduct = () => {
     </Box>
   );
 
-  const product = {
-    name: "Nike Longsleeve",
-    price: 400,
-    description:
-      "A stylish and comfortable Nike longsleeve shirt designed for performance and everyday wear.",
-    stock: 50,
-    image: longsleeveImg,
-  };
-
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box sx={{ display: "flex" }}>
       <AppBar
         position="fixed"
-        elevation={0}
         sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: mode === "dark" ? "#3A3A3A" : "#D32F2F",
-          color: "#fff",
+          width: `calc(100% - ${drawerWidth}px)`,
+          ml: `${drawerWidth}px`,
+          bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+          color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Toolbar sx={{ justifyContent: "space-between" }}>
-          <Box display="flex" alignItems="center">
-            <img
-              src={logoSrc}
-              alt="Logo"
-              style={{ height: 40, marginRight: 10 }}
-            />
-            <Typography
-              variant="h2"
-              sx={{
-                fontSize: "26px",
-                marginRight: 3,
-                fontFamily: "GDS Didot, serif",
-              }}
-            >
-              Cartella
-            </Typography>
-            <Box
-              display="flex"
-              alignItems="center"
-              sx={{
-                backgroundColor: "#fff",
-                borderRadius: 2,
-                px: 2,
-                width: 400,
-              }}
-            >
-              <IconButton onClick={handleSearch}>
-                <SearchIcon sx={{ color: "#1A1A1A" }} />
-              </IconButton>
-              <InputBase
-                placeholder="Search items"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                sx={{
-                  flex: 1,
-                  color: "#000",
-                  "& input": {
-                    border: "none",
-                    outline: "none",
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-          <IconButton sx={{ ml: 2 }} onClick={toggleTheme} color="inherit">
-            {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
+        <Toolbar>
+          <Box sx={{ flexGrow: 1 }} />
+          <IconButton onClick={toggleTheme} color="inherit">
+            {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
         </Toolbar>
       </AppBar>
@@ -180,84 +158,96 @@ const ViewProduct = () => {
           Product Details
         </Typography>
 
-        <Box
-          sx={{
-            display: "flex",
-            maxWidth: 900,
-            margin: "auto",
-            backgroundColor: mode === "light" ? "#f9f9f9" : "#2A2A2A",
-            p: 4,
-            borderRadius: 2,
-            boxShadow: 3,
-            alignItems: "flex-start",
-            gap: 4,
-          }}
-        >
-          {/* Left: Product Image */}
-          <Box sx={{ flex: 1 }}>
-            <img
-              src={product.image}
-              alt="Product"
-              style={{ width: "100%", maxWidth: 300, borderRadius: 10 }}
-            />
+        {loading ? (
+          <Box display="flex" justifyContent="center">
+            <CircularProgress />
           </Box>
+        ) : error ? (
+          <Alert severity="error">{error}</Alert>
+        ) : product ? (
+          <Box
+            sx={{
+              display: "flex",
+              maxWidth: 900,
+              margin: "auto",
+              backgroundColor: mode === "light" ? "#f9f9f9" : "#2A2A2A",
+              p: 4,
+              borderRadius: 2,
+              boxShadow: 3,
+              alignItems: "flex-start",
+              gap: 4,
+            }}
+          >
+            {/* Left: Product Image */}
+            <Box sx={{ flex: 1 }}>
+              {product.imageUrl ? (
+                <img
+                  src={`http://localhost:8080${product.imageUrl}`}
+                  alt={product.name}
+                  style={{ width: "100%", maxWidth: 300, borderRadius: 10 }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    width: "100%",
+                    maxWidth: 300,
+                    height: 300,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "#eee",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography variant="caption">No Image</Typography>
+                </Box>
+              )}
+            </Box>
 
-          {/* Right: Info */}
-          <Box sx={{ flex: 1, pl: 2, display: "flex", flexDirection: "column" }}>
-            <Typography variant="h5" sx={{ mb: 1, mt:2 }}>
-              {product.name}
-            </Typography>
+            {/* Right: Info */}
+            <Box sx={{ flex: 1, pl: 2, display: "flex", flexDirection: "column" }}>
+              <Typography variant="h5" sx={{ mb: 1, mt: 2 }}>
+                {product.name}
+              </Typography>
 
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              ₱ {product.price}.00
-            </Typography>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                ₱ {product.price?.toLocaleString()}
+              </Typography>
 
-            <Typography variant="body1" sx={{ mb: 12 }}>
-              {product.description}
-            </Typography>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                {product.description}
+              </Typography>
 
-            <Typography variant="h6" sx={{ mb: 14 }}>
-              Stocks: {product.stock} left
-            </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Stock: {product.stockQuantity}
+              </Typography>
 
-            <Box sx={{ mt: "auto", display: "flex", justifyContent: "flex-end", gap: 2 }}>
-              <Button
-                variant="contained"
-                sx={{
-                  width: 130,
-                  height: 40,
-                  backgroundColor: "#D32F2E",
-                  color: "#FFFFFF",
-                  textTransform: "none",
-                  fontSize: "16px",
-                  "&:hover": {
-                    backgroundColor: "#b71c1c",
-                  },
-                }}
-              >
-                Delete
-              </Button>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 12 }}>
+                Category: {product.category}
+              </Typography>
 
-              <Button
-                variant="contained"
-                onClick={() => navigate("/vendor-edit-product")}
-                sx={{
-                  width: 130,
-                  height: 40,
-                  backgroundColor: "#1976D2",
-                  color: "#FFFFFF",
-                  textTransform: "none",
-                  fontSize: "16px",
-                  "&:hover": {
-                    backgroundColor: "#115293",
-                  },
-                }}
-              >
-                Edit
-              </Button>
+              <Box sx={{ mt: "auto" }}>
+                <Button
+                  variant="contained"
+                  onClick={() => navigate(`/edit-product`, { state: { productId: product.productId } })}
+                  sx={{ mr: 2 }}
+                >
+                  Edit Product
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => {
+                    // TODO: Implement delete functionality
+                    console.log("Delete product:", product.productId);
+                  }}
+                >
+                  Delete Product
+                </Button>
+              </Box>
             </Box>
           </Box>
-        </Box>
+        ) : null}
       </Box>
     </Box>
   );

@@ -1,7 +1,8 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Card, CardContent, CardActionArea
+  ListItemText, IconButton, InputBase, Card, CardContent, CardActionArea,
+  CircularProgress, Alert
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -21,10 +22,42 @@ const drawerWidth = 240;
 const Order = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [orders, setOrders] = useState([]);
   const [searchText, setSearchText] = useState("");
+
+  useEffect(() => {
+    const authToken = sessionStorage.getItem("authToken");
+    const vendorId = sessionStorage.getItem("vendorId");
+    
+    if (!authToken || !vendorId) {
+      setError("Not authenticated. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    // Fetch orders
+    fetch(`http://localhost:8080/api/orders/vendor/${vendorId}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch orders");
+        return res.json();
+      })
+      .then(data => {
+        setOrders(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError("Failed to load orders: " + err.message);
+        setLoading(false);
+      });
+  }, []);
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("vendorId");
     navigate("/login");
   };
 
@@ -32,6 +65,10 @@ const Order = () => {
     if (searchText.trim()) {
       console.log("Searching for:", searchText);
     }
+  };
+
+  const handleCardClick = (orderId) => {
+    navigate(`/vendor-view-order/${orderId}`);
   };
 
   const logoSrc = mode === "light"
@@ -65,52 +102,21 @@ const Order = () => {
     </Box>
   );
 
-  const handleCardClick = () => {
-    navigate("/vendor-view-order");
-  };
-
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box sx={{ display: "flex" }}>
       <AppBar
         position="fixed"
-        elevation={0}
         sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: mode === "dark" ? "#3A3A3A" : "#D32F2F",
-          color: "#fff",
+          width: `calc(100% - ${drawerWidth}px)`,
+          ml: `${drawerWidth}px`,
+          bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+          color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Toolbar sx={{ justifyContent: "space-between" }}>
-          <Box display="flex" alignItems="center">
-            <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
-            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3, fontFamily: "GDS Didot, serif" }}>
-              Cartella
-            </Typography>
-            <Box
-              display="flex"
-              alignItems="center"
-              sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}
-            >
-              <IconButton onClick={handleSearch}>
-                <SearchIcon sx={{ color: "#1A1A1A" }} />
-              </IconButton>
-              <InputBase
-                placeholder="Search items"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                sx={{
-                  flex: 1,
-                  color: "#000",
-                  "& input": {
-                    border: "none",
-                    outline: "none",
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-          <IconButton sx={{ ml: 2 }} onClick={toggleTheme} color="inherit">
-            {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
+        <Toolbar>
+          <Box sx={{ flexGrow: 1 }} />
+          <IconButton onClick={toggleTheme} color="inherit">
+            {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
         </Toolbar>
       </AppBar>
@@ -120,7 +126,7 @@ const Order = () => {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
+          "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
             backgroundColor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
@@ -147,27 +153,62 @@ const Order = () => {
           Orders
         </Typography>
 
-        {/* Clickable Order Card */}
-        <Box display="flex" justifyContent="center" mt={5}>
-          <Card sx={{ width: 1100, height: 120, bgcolor: mode === "light" ? "#f4f4f4" : "#2a2a2a" }}>
-            <CardActionArea onClick={handleCardClick} sx={{ height: "100%" }}>
-              <CardContent sx={{ display: "flex", alignItems: "center", gap: 3, height: "100%" }}>
-                <Box>
-                  <img
-                    src="src/images/longsleeve.png"
-                    alt="Nike Longsleeve"
-                    style={{ width: 60 }}
-                  />
-                </Box>
-                <Box>
-                  <Typography variant="body1">
-                    A customer has ordered one <strong>Nike Longsleeve</strong> for <strong>₱400.00</strong>, please prepare the item for delivery.
-                  </Typography>
-                </Box>
-              </CardContent>
-            </CardActionArea>
-          </Card>
-        </Box>
+        {loading ? (
+          <Box display="flex" justifyContent="center" mt={5}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ mt: 5 }}>{error}</Alert>
+        ) : orders.length === 0 ? (
+          <Typography variant="h6" align="center" sx={{ mt: 5 }}>
+            No orders found
+          </Typography>
+        ) : (
+          <Box display="flex" flexDirection="column" gap={2} mt={5}>
+            {orders.map(order => (
+              <Card
+                key={order.orderId}
+                sx={{ bgcolor: mode === "light" ? "#f4f4f4" : "#2a2a2a" }}
+              >
+                <CardActionArea onClick={() => handleCardClick(order.orderId)}>
+                  <CardContent sx={{ display: "flex", alignItems: "center", gap: 3, height: "100%" }}>
+                    <Box>
+                      {order.product.imageUrl ? (
+                        <img
+                          src={`http://localhost:8080${order.product.imageUrl}`}
+                          alt={order.product.name}
+                          style={{ width: 60, height: 60, objectFit: "contain" }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            width: 60,
+                            height: 60,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            bgcolor: "#eee",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Typography variant="caption">No Image</Typography>
+                        </Box>
+                      )}
+                    </Box>
+                    <Box>
+                      <Typography variant="body1">
+                        A customer has ordered {order.quantity} <strong>{order.product.name}</strong> for <strong>₱{order.product.price.toLocaleString()}</strong>, please prepare the item for delivery.
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Order ID: {order.orderId} • Status: {order.status}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            ))}
+          </Box>
+        )}
       </Box>
     </Box>
   );

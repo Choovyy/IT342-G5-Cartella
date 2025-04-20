@@ -169,9 +169,12 @@ const Product = () => {
           p: 3,
           mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
+          overflow: "auto",
+          height: "92vh",
         }}
       >
-        <Typography variant="h4" gutterBottom>Categories</Typography>
+        <Typography variant="h4" gutterBottom>Add Your Products</Typography>
+        <Typography variant="h6" sx={{ mb: 5 }}>Select Category</Typography>
 
         <Grid container spacing={20} justifyContent="center">
           {[0, 1, 2].map((i) => {

@@ -1,57 +1,194 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Button, TextField
+  ListItemText, IconButton, TextField, Button, Grid, FormControl,
+  InputLabel, Select, MenuItem, CircularProgress, Alert, Paper
 } from "@mui/material";
-
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import LogoutIcon from "@mui/icons-material/Logout";
-import SearchIcon from "@mui/icons-material/Search";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 
 const drawerWidth = 240;
 
 const EditProduct = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { mode, toggleTheme } = useContext(ColorModeContext);
-  const [searchText, setSearchText] = useState("");
-  const [form, setForm] = useState({
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  
+  const [formData, setFormData] = useState({
     name: "",
-    price: "",
     description: "",
-    stock: "", // ✅ Added stock
-    image: null,
+    price: "",
+    stockQuantity: "",
+    category: "",
+    image: null
   });
+
+  useEffect(() => {
+    const authToken = sessionStorage.getItem("authToken");
+    const productId = location.state?.productId;
+    
+    if (!authToken) {
+      setError("Not authenticated. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    if (!productId) {
+      setError("No product ID provided");
+      setLoading(false);
+      return;
+    }
+
+    // Fetch categories
+    fetch("http://localhost:8080/api/products/categories", {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch categories");
+        return res.json();
+      })
+      .then(data => {
+        setCategories(data);
+      })
+      .catch(err => {
+        setError("Failed to load categories: " + err.message);
+        setLoading(false);
+      });
+
+    // Fetch product details
+    fetch(`http://localhost:8080/api/products/${productId}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch product");
+        return res.json();
+      })
+      .then(data => {
+        setFormData({
+          name: data.name,
+          description: data.description,
+          price: data.price.toString(),
+          stockQuantity: data.stockQuantity.toString(),
+          category: data.category,
+          image: null
+        });
+        if (data.imageUrl) {
+          setImagePreview(`http://localhost:8080${data.imageUrl}`);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        setError("Failed to load product: " + err.message);
+        setLoading(false);
+      });
+  }, [location.state]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("vendorId");
     navigate("/login");
-  };
-
-  const handleSearch = () => {
-    if (searchText.trim()) {
-      console.log("Searching for:", searchText);
-    }
   };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: files ? files[0] : value,
-    }));
+    
+    if (name === "image" && files) {
+      const file = files[0];
+      setFormData(prev => ({
+        ...prev,
+        image: file
+      }));
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Saved Product:", form);
+    setSubmitting(true);
+    setError("");
+    
+    const vendorId = sessionStorage.getItem("vendorId");
+    const authToken = sessionStorage.getItem("authToken");
+    const productId = location.state?.productId;
+    
+    if (!vendorId || !authToken || !productId) {
+      setError("Not authenticated or missing product ID");
+      setSubmitting(false);
+      return;
+    }
+
+    // Validate form
+    if (!formData.name || !formData.description || !formData.price || !formData.stockQuantity || !formData.category) {
+      setError("Please fill in all required fields");
+      setSubmitting(false);
+      return;
+    }
+
+    // Create FormData object for multipart/form-data
+    const productFormData = new FormData();
+    productFormData.append("name", formData.name);
+    productFormData.append("description", formData.description);
+    productFormData.append("price", formData.price);
+    productFormData.append("stockQuantity", formData.stockQuantity);
+    productFormData.append("category", formData.category);
+    
+    // Only append image if a new one is selected
+    if (formData.image) {
+      productFormData.append("image", formData.image);
+    }
+
+    fetch(`http://localhost:8080/api/products/${productId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${authToken}`
+      },
+      body: productFormData
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to update product");
+        return res.json();
+      })
+      .then(data => {
+        setSuccess(true);
+        setTimeout(() => {
+          navigate("/vendor-products");
+        }, 2000);
+      })
+      .catch(err => {
+        setError("Failed to update product: " + err.message);
+        setSubmitting(false);
+      });
+  };
+
+  const handleBack = () => {
+    navigate("/vendor-products");
   };
 
   const logoSrc = mode === "light"
@@ -102,28 +239,6 @@ const EditProduct = () => {
             <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3, fontFamily: "GDS Didot, serif" }}>
               Cartella
             </Typography>
-            <Box
-              display="flex"
-              alignItems="center"
-              sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}
-            >
-              <IconButton onClick={handleSearch}>
-                <SearchIcon sx={{ color: "#1A1A1A" }} />
-              </IconButton>
-              <InputBase
-                placeholder="Search items"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                sx={{
-                  flex: 1,
-                  color: "#000",
-                  "& input": {
-                    border: "none",
-                    outline: "none",
-                  },
-                }}
-              />
-            </Box>
           </Box>
           <IconButton sx={{ ml: 2 }} onClick={toggleTheme} color="inherit">
             {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
@@ -152,151 +267,172 @@ const EditProduct = () => {
         sx={{
           flexGrow: 1,
           bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+          color: mode === "light" ? "#000" : "#FFF",
           p: 3,
           mt: 8,
-          color: mode === "light" ? "#000" : "#FFF",
+          overflow: "auto",
+          height: "92vh",
         }}
       >
-        <Typography variant="h4">
-          Edit Product
-        </Typography>
-
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{
-            width: "60%",
-            mt: 5,
-            mx: "auto",
-            p: 4,
-            borderRadius: 2,
-            backgroundColor: mode === "light" ? "#f9f9f9" : "#2A2A2A",
-            boxShadow: 3,
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-          }}
-        >
-          {/* Name */}
-          <Box display="flex" alignItems="center">
-            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Name</Typography>
-            <TextField
-              name="name"
-              required
-              variant="outlined"
-              fullWidth
-              value={form.name}
-              onChange={handleChange}
-            />
-          </Box>
-
-          {/* Price */}
-          <Box display="flex" alignItems="center">
-            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Price</Typography>
-            <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
-              <Typography sx={{ px: 2 }}>₱</Typography>
-              <TextField
-                name="price"
-                required
-                type="number"
-                variant="outlined"
-                fullWidth
-                value={form.price}
-                onChange={handleChange}
-                inputProps={{ min: 0 }}
-              />
-              <Typography sx={{ px: 2 }}>.00</Typography>
-            </Box>
-          </Box>
-
-          {/* Description */}
-          <Box display="flex" alignItems="center">
-            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Description</Typography>
-            <TextField
-              name="description"
-              required
-              variant="outlined"
-              multiline
-              fullWidth
-              rows={4}
-              value={form.description}
-              onChange={handleChange}
-            />
-          </Box>
-
-          {/* Stock */}
-          <Box display="flex" alignItems="center">
-            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Stock</Typography>
-            <TextField
-              name="stock"
-              required
-              type="number"
-              variant="outlined"
-              fullWidth
-              value={form.stock}
-              onChange={handleChange}
-              inputProps={{ min: 0 }}
-            />
-          </Box>
-
-          {/* Image */}
-          <Box display="flex" alignItems="center">
-            <Typography sx={{ width: 150, minWidth: 150, textAlign: "left" }}>Image</Typography>
-            <input
-              type="file"
-              name="image"
-              accept="image/*"
-              onChange={handleChange}
-              style={{
-                padding: "12px 16px",
-                background: mode === "light" ? "#fff" : "#444",
-                border: "1px solid #ccc",
-                borderRadius: 4,
-                width: "100%",
-                color: mode === "light" ? "#000" : "#FFF",
-              }}
-            />
-          </Box>
-
-          {/* Buttons: Cancel + Save */}
-          <Box sx={{ mt: "auto", display: "flex", justifyContent: "flex-end", gap: 2 }}>
-            <Button
-              variant="contained"
-              onClick={() => navigate("/vendor-view-product")}
-              sx={{
-                width: 130,
-                height: 40,
-                backgroundColor: "#D32F2E",
-                color: "#FFFFFF",
-                textTransform: "none",
-                fontSize: "16px",
-                "&:hover": {
-                  backgroundColor: "#b71c1c",
-                },
-              }}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              type="submit"
-              variant="contained"
-              sx={{
-                width: 130,
-                height: 40,
-                backgroundColor: "#1976D2 !important",
-                color: "#FFFFFF",
-                textTransform: "none",
-                fontSize: "16px",
-                "&:hover": {
-                  backgroundColor: "#115293 !important",
-                },
-              }}
-            >
-              Save
-            </Button>
-          </Box>
+        <Box display="flex" alignItems="center" mb={3}>
+          <IconButton onClick={handleBack} sx={{ mr: 2 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4">Edit Product</Typography>
         </Box>
+
+        {loading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+        ) : success ? (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Product updated successfully! Redirecting to products page...
+          </Alert>
+        ) : (
+          <Paper elevation={3} sx={{ p: 4, maxWidth: 800, mx: "auto" }}>
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    label="Product Name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    multiline
+                    rows={4}
+                    label="Description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    required
+                    fullWidth
+                    type="number"
+                    label="Price (₱)"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleChange}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    required
+                    fullWidth
+                    type="number"
+                    label="Stock Quantity"
+                    name="stockQuantity"
+                    value={formData.stockQuantity}
+                    onChange={handleChange}
+                    inputProps={{ min: 0 }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth required>
+                    <InputLabel id="category-label">Category</InputLabel>
+                    <Select
+                      labelId="category-label"
+                      name="category"
+                      value={formData.category}
+                      label="Category"
+                      onChange={handleChange}
+                    >
+                      {categories.map((category) => (
+                        <MenuItem key={category} value={category}>
+                          {category}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <Box
+                    sx={{
+                      border: '2px dashed',
+                      borderColor: mode === 'light' ? '#ccc' : '#555',
+                      borderRadius: 1,
+                      p: 3,
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        borderColor: mode === 'light' ? '#999' : '#777',
+                      },
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      name="image"
+                      onChange={handleChange}
+                      style={{ display: 'none' }}
+                      id="image-upload"
+                    />
+                    <label htmlFor="image-upload">
+                      <Box display="flex" flexDirection="column" alignItems="center">
+                        <CloudUploadIcon sx={{ fontSize: 40, mb: 1 }} />
+                        <Typography variant="body1" gutterBottom>
+                          {imagePreview ? 'Change Image' : 'Upload Product Image'}
+                        </Typography>
+                        {imagePreview && (
+                          <Box
+                            component="img"
+                            src={imagePreview}
+                            alt="Preview"
+                            sx={{
+                              maxWidth: '100%',
+                              maxHeight: 200,
+                              mt: 2,
+                              borderRadius: 1,
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </label>
+                  </Box>
+                </Grid>
+                <Grid item xs={12}>
+                  <Box display="flex" justifyContent="flex-end" gap={2}>
+                    <Button
+                      variant="outlined"
+                      onClick={handleBack}
+                      disabled={submitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={submitting}
+                      sx={{
+                        backgroundColor: "#D32F2E",
+                        color: "#FFFFFF",
+                        "&:hover": {
+                          backgroundColor: "#b71c1c",
+                        },
+                      }}
+                    >
+                      {submitting ? <CircularProgress size={24} /> : "Update Product"}
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </form>
+          </Paper>
+        )}
       </Box>
     </Box>
   );

@@ -22,8 +22,8 @@ public class ProductService {
         this.vendorRepository = vendorRepository;
     }
 
-    // Create a product
-    public Product createProduct(Long vendorId, Product productDetails) {
+    // Add a product
+    public Product addProduct(Long vendorId, Product productDetails) {
         Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
 
@@ -51,23 +51,35 @@ public class ProductService {
 
     // Get products by category
     public List<Product> getProductsByCategory(String category) {
-        return productRepository.findByCategory(category);
+        return productRepository.findByCategoryIgnoreCase(category);
+    }
+
+    // Get products by vendor and category
+    public List<Product> getProductsByVendorAndCategory(Long vendorId, String category) {
+        return productRepository.findByVendorVendorIdAndCategoryIgnoreCase(vendorId, category);
     }
 
     // Update product
-    public Product updateProduct(Long productId, Product productDetails) {
+    public Optional<Product> updateProduct(Long productId, Product productDetails) {
         return productRepository.findById(productId).map(product -> {
             product.setName(productDetails.getName());
             product.setDescription(productDetails.getDescription());
             product.setPrice(productDetails.getPrice());
             product.setStockQuantity(productDetails.getStockQuantity());
             product.setCategory(productDetails.getCategory());
+            if (productDetails.getImageUrl() != null) {
+                product.setImageUrl(productDetails.getImageUrl());
+            }
             return productRepository.save(product);
-        }).orElseThrow(() -> new RuntimeException("Product not found"));
+        });
     }
 
     // Delete product
-    public void deleteProduct(Long productId) {
-        productRepository.deleteById(productId);
+    public boolean deleteProduct(Long productId) {
+        if (productRepository.existsById(productId)) {
+            productRepository.deleteById(productId);
+            return true;
+        }
+        return false;
     }
 }
