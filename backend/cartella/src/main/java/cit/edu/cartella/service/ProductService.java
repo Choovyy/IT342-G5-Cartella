@@ -1,5 +1,6 @@
 package cit.edu.cartella.service;
 
+import cit.edu.cartella.dto.ProductDTO;
 import cit.edu.cartella.entity.Product;
 import cit.edu.cartella.entity.Vendor;
 import cit.edu.cartella.repository.ProductRepository;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -42,21 +44,42 @@ public class ProductService {
     }
 
     // Get products by vendor
-    public List<Product> getProductsByVendor(Long vendorId) {
+    public List<ProductDTO> getProductsByVendor(Long vendorId) {
         Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        
+        return productRepository.findByVendor(vendor).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
 
-        return productRepository.findByVendor(vendor);
+    private ProductDTO convertToDTO(Product product) {
+        return new ProductDTO(
+            product.getProductId(),
+            product.getName(),
+            product.getDescription(),
+            product.getPrice(),
+            product.getStockQuantity(),
+            product.getCategory(),
+            product.getImageUrl(),
+            product.getVendor().getBusinessName(),
+            product.getCreatedAt(),
+            product.getUpdatedAt()
+        );
     }
 
     // Get products by category
-    public List<Product> getProductsByCategory(String category) {
-        return productRepository.findByCategoryIgnoreCase(category);
+    public List<ProductDTO> getProductsByCategory(String category) {
+        return productRepository.findByCategoryIgnoreCase(category).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     // Get products by vendor and category
-    public List<Product> getProductsByVendorAndCategory(Long vendorId, String category) {
-        return productRepository.findByVendorVendorIdAndCategoryIgnoreCase(vendorId, category);
+    public List<ProductDTO> getProductsByVendorAndCategory(Long vendorId, String category) {
+        return productRepository.findByVendorVendorIdAndCategoryIgnoreCase(vendorId, category).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     // Update product
