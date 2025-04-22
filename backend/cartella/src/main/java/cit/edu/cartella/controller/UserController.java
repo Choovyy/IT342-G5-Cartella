@@ -47,23 +47,32 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> loginUser(@RequestBody Map<String, String> loginData) {
-    String username = loginData.get("username");
-    String password = loginData.get("password");
-    boolean isAuthenticated = userService.authenticateUser(username, password);
+        String username = loginData.get("username");
+        String password = loginData.get("password");
+        boolean isAuthenticated = userService.authenticateUser(username, password);
 
-    if (isAuthenticated) {
-        // Generate a JWT token for the authenticated user
-        String token = userService.generateToken(username);
-        // Prepare the response with the token
-        Map<String, Object> response = new HashMap<>();
-        response.put("token", token);
-        
+        if (isAuthenticated) {
+            // Get the user to access their ID
+            Optional<User> userOpt = userService.getUserByUsername(username);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(401).body(Map.of("error", "User not found"));
+            }
+            
+            User user = userOpt.get();
+            // Generate a JWT token for the authenticated user
+            String token = userService.generateToken(username);
+            // Prepare the response with the token and userId
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("userId", user.getUserId());
+            response.put("username", user.getUsername());
+            response.put("email", user.getEmail());
 
-        return ResponseEntity.ok(response);
-    } else {
-        return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
+        }
     }
-}
 
     @GetMapping
     public List<User> getAllUsers() {

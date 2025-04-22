@@ -30,6 +30,8 @@ const Login = () => {
       );
       sessionStorage.setItem("authToken", response.data.token);
       sessionStorage.setItem("username", formData.username);
+      sessionStorage.setItem("userId", response.data.userId);
+      sessionStorage.setItem("email", response.data.email);
       alert("Login Successful!");
       navigate("/dashboard");
     } catch (error) {

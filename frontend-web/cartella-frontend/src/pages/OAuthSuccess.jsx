@@ -22,24 +22,27 @@ const OAuthSuccess = () => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
     const email = params.get("email");
+    const userId = params.get("userId");
     
     // Debug: Log the parameters
     console.log("Token:", token);
     console.log("Email:", email);
+    console.log("UserId:", userId);
 
-    if (token && email) {
+    if (token && email && userId) {
       try {
         sessionStorage.setItem("authToken", token);
         sessionStorage.setItem("email", email);
-        console.log("Successfully stored token and email in sessionStorage");
+        sessionStorage.setItem("userId", userId);
+        console.log("Successfully stored token, email, and userId in sessionStorage");
         navigate("/dashboard");
       } catch (error) {
         console.error("Error storing OAuth session:", error);
         setError("Failed to store authentication data. Please try logging in again.");
       }
     } else {
-      console.error("Missing parameters:", { token, email });
-      setError("Missing token or email. Please try logging in again.");
+      console.error("Missing parameters:", { token, email, userId });
+      setError("Missing required authentication data. Please try logging in again.");
     }
   }, [navigate, location]);
 

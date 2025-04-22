@@ -14,22 +14,25 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final CartRepository cartRepository;
     private final AddressRepository addressRepository;
+    private final CartService cartService;
 
     @Autowired
-    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, AddressRepository addressRepository) {
+    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, 
+                       AddressRepository addressRepository, CartService cartService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.addressRepository = addressRepository;
+        this.cartService = cartService;
     }
 
     public Order placeOrder(Long userId, Long addressId) {
         Cart cart = cartRepository.findByUserUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Cart not found for user"));
+                .orElseGet(() -> cartService.createCart(userId));
 
         Address address = addressRepository.findById(addressId)
                 .orElseThrow(() -> new RuntimeException("Address not found"));
 
-        if (cart.getCartItems().isEmpty()) {
+        if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
             throw new RuntimeException("Cart is empty");
         }
 

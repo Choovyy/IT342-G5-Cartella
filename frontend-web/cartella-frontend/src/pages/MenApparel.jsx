@@ -36,6 +36,7 @@ const MenApparel = () => {
   const [error, setError] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -104,17 +105,60 @@ const MenApparel = () => {
     }
   };
 
-  const handleAddToCart = (productId) => {
+  const handleAddToCart = async (productId) => {
     const userId = sessionStorage.getItem("userId");
     const token = sessionStorage.getItem("authToken");
-    
+  
     if (!userId || !token) {
       alert("You must be logged in to add items to cart.");
       return;
     }
-    
-    // Add to cart logic will be implemented later
-    alert("Product added to cart!");
+  
+    try {
+      // Try to add product to cart
+      await axios.post(
+        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Product added to cart!");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      
+      // If cart not found, create cart then retry
+      if (
+        error.response &&
+        (error.response.status === 404 ||
+          (error.response.data && error.response.data.message && error.response.data.message.includes("Cart not found")))
+      ) {
+        try {
+          await axios.post(
+            `http://localhost:8080/api/cart/${userId}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          // Retry adding product
+          await axios.post(
+            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          alert("Product added to cart!");
+        } catch (err) {
+          console.error("Error creating cart or adding product:", err);
+          if (err.response && err.response.data && err.response.data.message) {
+            alert(err.response.data.message);
+          } else {
+            alert("Failed to add product to cart. Please try again.");
+          }
+        }
+      } else if (error.response && error.response.data && error.response.data.message) {
+        // Display the specific error message from the server
+        alert(error.response.data.message);
+      } else {
+        alert("Failed to add product to cart. Please try again.");
+      }
+    }
   };
 
   const handleProductClick = (product) => {
@@ -329,13 +373,16 @@ const MenApparel = () => {
                       <Typography 
                         variant="caption" 
                         sx={{ 
-                          bgcolor: mode === "light" ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
+                          bgcolor: product.stockQuantity <= 0 
+                            ? "error.main" 
+                            : mode === "light" ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
+                          color: product.stockQuantity <= 0 ? "white" : "inherit",
                           px: 1,
                           py: 0.5,
                           borderRadius: 1,
                         }}
                       >
-                        Stock: {product.stockQuantity}
+                        {product.stockQuantity <= 0 ? "Sold Out" : `Stock: ${product.stockQuantity}`}
                       </Typography>
                     </Box>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -348,15 +395,16 @@ const MenApparel = () => {
                           e.stopPropagation();
                           handleAddToCart(product.productId);
                         }}
+                        disabled={product.stockQuantity <= 0}
                         sx={{
-                          bgcolor: "#D32F2F",
+                          bgcolor: product.stockQuantity <= 0 ? "grey.400" : "#D32F2F",
                           color: "#fff",
                           "&:hover": {
-                            bgcolor: "#b71c1c",
+                            bgcolor: product.stockQuantity <= 0 ? "grey.400" : "#b71c1c",
                           },
                         }}
                       >
-                        Add to Cart
+                        {product.stockQuantity <= 0 ? "Sold Out" : "Add to Cart"}
                       </Button>
                     </Box>
                   </CardContent>
@@ -472,8 +520,10 @@ const MenApparel = () => {
                       <Typography variant="h6" gutterBottom>
                         Stock
                       </Typography>
-                      <Typography variant="body1">
-                        {selectedProduct.stockQuantity} units available
+                      <Typography variant="body1" color={selectedProduct.stockQuantity <= 0 ? "error.main" : "text.primary"}>
+                        {selectedProduct.stockQuantity <= 0 
+                          ? "Sold Out" 
+                          : `${selectedProduct.stockQuantity} units available`}
                       </Typography>
                     </Box>
                     <Box sx={{ mb: 2 }}>
@@ -481,6 +531,30 @@ const MenApparel = () => {
                         Rating
                       </Typography>
                       <Rating value={selectedProduct.rating || 0} precision={0.5} readOnly />
+                    </Box>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="h6" gutterBottom>
+                        Quantity
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          disabled={quantity <= 1 || selectedProduct.stockQuantity <= 0}
+                        >
+                          -
+                        </IconButton>
+                        <Typography variant="body1" sx={{ mx: 2 }}>
+                          {quantity}
+                        </Typography>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => setQuantity(Math.min(selectedProduct.stockQuantity, quantity + 1))}
+                          disabled={quantity >= selectedProduct.stockQuantity || selectedProduct.stockQuantity <= 0}
+                        >
+                          +
+                        </IconButton>
+                      </Box>
                     </Box>
                   </Grid>
                 </Grid>
@@ -491,18 +565,61 @@ const MenApparel = () => {
                   variant="contained" 
                   startIcon={<ShoppingCartIcon />}
                   onClick={() => {
-                    handleAddToCart(selectedProduct.productId);
-                    handleCloseDialog();
+                    const userId = sessionStorage.getItem("userId");
+                    const token = sessionStorage.getItem("authToken");
+                    
+                    if (!userId || !token) {
+                      alert("You must be logged in to add items to cart.");
+                      return;
+                    }
+                    
+                    // Add to cart with selected quantity
+                    axios.post(`http://localhost:8080/api/cart/${userId}/add/${selectedProduct.productId}?quantity=${quantity}`, {}, {
+                      headers: { Authorization: `Bearer ${token}` }
+                    })
+                    .then(response => {
+                      alert("Product added to cart successfully!");
+                      handleCloseDialog();
+                    })
+                    .catch(error => {
+                      console.error("Error adding to cart:", error);
+                      if (error.response && error.response.status === 404) {
+                        // Cart doesn't exist, create one first
+                        axios.post(`http://localhost:8080/api/cart/${userId}`, {}, {
+                          headers: { Authorization: `Bearer ${token}` }
+                        })
+                        .then(() => {
+                          // Now add the product to the newly created cart
+                          return axios.post(`http://localhost:8080/api/cart/${userId}/add/${selectedProduct.productId}?quantity=${quantity}`, {}, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                        })
+                        .then(() => {
+                          alert("Product added to cart successfully!");
+                          handleCloseDialog();
+                        })
+                        .catch(err => {
+                          console.error("Error creating cart or adding product:", err);
+                          alert("Failed to add product to cart. Please try again.");
+                        });
+                      } else if (error.response && error.response.data && error.response.data.message) {
+                        // Display the specific error message from the server
+                        alert(error.response.data.message);
+                      } else {
+                        alert("Failed to add product to cart. Please try again.");
+                      }
+                    });
                   }}
+                  disabled={selectedProduct.stockQuantity <= 0}
                   sx={{
-                    bgcolor: "#D32F2F",
+                    bgcolor: selectedProduct.stockQuantity <= 0 ? "grey.400" : "#D32F2F",
                     color: "#fff",
                     "&:hover": {
-                      bgcolor: "#b71c1c",
+                      bgcolor: selectedProduct.stockQuantity <= 0 ? "grey.400" : "#b71c1c",
                     },
                   }}
                 >
-                  Add to Cart
+                  {selectedProduct.stockQuantity <= 0 ? "Sold Out" : "Add to Cart"}
                 </Button>
                 <Button onClick={handleCloseDialog}>Close</Button>
               </DialogActions>
