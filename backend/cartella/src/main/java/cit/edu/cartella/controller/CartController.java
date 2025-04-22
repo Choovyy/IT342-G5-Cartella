@@ -3,9 +3,12 @@ package cit.edu.cartella.controller;
 import cit.edu.cartella.entity.Cart;
 import cit.edu.cartella.entity.CartItem;
 import cit.edu.cartella.service.CartService;
+import cit.edu.cartella.dto.CartItemDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/cart")
@@ -40,5 +43,22 @@ public class CartController {
     public ResponseEntity<Void> removeCartItem(@PathVariable Long cartItemId) {
         cartService.removeCartItem(cartItemId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/update/{cartItemId}")
+    public ResponseEntity<CartItem> updateCartItemQuantity(
+            @PathVariable Long cartItemId,
+            @RequestParam int quantity) {
+        return ResponseEntity.ok(cartService.updateCartItemQuantity(cartItemId, quantity));
+    }
+
+    @GetMapping("/items/{userId}")
+    public ResponseEntity<List<CartItem>> getCartItemsByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(cartService.getCartItemsByUserId(userId));
+    }
+    
+    @GetMapping("/items-dto/{userId}")
+    public ResponseEntity<List<CartItemDTO>> getCartItemDTOsByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(cartService.getCartItemDTOsByUserId(userId));
     }
 }

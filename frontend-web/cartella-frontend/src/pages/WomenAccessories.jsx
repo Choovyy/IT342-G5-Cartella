@@ -104,17 +104,60 @@ const WomenAccessories = () => {
     }
   };
 
-  const handleAddToCart = (productId) => {
+  const handleAddToCart = async (productId) => {
     const userId = sessionStorage.getItem("userId");
     const token = sessionStorage.getItem("authToken");
-    
+  
     if (!userId || !token) {
       alert("You must be logged in to add items to cart.");
       return;
     }
-    
-    // Add to cart logic will be implemented later
-    alert("Product added to cart!");
+  
+    try {
+      // Try to add product to cart
+      await axios.post(
+        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Product added to cart!");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      
+      // If cart not found, create cart then retry
+      if (
+        error.response &&
+        (error.response.status === 404 ||
+          (error.response.data && error.response.data.message && error.response.data.message.includes("Cart not found")))
+      ) {
+        try {
+          await axios.post(
+            `http://localhost:8080/api/cart/${userId}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          // Retry adding product
+          await axios.post(
+            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          alert("Product added to cart!");
+        } catch (err) {
+          console.error("Error creating cart or adding product:", err);
+          if (err.response && err.response.data && err.response.data.message) {
+            alert(err.response.data.message);
+          } else {
+            alert("Failed to add product to cart. Please try again.");
+          }
+        }
+      } else if (error.response && error.response.data && error.response.data.message) {
+        // Display the specific error message from the server
+        alert(error.response.data.message);
+      } else {
+        alert("Failed to add product to cart. Please try again.");
+      }
+    }
   };
 
   const handleProductClick = (product) => {

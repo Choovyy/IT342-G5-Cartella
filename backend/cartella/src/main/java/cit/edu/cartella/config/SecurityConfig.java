@@ -55,7 +55,9 @@ public class SecurityConfig {
                                 "/api/products/**",
                                 "/api/products/vendor/**",
                                 "/api/products/vendor/{vendorId}/category/{category}",
-                                "/api/products/categories"
+                                "/api/products/categories",
+                                "/api/cart/**",
+                                "/api/cart/{userId}/add/{productId}"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

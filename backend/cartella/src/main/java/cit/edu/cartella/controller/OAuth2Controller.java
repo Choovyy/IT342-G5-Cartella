@@ -42,6 +42,7 @@ public class OAuth2Controller {
         String providerId = oauth2User.getAttribute("sub"); // Google unique ID
 
         Optional<User> existingUser = userRepository.findByEmail(email);
+        User user;
 
         if (!existingUser.isPresent()) {
             User newUser = new User();
@@ -51,11 +52,13 @@ public class OAuth2Controller {
             newUser.setProviderId(providerId);
             newUser.onCreate(); // Automatically set createdAt and updatedAt timestamps
 
-            userRepository.save(newUser);
+            user = userRepository.save(newUser);
+        } else {
+            user = existingUser.get();
         }
 
         // Get the username from the user record
-        String username = existingUser.isPresent() ? existingUser.get().getUsername() : name;
+        String username = user.getUsername();
 
         // Generate a JWT token for the user using username
         String token = jwtUtil.generateToken(username);
@@ -64,6 +67,7 @@ public class OAuth2Controller {
         Map<String, Object> response = oauth2User.getAttributes();
         response.put("token", token); // Include the token in the response
         response.put("username", username); // Include the username in the response
+        response.put("userId", user.getUserId()); // Include the userId in the response
         return response;
     }
 
