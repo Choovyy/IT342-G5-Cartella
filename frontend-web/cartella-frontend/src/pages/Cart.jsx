@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { loadStripe } from '@stripe/stripe-js';
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
@@ -20,6 +21,8 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 const drawerWidth = 240;
+
+const stripePromise = loadStripe('pk_test_51RH2ZDCoSzNJio8VMI45wqQIhh4Rv7qBoUlOFWZJFOjDd5XU4LbJzPtDE98LsQ8luIwV9Polma5NFnnQHphv9pJ100uNNRnz3A');
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -125,6 +128,43 @@ const Cart = () => {
   const handleSearch = () => {
     if (searchText.trim()) {
       console.log("Searching for:", searchText);
+    }
+  };
+
+  const handleCheckout = async () => {
+    try {
+      const token = sessionStorage.getItem("authToken");
+      const userId = sessionStorage.getItem("userId");
+
+      // Create checkout session on the backend
+      const response = await axios.post(
+        'http://localhost:8080/api/payment/create-payment-intent',
+        {
+          amount: totalPrice * 100, // Convert to cents
+          currency: 'php',
+          userId: userId
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      const { clientSecret: sessionId } = response.data;
+
+      // Load Stripe
+      const stripe = await stripePromise;
+      
+      // Redirect to Stripe Checkout
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: sessionId
+      });
+
+      if (error) {
+        alert(error.message);
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Failed to process payment. Please try again.');
     }
   };
 
@@ -319,6 +359,7 @@ const Cart = () => {
                 variant="contained" 
                 color="primary"
                 size="large"
+                onClick={handleCheckout}
                 sx={{ 
                   bgcolor: "#D32F2F",
                   "&:hover": { bgcolor: "#b71c1c" }
