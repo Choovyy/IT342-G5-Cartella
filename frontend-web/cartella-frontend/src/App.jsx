@@ -19,6 +19,7 @@ import Gaming from "./pages/Gaming";
 import MenApparel from "./pages/MenApparel";
 import WomenApparel from "./pages/WomenApparel";
 import ThemeContextProvider from "./ThemeContext";
+import Success from "./pages/Success";
 
 import VendorLogin from "./Vendor_Page/VendorLogin";
 import VendorRegister from "./Vendor_Page/VendorRegister";
@@ -52,6 +53,7 @@ const App = () => {
         <Route path="/vendor-register" element={<VendorRegister />} />
         <Route path="/vendor-register-step2" element={<VendorRegister2 />} />
         <Route path="/oauth-success" element={<OAuthSuccess />} />
+        <Route path="/payment-success" element={<Success />} />
 
         {/* Protected Routes */}
         <Route

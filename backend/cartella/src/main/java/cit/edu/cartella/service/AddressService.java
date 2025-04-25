@@ -95,28 +95,31 @@ public class AddressService {
 
     @Transactional
     public Address setDefaultAddress(Long addressId) {
-        Optional<Address> addressOpt = addressRepository.findById(addressId);
-        if (addressOpt.isEmpty()) {
-            throw new RuntimeException("Address not found");
+        Address address = addressRepository.findById(addressId)
+            .orElseThrow(() -> new RuntimeException("Address not found"));
+
+        Long userId = address.getUser().getUserId();
+        List<Address> userAddresses = addressRepository.findByUserUserId(userId);
+
+        // Set all addresses to non-default first
+        for (Address addr : userAddresses) {
+            addr.setDefault(false);
         }
-        
-        Address address = addressOpt.get();
-        User user = address.getUser();
-        
-        // Unset any existing default address
-        List<Address> existingAddresses = addressRepository.findByUserUserId(user.getUserId());
-        for (Address existingAddress : existingAddresses) {
-            if (existingAddress.isDefault()) {
-                existingAddress.setDefault(false);
-                addressRepository.save(existingAddress);
-            }
-        }
-        
-        // Set this address as default
+
+        // Set the selected address as default
         address.setDefault(true);
         address.setUpdatedAt(LocalDateTime.now());
+
+        // Save all changes in a single transaction
+        addressRepository.saveAll(userAddresses);
         
-        return addressRepository.save(address);
+        // Log for debugging
+        System.out.println("Set default address: " + addressId);
+        System.out.println("Total addresses updated: " + userAddresses.size());
+        
+        // Return the updated default address
+        return addressRepository.findById(addressId)
+            .orElseThrow(() -> new RuntimeException("Address not found after update"));
     }
 
     public void deleteAddress(Long addressId) {

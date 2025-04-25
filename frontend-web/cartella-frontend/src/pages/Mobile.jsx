@@ -244,172 +244,203 @@ const Mobile = () => {
         bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
         p: 3,
         mt: 8,
-        color: mode === "light" ? "#000" : "#FFF"
+        color: mode === "light" ? "#000" : "#FFF",
+        height: "calc(100vh - 64px)", // Subtract AppBar height
+        overflow: "hidden", // Prevent double scrollbars
+        display: "flex",
+        flexDirection: "column"
       }}>
         <Typography variant="h4" gutterBottom>Mobiles & Gadgets</Typography>
         
-        {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-        ) : filteredProducts.length === 0 ? (
-          <Typography align="center" sx={{ mt: 10 }}>
-            No products found in this category.
-          </Typography>
-        ) : (
-          <Grid container spacing={3}>
-            {filteredProducts.map((product) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={product.productId}>
-                <Card
-                  sx={{
-                    height: 380,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    p: 2,
-                    position: "relative",
-                    transition: "transform 0.2s, box-shadow 0.2s",
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    cursor: "pointer",
-                    "&:hover": {
-                      transform: "translateY(-5px)",
-                      boxShadow: mode === "light" 
-                        ? "0 8px 16px rgba(0,0,0,0.1)" 
-                        : "0 8px 16px rgba(0,0,0,0.3)",
-                    },
-                  }}
-                  onClick={() => handleProductClick(product)}
-                >
-                  <Box sx={{ width: "100%", position: "relative" }}>
-                    {product.imageUrl ? (
-                      <CardMedia
-                        component="img"
-                        image={`http://localhost:8080${product.imageUrl}`}
-                        alt={product.name}
-                        sx={{
-                          height: 200,
-                          width: "100%",
-                          objectFit: "contain",
-                          borderRadius: 1,
-                          bgcolor: mode === "light" ? "#fff" : "#1a1a1a",
-                          p: 1,
-                        }}
-                      />
-                    ) : (
-                      <Box
-                        sx={{
-                          height: 200,
-                          width: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          bgcolor: mode === "light" ? "#e0e0e0" : "#333",
-                          borderRadius: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          No Image Available
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                  
-                  <CardContent sx={{ width: "100%", pb: 1, pt: 2 }}>
-                    <Typography 
-                      variant="h6" 
-                      noWrap 
-                      sx={{ 
-                        fontWeight: 600,
-                        fontSize: "1rem",
-                        mb: 0.5,
-                      }}
-                    >
-                      {product.name}
-                    </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary" 
-                      sx={{ 
-                        mb: 1,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        height: "2.5em",
-                      }}
-                    >
-                      {product.description}
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                      <StorefrontIcon sx={{ fontSize: 16, mr: 0.5, color: "text.secondary" }} />
-                      <Typography 
-                        variant="caption" 
-                        color="text.secondary"
-                        sx={{ 
-                          fontStyle: "italic",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap"
-                        }}
-                      >
-                        {product.vendorBusinessName || "Unknown Vendor"}
-                      </Typography>
+        <Box sx={{
+          flex: 1,
+          overflowY: "auto",
+          maxWidth: "1400px",
+          mx: "auto",
+          width: "100%",
+          px: 2,
+          "&::-webkit-scrollbar": {
+            width: "8px",
+          },
+          "&::-webkit-scrollbar-track": {
+            background: mode === "light" ? "#f1f1f1" : "#2d2d2d",
+            borderRadius: "4px",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            background: mode === "light" ? "#888" : "#555",
+            borderRadius: "4px",
+            "&:hover": {
+              background: mode === "light" ? "#555" : "#777",
+            },
+          },
+        }}>
+          {loading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+          ) : filteredProducts.length === 0 ? (
+            <Typography align="center" sx={{ mt: 10 }}>
+              No products found in this category.
+            </Typography>
+          ) : (
+            <Grid container spacing={3} sx={{ py: 2 }}>
+              {filteredProducts.map((product) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={product.productId}>
+                  <Card
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      alignItems: "stretch",
+                      p: 2,
+                      position: "relative",
+                      transition: "transform 0.2s, box-shadow 0.2s",
+                      borderRadius: 2,
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      "&:hover": {
+                        transform: "translateY(-5px)",
+                        boxShadow: mode === "light" 
+                          ? "0 8px 16px rgba(0,0,0,0.1)" 
+                          : "0 8px 16px rgba(0,0,0,0.3)",
+                      },
+                    }}
+                    onClick={() => handleProductClick(product)}
+                  >
+                    <Box sx={{ width: "100%", position: "relative" }}>
+                      {product.imageUrl ? (
+                        <CardMedia
+                          component="img"
+                          image={`http://localhost:8080${product.imageUrl}`}
+                          alt={product.name}
+                          sx={{
+                            height: 200,
+                            width: "100%",
+                            objectFit: "contain",
+                            borderRadius: 1,
+                            bgcolor: mode === "light" ? "#fff" : "#1a1a1a",
+                            p: 1,
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            height: 200,
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            bgcolor: mode === "light" ? "#e0e0e0" : "#333",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            No Image Available
+                          </Typography>
+                        </Box>
+                      )}
                     </Box>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                    
+                    <CardContent sx={{ width: "100%", pb: 1, pt: 2 }}>
                       <Typography 
                         variant="h6" 
-                        color="primary" 
+                        noWrap 
                         sx={{ 
-                          fontWeight: 700,
-                          fontSize: "1.1rem",
+                          fontWeight: 600,
+                          fontSize: "1rem",
+                          mb: 0.5,
                         }}
                       >
-                        ₱ {product.price?.toLocaleString()}
+                        {product.name}
                       </Typography>
                       <Typography 
-                        variant="caption" 
+                        variant="body2" 
+                        color="text.secondary" 
                         sx={{ 
-                          bgcolor: mode === "light" ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
-                          px: 1,
-                          py: 0.5,
-                          borderRadius: 1,
+                          mb: 1,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          height: "2.5em",
                         }}
                       >
-                        Stock: {product.stockQuantity}
+                        {product.description}
                       </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <Rating value={product.rating || 0} precision={0.5} readOnly size="small" />
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<ShoppingCartIcon />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddToCart(product.productId);
-                        }}
-                        sx={{
-                          bgcolor: "#D32F2F",
-                          color: "#fff",
-                          "&:hover": {
-                            bgcolor: "#b71c1c",
-                          },
-                        }}
-                      >
-                        Add to Cart
-                      </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
+                      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                        <StorefrontIcon sx={{ fontSize: 16, mr: 0.5, color: "text.secondary" }} />
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary"
+                          sx={{ 
+                            fontStyle: "italic",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          {product.vendorBusinessName || "Unknown Vendor"}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                        <Typography 
+                          variant="h6" 
+                          color="primary" 
+                          sx={{ 
+                            fontWeight: 700,
+                            fontSize: "1.1rem",
+                          }}
+                        >
+                          ₱ {product.price?.toLocaleString()}
+                        </Typography>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            bgcolor: product.stockQuantity <= 0 
+                              ? "error.main" 
+                              : mode === "light" ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
+                            color: product.stockQuantity <= 0 ? "white" : "inherit",
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                          }}
+                        >
+                          {product.stockQuantity <= 0 ? "Sold Out" : `Stock: ${product.stockQuantity}`}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <Rating value={product.rating || 0} precision={0.5} readOnly size="small" />
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<ShoppingCartIcon />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(product.productId);
+                          }}
+                          disabled={product.stockQuantity <= 0}
+                          sx={{
+                            bgcolor: product.stockQuantity <= 0 ? "grey.400" : "#D32F2F",
+                            color: "#fff",
+                            "&:hover": {
+                              bgcolor: product.stockQuantity <= 0 ? "grey.400" : "#b71c1c",
+                            },
+                          }}
+                        >
+                          {product.stockQuantity <= 0 ? "Sold Out" : "Add to Cart"}
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
 
         {/* Product Detail Dialog */}
         <Dialog

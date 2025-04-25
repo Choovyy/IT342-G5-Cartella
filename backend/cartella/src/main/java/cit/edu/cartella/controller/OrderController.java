@@ -24,6 +24,11 @@ public class OrderController {
         return ResponseEntity.ok(orderService.placeOrder(userId, addressId));
     }
 
+    @PostMapping("/create/{userId}")
+    public ResponseEntity<Order> createOrderFromCart(@PathVariable Long userId) {
+        return ResponseEntity.ok(orderService.createOrderFromCart(userId));
+    }
+
     @GetMapping("/{userId}")
     public ResponseEntity<List<Order>> getUserOrders(@PathVariable Long userId) {
         return ResponseEntity.ok(orderService.getUserOrders(userId));

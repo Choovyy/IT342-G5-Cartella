@@ -72,10 +72,10 @@ const Dashboard = () => {
 
   const categories = [
   { name: "Clothes", image: ClothesImg, path: "/category/clothes" },
-  { name: "Men’s Accessories", image: WatchImg, path: "/category/mens-accessories" },
+  { name: "Men's Accessories", image: WatchImg, path: "/category/mens-accessories" },
   { name: "Mobiles & Gadgets", image: IphoneImg, path: "/category/mobiles-gadgets" },
   { name: "Home Appliances", image: BlenderImg, path: "/category/home-appliances" },
-  { name: "Women’s Accessories", image: ShadesImg, path: "/category/womens-accessories" },
+  { name: "Women's Accessories", image: ShadesImg, path: "/category/womens-accessories" },
   { name: "Gaming", image: GamingImg, path: "/category/gaming" },
 ];
 
@@ -210,34 +210,61 @@ const Dashboard = () => {
           p: 3,
           mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
+          height: "calc(100vh - 64px)", // Subtract the AppBar height
+          overflow: "hidden" // Prevent double scrollbars
         }}
       >
-        <Typography variant="h4" gutterBottom>Categories</Typography>
-        <Grid container spacing={20} justifyContent="center">
-          {/* Top Row */}
-          {[0, 1, 2].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
-        </Grid>
+        <Box 
+          sx={{ 
+            width: "100%", 
+            maxWidth: "1200px", 
+            mx: "auto",
+            overflowY: "auto", 
+            pr: 2, // Add padding for the scrollbar
+            height: "100%",
+            "&::-webkit-scrollbar": {
+              width: "8px",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: mode === "dark" ? "#2A2A2A" : "#f0f0f0",
+              borderRadius: "4px",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: mode === "dark" ? "#555" : "#D32F2F",
+              borderRadius: "4px",
+              "&:hover": {
+                backgroundColor: mode === "dark" ? "#777" : "#B71C1C",
+              },
+            },
+          }}
+        >
+          <Typography variant="h4" gutterBottom>Categories</Typography>
+          <Grid container spacing={20} justifyContent="center">
+            {/* Top Row */}
+            {[0, 1, 2].map((i) => {
+              const { name, image, path } = categories[i];
+              return (
+                <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
+                  <Box component="img" src={image} alt={name} sx={imageStyle} />
+                  <Typography variant="subtitle1">{name}</Typography>
+                </Grid>
+              );
+            })}
+          </Grid>
 
-        <Grid container spacing={20} sx={{ mt: 1 }} justifyContent="center">
-          {/* Bottom Row */}
-          {[3, 4, 5].map((i) => {
-            const { name, image, path } = categories[i];
-            return (
-              <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
-                <Box component="img" src={image} alt={name} sx={imageStyle} />
-                <Typography variant="subtitle1">{name}</Typography>
-              </Grid>
-            );
-          })}
-        </Grid>
+          <Grid container spacing={20} sx={{ mt: 1 }} justifyContent="center">
+            {/* Bottom Row */}
+            {[3, 4, 5].map((i) => {
+              const { name, image, path } = categories[i];
+              return (
+                <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
+                  <Box component="img" src={image} alt={name} sx={imageStyle} />
+                  <Typography variant="subtitle1">{name}</Typography>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Box>
       </Box>
     </Box>
   );

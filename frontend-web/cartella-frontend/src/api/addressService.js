@@ -81,7 +81,16 @@ const addressService = {
   // Set default address
   setDefaultAddress: async (addressId) => {
     try {
+      console.log("Calling setDefaultAddress API for addressId:", addressId);
       const response = await api.put(`/addresses/${addressId}/default`);
+      console.log("API response:", response.data);
+      
+      // Ensure the response has isDefault set to true
+      if (response.data && !response.data.isDefault) {
+        console.log("Fixing isDefault property in response");
+        response.data.isDefault = true;
+      }
+      
       return response.data;
     } catch (error) {
       console.error('Error setting default address:', error);
