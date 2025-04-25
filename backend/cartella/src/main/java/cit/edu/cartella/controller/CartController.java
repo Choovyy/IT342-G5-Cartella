@@ -45,6 +45,12 @@ public class CartController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/{userId}/clear")
+    public ResponseEntity<Void> clearCart(@PathVariable Long userId) {
+        cartService.clearCart(userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/update/{cartItemId}")
     public ResponseEntity<CartItem> updateCartItemQuantity(
             @PathVariable Long cartItemId,

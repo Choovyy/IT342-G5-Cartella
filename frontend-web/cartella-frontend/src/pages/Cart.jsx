@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { loadStripe } from '@stripe/stripe-js';
+import addressService from '../api/addressService';
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
@@ -135,14 +136,78 @@ const Cart = () => {
     try {
       const token = sessionStorage.getItem("authToken");
       const userId = sessionStorage.getItem("userId");
+      const email = sessionStorage.getItem("email");
+      const username = sessionStorage.getItem("username");
+
+      console.log("Starting checkout process...");
+      console.log("User ID:", userId);
+      console.log("Email:", email);
+      console.log("Username:", username);
+
+      // Check for default address
+      let addresses;
+      if (email) {
+        console.log("Fetching addresses by email...");
+        addresses = await addressService.getAddressesByEmail(email);
+      } else if (username) {
+        console.log("Fetching addresses by username...");
+        addresses = await addressService.getAddressesByUsername(username);
+      }
+
+      console.log("Fetched addresses:", addresses);
+      console.log("Number of addresses:", addresses.length);
+
+      // Log each address's isDefault property
+      addresses.forEach((addr, index) => {
+        console.log(`Address ${index + 1} isDefault:`, addr.isDefault);
+        console.log(`Address ${index + 1} default:`, addr.default);
+        console.log(`Address ${index + 1} full object:`, addr);
+      });
+
+      // If there's only one address, use it as default
+      let defaultAddress;
+      if (addresses.length === 1) {
+        console.log("Only one address found, using it as default");
+        defaultAddress = addresses[0];
+      } else {
+        // Check for both isDefault and default properties
+        defaultAddress = addresses.find(address => 
+          address.isDefault === true || address.default === true
+        );
+        console.log("Default address found:", defaultAddress);
+      }
+
+      if (!defaultAddress) {
+        console.log("No default address found, redirecting to address page...");
+        alert("Please set a default address before proceeding with checkout.");
+        navigate('/address');
+        return;
+      }
+
+      console.log("Default address ID:", defaultAddress.addressId);
+      console.log("Default address details:", {
+        streetAddress: defaultAddress.streetAddress,
+        city: defaultAddress.city,
+        state: defaultAddress.state,
+        postalCode: defaultAddress.postalCode,
+        country: defaultAddress.country,
+        isDefault: defaultAddress.isDefault,
+        default: defaultAddress.default
+      });
+
+      // Store the default address ID in session storage for use in checkout
+      sessionStorage.setItem('defaultAddressId', defaultAddress.addressId);
+      console.log("Stored default address ID in session storage");
 
       // Create checkout session on the backend
+      console.log("Creating payment intent with address ID:", defaultAddress.addressId);
       const response = await axios.post(
         'http://localhost:8080/api/payment/create-payment-intent',
         {
           amount: totalPrice * 100, // Convert to cents
           currency: 'php',
-          userId: userId
+          userId: userId,
+          addressId: defaultAddress.addressId // Include the default address ID
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -262,114 +327,151 @@ const Cart = () => {
           p: 3,
           mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
+          height: "calc(100vh - 64px)", // Subtract the AppBar height
+          overflow: "hidden" // Prevent double scrollbars
         }}
       >
-        <Typography variant="h4" gutterBottom>My Cart</Typography>
-        
-        {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-        ) : cartItems.length === 0 ? (
-          <Typography align="center" sx={{ mt: 10 }}>
-            Your cart is empty. <Button color="primary" onClick={() => navigate("/dashboard")}>Continue Shopping</Button>
-          </Typography>
-        ) : (
-          <>
-            <Grid container spacing={3}>
-              {cartItems.map((item) => (
-                <Grid item xs={12} key={item.cartItemId}>
-                  <Card sx={{ 
-                    display: 'flex', 
-                    p: 2,
-                    borderRadius: 2,
-                    bgcolor: mode === "light" ? "#FFFFFF" : "#2A2A2A",
-                    boxShadow: mode === "light" 
-                      ? "0 2px 8px rgba(0,0,0,0.1)" 
-                      : "0 2px 8px rgba(0,0,0,0.3)"
-                  }}>
-                    <CardMedia
-                      component="img"
-                      sx={{ width: 120, height: 120, objectFit: 'contain', mr: 2 }}
-                      image={item.productImageUrl ? `http://localhost:8080${item.productImageUrl}` : 'https://via.placeholder.com/120'}
-                      alt={item.productName}
-                    />
-                    <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                      <CardContent sx={{ flex: '1 0 auto', p: 1 }}>
-                        <Typography variant="h6" component="div">
-                          {item.productName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          {item.productDescription}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="body2" sx={{ mr: 2 }}>
-                            Quantity: 
-                          </Typography>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                          >
-                            -
-                          </IconButton>
-                          <Typography variant="body2" sx={{ mx: 1 }}>
-                            {item.quantity}
-                          </Typography>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1)}
-                          >
-                            +
-                          </IconButton>
-                        </Box>
-                        <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
-                          ₱ {item.subtotal.toLocaleString()}
-                        </Typography>
-                      </CardContent>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
-                      <IconButton 
-                        color="error" 
-                        onClick={() => handleRemoveItem(item.cartItemId)}
-                        sx={{ 
-                          bgcolor: mode === "light" ? "rgba(211, 47, 47, 0.1)" : "rgba(211, 47, 47, 0.2)",
-                          "&:hover": {
-                            bgcolor: mode === "light" ? "rgba(211, 47, 47, 0.2)" : "rgba(211, 47, 47, 0.3)"
-                          }
-                        }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-            
-            <Divider sx={{ my: 4 }} />
-            
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2 }}>
-              <Typography variant="h5">
-                Total: ₱ {totalPrice.toLocaleString()}
-              </Typography>
-              <Button 
-                variant="contained" 
-                color="primary"
-                size="large"
-                onClick={handleCheckout}
-                sx={{ 
-                  bgcolor: "#D32F2F",
-                  "&:hover": { bgcolor: "#b71c1c" }
-                }}
-              >
-                Proceed to Checkout
-              </Button>
+        <Box 
+          sx={{ 
+            width: "100%", 
+            maxWidth: "1200px", 
+            mx: "auto",
+            overflowY: "auto", 
+            pr: 2, // Add padding for the scrollbar
+            height: "100%",
+            "&::-webkit-scrollbar": {
+              width: "8px",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: mode === "dark" ? "#2A2A2A" : "#f0f0f0",
+              borderRadius: "4px",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: mode === "dark" ? "#555" : "#D32F2F",
+              borderRadius: "4px",
+              "&:hover": {
+                backgroundColor: mode === "dark" ? "#777" : "#B71C1C",
+              },
+            },
+          }}
+        >
+          <Typography variant="h4" gutterBottom>My Cart</Typography>
+          
+          {loading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
+              <CircularProgress />
             </Box>
-          </>
-        )}
+          ) : error ? (
+            <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+          ) : cartItems.length === 0 ? (
+            <Typography align="center" sx={{ mt: 10 }}>
+              Your cart is empty. <Button color="primary" onClick={() => navigate("/dashboard")}>Continue Shopping</Button>
+            </Typography>
+          ) : (
+            <>
+              <Grid container spacing={3}>
+                {cartItems.map((item) => (
+                  <Grid item xs={12} key={item.cartItemId}>
+                    <Card sx={{ 
+                      display: 'flex', 
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: mode === "light" ? "#FFFFFF" : "#2A2A2A",
+                      boxShadow: mode === "light" 
+                        ? "0 2px 8px rgba(0,0,0,0.1)" 
+                        : "0 2px 8px rgba(0,0,0,0.3)"
+                    }}>
+                      <CardMedia
+                        component="img"
+                        sx={{ width: 120, height: 120, objectFit: 'contain', mr: 2 }}
+                        image={item.productImageUrl ? `http://localhost:8080${item.productImageUrl}` : 'https://via.placeholder.com/120'}
+                        alt={item.productName}
+                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                        <CardContent sx={{ flex: '1 0 auto', p: 1 }}>
+                          <Typography variant="h6" component="div">
+                            {item.productName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            {item.productDescription}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="body2" sx={{ mr: 2 }}>
+                              Quantity: 
+                            </Typography>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                            >
+                              -
+                            </IconButton>
+                            <Typography variant="body2" sx={{ mx: 1 }}>
+                              {item.quantity}
+                            </Typography>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1)}
+                            >
+                              +
+                            </IconButton>
+                          </Box>
+                          <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
+                            ₱ {item.subtotal.toLocaleString()}
+                          </Typography>
+                        </CardContent>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
+                        <IconButton 
+                          color="error" 
+                          onClick={() => handleRemoveItem(item.cartItemId)}
+                          sx={{ 
+                            bgcolor: mode === "light" ? "rgba(211, 47, 47, 0.1)" : "rgba(211, 47, 47, 0.2)",
+                            "&:hover": {
+                              bgcolor: mode === "light" ? "rgba(211, 47, 47, 0.2)" : "rgba(211, 47, 47, 0.3)"
+                            }
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+              
+              <Divider sx={{ my: 4 }} />
+              
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                p: 2,
+                position: 'sticky',
+                bottom: 0,
+                bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+                borderTop: `1px solid ${mode === "light" ? "#e0e0e0" : "#333"}`,
+                zIndex: 1
+              }}>
+                <Typography variant="h5">
+                  Total: ₱ {totalPrice.toLocaleString()}
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  color="primary"
+                  size="large"
+                  onClick={handleCheckout}
+                  sx={{ 
+                    bgcolor: "#D32F2F",
+                    "&:hover": { bgcolor: "#b71c1c" }
+                  }}
+                >
+                  Proceed to Checkout
+                </Button>
+              </Box>
+            </>
+          )}
+        </Box>
       </Box>
     </Box>
   );

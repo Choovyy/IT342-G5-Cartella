@@ -4,7 +4,7 @@ import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, TextField, Button,
   FormControl, FormLabel, RadioGroup, FormControlLabel, Radio,
-  CircularProgress, Alert, InputAdornment
+  CircularProgress, Alert, InputAdornment, Card, CardContent
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -20,9 +20,11 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import HomeIcon from "@mui/icons-material/Home";
 
 import axios from "axios";
 import userService from "../api/userService";
+import addressService from "../api/addressService";
 
 const drawerWidth = 240;
 
@@ -43,7 +45,55 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [isGoogleUser, setIsGoogleUser] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [defaultAddress, setDefaultAddress] = useState(null);
   
+  const fetchDefaultAddress = async (email, username) => {
+    try {
+      let addresses = [];
+      if (email) {
+        console.log("Fetching addresses for email:", email);
+        addresses = await addressService.getAddressesByEmail(email);
+      } else if (username) {
+        console.log("Fetching addresses for username:", username);
+        addresses = await addressService.getAddressesByUsername(username);
+      }
+      
+      console.log("All addresses:", JSON.stringify(addresses, null, 2));
+      
+      // Find the default address - check both isDefault and default properties
+      const defaultAddr = addresses.find(addr => {
+        console.log("Checking address:", addr.addressId, {
+          isDefault: addr.isDefault,
+          default: addr.default
+        });
+        return addr.isDefault === true || addr.default === true;
+      });
+      
+      console.log("Default address found:", defaultAddr);
+      
+      if (defaultAddr) {
+        console.log("Setting default address:", {
+          id: defaultAddr.addressId,
+          street: defaultAddr.streetAddress,
+          city: defaultAddr.city,
+          state: defaultAddr.state,
+          postalCode: defaultAddr.postalCode,
+          country: defaultAddr.country,
+          isDefault: defaultAddr.isDefault,
+          default: defaultAddr.default
+        });
+        setDefaultAddress(defaultAddr);
+      } else {
+        console.log("No default address found in addresses");
+        setDefaultAddress(null);
+      }
+    } catch (err) {
+      console.error("Error fetching default address:", err);
+      console.error("Error details:", err.response?.data);
+      setDefaultAddress(null);
+    }
+  };
+
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     if (!token) {
@@ -56,11 +106,10 @@ const Profile = () => {
       try {
         setLoading(true);
   
-        const email = sessionStorage.getItem("email"); // Fetch email from sessionStorage
+        const email = sessionStorage.getItem("email");
         let userData;
   
         if (email) {
-          // Google login: Fetch user data by email
           console.log("Fetching user data for email:", email);
           setIsGoogleUser(true);
           const response = await axios.get(`http://localhost:8080/dashboard`, {
@@ -71,23 +120,24 @@ const Profile = () => {
           console.log("Dashboard response:", response.data);
           userData = response.data;
         } else {
-          // Normal login: Fetch user data by username
           const username = sessionStorage.getItem("username");
           console.log("Fetching user data for username:", username);
           setIsGoogleUser(false);
           userData = await userService.getUserByUsername(username);
         }
   
-        // Map backend data to form fields
         setFormData({
           username: userData.username || "",
-          password: "", // Don't display password
+          password: "",
           email: userData.email || "",
           phone: userData.phoneNumber || "",
-          address: "", // Not in User entity, might be in another entity
+          address: "",
           dob: userData.dateOfBirth || "",
           gender: userData.gender ? userData.gender.toLowerCase() : "",
         });
+
+        // Fetch default address after setting user data
+        await fetchDefaultAddress(email, userData.username);
   
         setLoading(false);
       } catch (err) {
@@ -263,131 +313,226 @@ const Profile = () => {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          height: "calc(100vh - 64px)", // Subtract the AppBar height
+          overflow: "hidden" // Prevent double scrollbars
         }}
       >
-        <Box sx={{ alignSelf: "flex-start" }}>
-          <Typography variant="h4" sx={{ mb: 0 }}>My Profile</Typography>
-          <Typography variant="body2" sx={{ mb: 4, mt: 0.5, color: mode === "light" ? "#000" : "#FFF" }}>
-            Manage and protect your account
-          </Typography>
-        </Box>
-
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-            <CircularProgress />
+        <Box 
+          sx={{ 
+            width: "100%", 
+            maxWidth: "1000px", 
+            overflowY: "auto", 
+            pr: 2, // Add padding for the scrollbar
+            "&::-webkit-scrollbar": {
+              width: "8px",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: mode === "dark" ? "#2A2A2A" : "#f0f0f0",
+              borderRadius: "4px",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: mode === "dark" ? "#555" : "#D32F2F",
+              borderRadius: "4px",
+              "&:hover": {
+                backgroundColor: mode === "dark" ? "#777" : "#B71C1C",
+              },
+            },
+          }}
+        >
+          <Box sx={{ alignSelf: "flex-start" }}>
+            <Typography variant="h4" sx={{ mb: 0 }}>My Profile</Typography>
+            <Typography variant="body2" sx={{ mb: 4, mt: 0.5, color: mode === "light" ? "#000" : "#FFF" }}>
+              Manage and protect your account
+            </Typography>
           </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ width: '100%', maxWidth: '1000px' }}>{error}</Alert>
-        ) : (
-          <Box
-            component="form"
-            noValidate
-            autoComplete="off"
-            sx={{
-              width: "100%",
-              maxWidth: "1000px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 1,
-              bgcolor: mode === "dark" ? "#2A2A2A" : "#f9f9f9",
-              p: 4,
-              borderRadius: 2,
-              boxShadow: 2,
-              position: "relative",
-              color: mode === "dark" ? "#fff" : "#000",
-            }}
-          >
-            <TextField label="Username" name="username" value={formData.username} onChange={handleChange} fullWidth />
-            
-            {isGoogleUser ? (
+
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ width: '100%', maxWidth: '1000px' }}>{error}</Alert>
+          ) : (
+            <Box
+              component="form"
+              noValidate
+              autoComplete="off"
+              sx={{
+                width: "100%",
+                maxWidth: "1000px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+                bgcolor: mode === "dark" ? "#2A2A2A" : "#f9f9f9",
+                p: 4,
+                borderRadius: 2,
+                boxShadow: 2,
+                position: "relative",
+                color: mode === "dark" ? "#fff" : "#000",
+                mb: 4 // Add margin at the bottom for better scrolling
+              }}
+            >
+              <TextField label="Username" name="username" value={formData.username} onChange={handleChange} fullWidth />
+              
+              {isGoogleUser ? (
+                <TextField 
+                  label="Password" 
+                  name="password" 
+                  type="password" 
+                  value="********" 
+                  disabled 
+                  fullWidth 
+                  helperText="Password cannot be changed for Google accounts"
+                />
+              ) : (
+                <TextField 
+                  label="Password" 
+                  name="password" 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Leave blank to keep current password" 
+                  onChange={handleChange} 
+                  fullWidth 
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={handleClickShowPassword}
+                          edge="end"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+              
               <TextField 
-                label="Password" 
-                name="password" 
-                type="password" 
-                value="********" 
+                label="Email" 
+                name="email" 
+                value={formData.email} 
                 disabled 
                 fullWidth 
-                helperText="Password cannot be changed for Google accounts"
-              />
-            ) : (
-              <TextField 
-                label="Password" 
-                name="password" 
-                type={showPassword ? "text" : "password"} 
-                placeholder="Leave blank to keep current password" 
-                onChange={handleChange} 
-                fullWidth 
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={handleClickShowPassword}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+                helperText="Email cannot be changed"
+                sx={{
+                  '& .MuiInputBase-input.Mui-disabled': {
+                    WebkitTextFillColor: mode === "dark" ? "#aaa" : "#666",
+                  },
+                  '& .MuiFormHelperText-root': {
+                    color: mode === "dark" ? "#aaa" : "#666",
+                  }
                 }}
               />
-            )}
-            
-            <TextField label="Email" name="email" value={formData.email} onChange={handleChange} fullWidth />
-            <TextField label="Phone number" name="phone" value={formData.phone} onChange={handleChange} fullWidth />
-            
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="subtitle1">Address</Typography>
-              <Button 
-                variant="outlined" 
-                color="error" 
-                startIcon={<LocationOnIcon />}
-                onClick={() => navigate('/address')}
+              <TextField label="Phone number" name="phone" value={formData.phone} onChange={handleChange} fullWidth />
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="subtitle1">Address</Typography>
+                <Button 
+                  variant="outlined" 
+                  color="error" 
+                  startIcon={<LocationOnIcon />}
+                  onClick={() => navigate('/address')}
+                >
+                  Manage Addresses
+                </Button>
+              </Box>
+
+              {defaultAddress ? (
+                <Card 
+                  sx={{ 
+                    mb: 2,
+                    bgcolor: mode === "dark" ? "#2A2A2A" : "#f9f9f9",
+                    border: '2px solid #D32F2F',
+                    position: 'relative'
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      position: 'absolute',
+                      top: 10,
+                      right: 10,
+                      bgcolor: '#D32F2F',
+                      color: 'white',
+                      px: 2,
+                      py: 0.5,
+                      borderRadius: 2,
+                      fontSize: '0.875rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5
+                    }}
+                  >
+                    <HomeIcon sx={{ fontSize: '1rem' }} />
+                    Default Address
+                  </Box>
+                  <CardContent>
+                    <Typography variant="body1" sx={{ mb: 1 }}>
+                      {defaultAddress.streetAddress}
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 1 }}>
+                      {defaultAddress.city}, {defaultAddress.state} {defaultAddress.postalCode}
+                    </Typography>
+                    <Typography variant="body1">
+                      {defaultAddress.country}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    mb: 2, 
+                    color: mode === "dark" ? "#ccc" : "#666",
+                    fontStyle: 'italic'
+                  }}
+                >
+                  No default address set. Click "Manage Addresses" to add one.
+                </Typography>
+              )}
+              
+              <Box>
+                <Typography sx={{ color: mode === "dark" ? "#ccc" : "#000", mb: 1 }}>
+                  Date of Birth
+                </Typography>
+                <TextField
+                  name="dob"
+                  type="date"
+                  value={formData.dob}
+                  onChange={handleChange}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{ style: { color: mode === "dark" ? "#fff" : "#000" } }}
+                  fullWidth
+                />
+              </Box>
+
+              <FormControl>
+                <FormLabel sx={{ color: mode === "dark" ? "#ccc" : undefined }}>Gender</FormLabel>
+                <RadioGroup
+                  row
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                >
+                  <FormControlLabel value="male" control={<Radio />} label="Male" />
+                  <FormControlLabel value="female" control={<Radio />} label="Female" />
+                  <FormControlLabel value="other" control={<Radio />} label="Other" />
+                </RadioGroup>
+              </FormControl>
+
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                onClick={handleSubmit}
+                sx={{ alignSelf: "flex-end", mt: 2 }}
               >
-                Manage Addresses
+                Save Profile
               </Button>
             </Box>
-            
-            <Box>
-              <Typography sx={{ color: mode === "dark" ? "#ccc" : "#000", mb: 1 }}>
-                Date of Birth
-              </Typography>
-              <TextField
-                name="dob"
-                type="date"
-                value={formData.dob}
-                onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
-                InputProps={{ style: { color: mode === "dark" ? "#fff" : "#000" } }}
-                fullWidth
-              />
-            </Box>
-
-            <FormControl>
-              <FormLabel sx={{ color: mode === "dark" ? "#ccc" : undefined }}>Gender</FormLabel>
-              <RadioGroup
-                row
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-              >
-                <FormControlLabel value="male" control={<Radio />} label="Male" />
-                <FormControlLabel value="female" control={<Radio />} label="Female" />
-                <FormControlLabel value="other" control={<Radio />} label="Other" />
-              </RadioGroup>
-            </FormControl>
-
-            <Button
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={handleSubmit}
-              sx={{ alignSelf: "flex-end", mt: 2 }}
-            >
-              Save Profile
-            </Button>
-          </Box>
-        )}
+          )}
+        </Box>
       </Box>
     </Box>
   );

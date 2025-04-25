@@ -101,8 +101,14 @@ public class AddressController {
     public ResponseEntity<?> setDefaultAddress(@PathVariable Long addressId) {
         try {
             Address updatedAddress = addressService.setDefaultAddress(addressId);
+            
+            // Log the response for debugging
+            System.out.println("Response - Address ID: " + updatedAddress.getAddressId());
+            System.out.println("Response - isDefault: " + updatedAddress.isDefault());
+            
             return ResponseEntity.ok(updatedAddress);
         } catch (Exception e) {
+            System.out.println("Error setting default address: " + e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }

@@ -167,18 +167,16 @@ const Address = () => {
   };
 
   const handleSetDefault = async (addressId) => {
-    try {
-      const response = await addressService.setDefaultAddress(addressId);
-      setAddresses(addresses.map(addr => 
-        addr.addressId === addressId ? response : 
-        addr.isDefault ? { ...addr, isDefault: false } : addr
-      ));
-      alert("Default address updated successfully!");
-    } catch (err) {
-      console.error("Error setting default address:", err);
-      alert(`Failed to set default address: ${err.message}`);
-    }
-  };
+  try {
+    console.log("Setting address as default:", addressId);
+    await addressService.setDefaultAddress(addressId); // backend updates it
+    await fetchAddresses(); // frontend re-fetches full list with updated isDefault
+    alert("Default address updated successfully!");
+  } catch (err) {
+    console.error("Error setting default address:", err);
+    alert(`Failed to set default address: ${err.message}`);
+  }
+};
 
   const handleCancel = () => {
     setFormData({
@@ -380,7 +378,9 @@ const Address = () => {
                         flexDirection: 'column',
                         bgcolor: mode === "dark" ? "#2A2A2A" : "#f9f9f9",
                         color: mode === "dark" ? "#fff" : "#000",
-                        position: 'relative'
+                        position: 'relative',
+                        border: address.isDefault ? '2px solid #D32F2F' : 'none',
+                        boxShadow: address.isDefault ? '0 0 10px rgba(211, 47, 47, 0.3)' : 'none'
                       }}
                     >
                       {address.isDefault && (
@@ -389,14 +389,20 @@ const Address = () => {
                             position: 'absolute', 
                             top: 10, 
                             right: 10, 
-                            bgcolor: mode === "dark" ? "#D32F2F" : "#D32F2F",
+                            bgcolor: '#D32F2F',
                             color: 'white',
-                            px: 1,
+                            px: 2,
                             py: 0.5,
-                            borderRadius: 1,
-                            fontSize: '0.75rem'
+                            borderRadius: 2,
+                            fontSize: '0.875rem',
+                            fontWeight: 'bold',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
                           }}
                         >
+                          <HomeIcon sx={{ fontSize: '1rem' }} />
                           Default
                         </Box>
                       )}
