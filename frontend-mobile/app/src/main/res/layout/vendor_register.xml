@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    tools:context=".VendorRegister">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp">
+
+        <!-- Logo -->
+        <ImageView
+            android:id="@+id/logoImage"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_marginTop="4dp"
+            android:contentDescription="App Logo"
+            android:src="@drawable/logolight"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- App Name -->
+        <TextView
+            android:id="@+id/appName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cartella"
+            android:textSize="24sp"
+            android:textColor="#000000"
+            android:fontFamily="@font/gds_didot"
+            app:layout_constraintTop_toBottomOf="@id/logoImage"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="12dp" />
+
+        <!-- SIGN UP Header -->
+        <TextView
+            android:id="@+id/signUpHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="VENDOR REGISTER"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:fontFamily="@font/poppins"
+            app:layout_constraintTop_toBottomOf="@id/appName"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="32dp" />
+
+        <!-- Username -->
+        <EditText
+            android:id="@+id/editTextUsername"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:hint="Username"
+            android:inputType="textPersonName"
+            android:fontFamily="@font/poppins"
+            android:paddingHorizontal="16dp"
+            android:background="@android:drawable/edit_text"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            app:layout_constraintTop_toBottomOf="@id/signUpHeader"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="16dp" />
+
+        <!-- Email -->
+        <EditText
+            android:id="@+id/editTextEmail"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:hint="Email"
+            android:inputType="textEmailAddress"
+            android:fontFamily="@font/poppins"
+            android:paddingHorizontal="16dp"
+            android:background="@android:drawable/edit_text"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            app:layout_constraintTop_toBottomOf="@id/editTextUsername"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="12dp" />
+
+        <!-- Password -->
+        <EditText
+            android:id="@+id/editTextPassword"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:hint="Password"
+            android:inputType="textPassword"
+            android:fontFamily="@font/poppins"
+            android:paddingHorizontal="16dp"
+            android:background="@android:drawable/edit_text"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            app:layout_constraintTop_toBottomOf="@id/editTextEmail"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="12dp" />
+
+        <!-- Number -->
+        <EditText
+            android:id="@+id/editTextNumber"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:hint="Phone Number"
+            android:inputType="phone"
+            android:fontFamily="@font/poppins"
+            android:paddingHorizontal="16dp"
+            android:background="@android:drawable/edit_text"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            app:layout_constraintTop_toBottomOf="@id/editTextPassword"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="12dp" />
+
+        <!-- Birthdate -->
+        <EditText
+            android:id="@+id/editTextBirthdate"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:hint="Birthdate (YYYY-MM-DD)"
+            android:inputType="date"
+            android:fontFamily="@font/poppins"
+            android:paddingHorizontal="16dp"
+            android:background="@android:drawable/edit_text"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            app:layout_constraintTop_toBottomOf="@id/editTextNumber"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="12dp" />
+
+        <!-- Gender Spinner -->
+        <Spinner
+            android:id="@+id/spinnerGender"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:background="@android:drawable/edit_text"
+            app:layout_constraintTop_toBottomOf="@id/editTextBirthdate"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="12dp"
+            android:paddingHorizontal="16dp" />
+
+        <!-- Business Name -->
+        <EditText
+            android:id="@+id/editTextBusinessName"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:hint="Business Name"
+            android:inputType="text"
+            android:fontFamily="@font/poppins"
+            android:paddingHorizontal="16dp"
+            android:background="@android:drawable/edit_text"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            app:layout_constraintTop_toBottomOf="@id/spinnerGender"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="12dp" />
+
+        <!-- Business Address -->
+        <EditText
+            android:id="@+id/editTextBusinessAddress"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:hint="Business Address"
+            android:inputType="textPostalAddress"
+            android:fontFamily="@font/poppins"
+            android:paddingHorizontal="16dp"
+            android:background="@android:drawable/edit_text"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            app:layout_constraintTop_toBottomOf="@id/editTextBusinessName"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="12dp" />
+
+        <!-- Business Registration Number -->
+        <EditText
+            android:id="@+id/editTextBusinessRegNo"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:hint="Business Registration Number"
+            android:inputType="text"
+            android:fontFamily="@font/poppins"
+            android:paddingHorizontal="16dp"
+            android:background="@android:drawable/edit_text"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            app:layout_constraintTop_toBottomOf="@id/editTextBusinessAddress"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="12dp" />
+
+        <!-- Sign Up Button -->
+        <Button
+            android:id="@+id/btnSignUp"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:text="Sign Up"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#D32F2F"
+            android:fontFamily="@font/poppins"
+            app:cornerRadius="8dp"
+            app:layout_constraintTop_toBottomOf="@id/editTextBusinessRegNo"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="20dp" />
+
+        <!-- Bottom Links -->
+        <TextView
+            android:id="@+id/bottomLinks"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:fontFamily="@font/poppins"
+            android:text="New Vendor? Register\nCustomer Log In"
+            android:textAlignment="center"
+            android:textColor="#D32F2F"
+            android:textSize="14sp"
+            app:layout_constraintTop_toBottomOf="@id/btnSignUp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</ScrollView>
