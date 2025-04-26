@@ -6,6 +6,8 @@ import {
   FormControl, FormLabel, RadioGroup, FormControlLabel, Radio,
   CircularProgress, Alert, InputAdornment, Card, CardContent
 } from "@mui/material";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import { ColorModeContext } from "../ThemeContext";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -97,18 +99,18 @@ const Profile = () => {
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     if (!token) {
-      alert("You must be logged in to access this page.");
+      toast.error("You must be logged in to access this page.");
       navigate("/login");
       return;
     }
-  
+
     const fetchUserData = async () => {
       try {
         setLoading(true);
-  
+
         const email = sessionStorage.getItem("email");
         let userData;
-  
+
         if (email) {
           console.log("Fetching user data for email:", email);
           setIsGoogleUser(true);
@@ -125,7 +127,7 @@ const Profile = () => {
           setIsGoogleUser(false);
           userData = await userService.getUserByUsername(username);
         }
-  
+
         setFormData({
           username: userData.username || "",
           password: "",
@@ -138,7 +140,7 @@ const Profile = () => {
 
         // Fetch default address after setting user data
         await fetchDefaultAddress(email, userData.username);
-  
+
         setLoading(false);
       } catch (err) {
         console.error("Error fetching user data:", err);
@@ -147,7 +149,7 @@ const Profile = () => {
         setLoading(false);
       }
     };
-  
+
     fetchUserData();
   }, [navigate]);
   
@@ -174,36 +176,37 @@ const Profile = () => {
     setShowPassword(!showPassword);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event) => {
+    event.preventDefault(); // Prevents the default form submission behavior
     try {
       const token = sessionStorage.getItem("authToken");
       const username = sessionStorage.getItem("username");
       const email = sessionStorage.getItem("email");
-      
+
       if (!token) {
-        alert("You must be logged in to update your profile.");
+        toast.error("You must be logged in to update your profile.");
         navigate("/login");
         return;
       }
-      
+
       // Map form data to backend format
       const userData = {
         username: formData.username,
         email: formData.email,
         phoneNumber: formData.phone,
         dateOfBirth: formData.dob,
-        gender: formData.gender ? formData.gender.toUpperCase() : null
+        gender: formData.gender ? formData.gender.toUpperCase() : null,
       };
-      
+
       // Only include password if it's been changed and user is not a Google user
       if (formData.password && !isGoogleUser) {
         userData.password = formData.password;
       }
-      
+
       console.log("Updating user profile with data:", userData);
-      
+
       let response;
-      
+
       if (email) {
         // Google OAuth user - use the userService
         console.log("Updating Google OAuth user with email:", email);
@@ -215,16 +218,18 @@ const Profile = () => {
       } else {
         throw new Error("No username or email found in session storage");
       }
-      
+
       console.log("Profile update response:", response);
-      alert("Profile updated successfully!");
-      
-      // Refresh the page to show updated data
-      window.location.reload();
+      toast.success("Profile updated successfully!", { autoClose: 3000 });
+
+      // Delay reload until after toast animation completes
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000); // Matches the toast's autoClose duration
+
     } catch (err) {
       console.error("Error updating profile:", err);
-      console.error("Error details:", err.response?.data);
-      alert(`Failed to update profile: ${err.response?.data?.error || err.message}`);
+      toast.error(`Failed to update profile: ${err.response?.data?.error || err.message}`);
     }
   };
 
