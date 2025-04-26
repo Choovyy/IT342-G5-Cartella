@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
 import "./design/Login.css";
@@ -95,10 +97,10 @@ const Register = () => {
         "http://localhost:8080/api/users/register",
         formData
       );
-      alert("Registration Successful!");
+      toast.success("Registration Successful!");
       navigate("/login");
     } catch (error) {
-      alert(
+      toast.error(
         error.response?.data?.error ||
         "An error occurred during registration."
       );

@@ -7,6 +7,8 @@ import {
   Grid, Divider, Dialog, DialogActions, DialogContent, DialogTitle, Paper,
   InputBase
 } from "@mui/material";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import { ColorModeContext } from "../ThemeContext";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -46,6 +48,8 @@ const Address = () => {
     isDefault: false
   });
   const [openDialog, setOpenDialog] = useState(false);
+  const [isSettingDefault, setIsSettingDefault] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -61,26 +65,20 @@ const Address = () => {
   const fetchAddresses = async () => {
     try {
       setLoading(true);
+      setError(null);
       const email = sessionStorage.getItem("email");
       const username = sessionStorage.getItem("username");
       
-      let response;
-      
-      if (email) {
-        // Google OAuth user
-        response = await addressService.getAddressesByEmail(email);
-      } else if (username) {
-        // Regular user
-        response = await addressService.getAddressesByUsername(username);
-      } else {
-        throw new Error("No username or email found in session storage");
-      }
-      
-      setAddresses(response);
-      setLoading(false);
+      const response = email 
+        ? await addressService.getAddressesByEmail(email)
+        : await addressService.getAddressesByUsername(username);
+
+      // Sort with default first
+      setAddresses(response.sort((a, b) => b.isDefault - a.isDefault));
     } catch (err) {
-      console.error("Error fetching addresses:", err);
-      setError(`Failed to load addresses: ${err.message}`);
+      setError(err.message);
+      toast.error("Failed to load addresses");
+    } finally {
       setLoading(false);
     }
   };
@@ -90,6 +88,7 @@ const Address = () => {
     sessionStorage.removeItem("username");
     sessionStorage.removeItem("email");
     navigate("/login");
+    toast.success("Logged out successfully!");
   };
 
   const handleSearch = () => {
@@ -108,35 +107,33 @@ const Address = () => {
 
   const handleSubmit = async () => {
     try {
+      setIsSubmitting(true);
+      let response;
       const email = sessionStorage.getItem("email");
       const username = sessionStorage.getItem("username");
-      
-      let response;
-      
+
       if (editingAddress) {
-        // Update existing address
         response = await addressService.updateAddress(editingAddress.addressId, formData);
-        setAddresses(addresses.map(addr => 
+        setAddresses(prev => prev.map(addr => 
           addr.addressId === editingAddress.addressId ? response : addr
         ));
       } else {
-        // Create new address
         if (email) {
           response = await addressService.createAddressByEmail(email, formData);
-        } else if (username) {
-          // For regular users, we need to get the user ID first
-          const userData = await userService.getUserByUsername(username);
-          response = await addressService.createAddress(userData.userId, formData);
+        } else {
+          const user = await userService.getUserByUsername(username);
+          response = await addressService.createAddress(user.userId, formData);
         }
-        
-        setAddresses([...addresses, response]);
+        setAddresses(prev => [response, ...prev]);
       }
-      
+
       handleCloseDialog();
-      alert(editingAddress ? "Address updated successfully!" : "Address added successfully!");
+      toast.success(editingAddress ? "Address updated!" : "Address added!");
     } catch (err) {
-      console.error("Error saving address:", err);
-      alert(`Failed to save address: ${err.message}`);
+      console.error("Error:", err);
+      toast.error(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -150,7 +147,7 @@ const Address = () => {
       country: address.country,
       isDefault: address.isDefault
     });
-    setShowForm(true);
+    setOpenDialog(true);
   };
 
   const handleDelete = async (addressId) => {
@@ -158,25 +155,37 @@ const Address = () => {
       try {
         await addressService.deleteAddress(addressId);
         setAddresses(addresses.filter(addr => addr.addressId !== addressId));
-        alert("Address deleted successfully!");
+        toast.success("Address deleted successfully!");
       } catch (err) {
         console.error("Error deleting address:", err);
-        alert(`Failed to delete address: ${err.message}`);
+        toast.error(`Failed to delete address: ${err.message}`);
       }
     }
   };
 
   const handleSetDefault = async (addressId) => {
-  try {
-    console.log("Setting address as default:", addressId);
-    await addressService.setDefaultAddress(addressId); // backend updates it
-    await fetchAddresses(); // frontend re-fetches full list with updated isDefault
-    alert("Default address updated successfully!");
-  } catch (err) {
-    console.error("Error setting default address:", err);
-    alert(`Failed to set default address: ${err.message}`);
-  }
-};
+    try {
+      setIsSettingDefault(addressId);
+      
+      // Update backend first
+      await addressService.setDefaultAddress(addressId);
+      
+      // Optimistic update
+      setAddresses(prev => prev.map(addr => ({
+        ...addr,
+        isDefault: addr.addressId === addressId ? true : false
+      })));
+      
+      toast.success("Default address updated!");
+    } catch (err) {
+      console.error("Error:", err);
+      toast.error(err.message);
+      // Revert by refetching
+      await fetchAddresses();
+    } finally {
+      setIsSettingDefault(null);
+    }
+  };
 
   const handleCancel = () => {
     setFormData({
@@ -187,7 +196,7 @@ const Address = () => {
       country: "",
       isDefault: false
     });
-    setShowForm(false);
+    setOpenDialog(false);
     setEditingAddress(null);
   };
 
@@ -387,23 +396,21 @@ const Address = () => {
                         <Box 
                           sx={{ 
                             position: 'absolute', 
-                            top: 10, 
-                            right: 10, 
-                            bgcolor: '#D32F2F',
+                            top: 8, 
+                            right: 8, 
+                            bgcolor: '#d32f2f',
                             color: 'white',
-                            px: 2,
+                            px: 1.5,
                             py: 0.5,
-                            borderRadius: 2,
-                            fontSize: '0.875rem',
-                            fontWeight: 'bold',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            borderRadius: 1,
+                            fontSize: '0.75rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 0.5
                           }}
                         >
-                          <HomeIcon sx={{ fontSize: '1rem' }} />
-                          Default
+                          <HomeIcon fontSize="small" />
+                          <span>Default</span>
                         </Box>
                       )}
                       <CardContent sx={{ flexGrow: 1 }}>
@@ -429,9 +436,14 @@ const Address = () => {
                           <Button 
                             size="small" 
                             onClick={() => handleSetDefault(address.addressId)}
+                            disabled={isSettingDefault === address.addressId}
                             sx={{ color: mode === "dark" ? "#fff" : "#000" }}
                           >
-                            Set as Default
+                            {isSettingDefault === address.addressId ? (
+                              <CircularProgress size={20} />
+                            ) : (
+                              "Set as Default"
+                            )}
                           </Button>
                         )}
                         <Button 
@@ -499,6 +511,10 @@ const Address = () => {
               onChange={handleInputChange}
               margin="normal"
               required
+              inputProps={{
+                pattern: "[0-9]{5,10}",
+                title: "5-10 digit postal code"
+              }}
             />
             <TextField
               fullWidth
@@ -508,6 +524,10 @@ const Address = () => {
               onChange={handleInputChange}
               margin="normal"
               required
+              inputProps={{
+                pattern: "[A-Za-z ]{2,56}",
+                title: "Valid country name (2-56 characters)"
+              }}
             />
             <FormControlLabel
               control={
@@ -524,9 +544,18 @@ const Address = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="error">
-            {editingAddress ? 'Update' : 'Add'}
+          <Button onClick={handleCloseDialog} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            color="error"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <CircularProgress size={24} sx={{ color: 'white' }} />
+            ) : editingAddress ? 'Update' : 'Add'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -534,4 +563,4 @@ const Address = () => {
   );
 };
 
-export default Address; 
+export default Address;
