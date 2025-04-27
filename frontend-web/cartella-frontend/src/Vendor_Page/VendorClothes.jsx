@@ -1,11 +1,14 @@
-import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Grid
+  ListItemText, IconButton, InputBase, Grid, Card, CardContent,
+  CardMedia, Button, CircularProgress, Alert
 } from "@mui/material";
 
+import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
+import productService from "../api/productService";
+
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import LogoutIcon from "@mui/icons-material/Logout";

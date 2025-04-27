@@ -6,6 +6,8 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
+import productService from "../api/productService";
+import api from "../api/api"; // Import the API utility
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -47,14 +49,8 @@ const AddProduct = () => {
       return;
     }
 
-    // Fetch categories
-    fetch("http://localhost:8080/api/products/categories", {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch categories");
-        return res.json();
-      })
+    // Fetch categories using productService
+    productService.getProductCategories()
       .then(data => {
         setCategories(data);
         setLoading(false);
@@ -101,9 +97,8 @@ const AddProduct = () => {
     setError("");
     
     const vendorId = sessionStorage.getItem("vendorId");
-    const authToken = sessionStorage.getItem("authToken");
     
-    if (!vendorId || !authToken) {
+    if (!vendorId) {
       setError("Not authenticated. Please log in again.");
       setSubmitting(false);
       return;
@@ -127,17 +122,8 @@ const AddProduct = () => {
       productFormData.append("image", formData.image);
     }
 
-    fetch(`http://localhost:8080/api/products/${vendorId}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${authToken}`
-      },
-      body: productFormData
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to add product");
-        return res.json();
-      })
+    // Use productService instead of direct fetch
+    productService.addProduct(vendorId, productFormData)
       .then(data => {
         setSuccess(true);
         setTimeout(() => {

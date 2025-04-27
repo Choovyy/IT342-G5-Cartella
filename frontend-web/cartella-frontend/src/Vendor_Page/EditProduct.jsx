@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
+import productService from "../api/productService";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -40,63 +41,36 @@ const EditProduct = () => {
   });
 
   useEffect(() => {
-    const authToken = sessionStorage.getItem("authToken");
-    const productId = location.state?.productId;
-    
-    if (!authToken) {
-      setError("Not authenticated. Please log in again.");
-      setLoading(false);
-      return;
-    }
-
-    if (!productId) {
-      setError("No product ID provided");
-      setLoading(false);
-      return;
-    }
-
-    // Fetch categories
-    fetch("http://localhost:8080/api/products/categories", {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch categories");
-        return res.json();
-      })
-      .then(data => {
-        setCategories(data);
-      })
-      .catch(err => {
-        setError("Failed to load categories: " + err.message);
-        setLoading(false);
-      });
-
-    // Fetch product details
-    fetch(`http://localhost:8080/api/products/${productId}`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch product");
-        return res.json();
-      })
-      .then(data => {
-        setFormData({
-          name: data.name,
-          description: data.description,
-          price: data.price.toString(),
-          stockQuantity: data.stockQuantity.toString(),
-          category: data.category,
-          image: null
+    // Check if a productId was provided (edit mode) and fetch data
+    if (location.state?.productId) {
+      setLoading(true);
+      
+      // Fetch the product data using productService
+      productService.getProductById(location.state.productId)
+        .then(data => {
+          setProduct(data);
+          
+          // Set form data
+          setFormData({
+            name: data.name,
+            description: data.description,
+            price: data.price.toString(),
+            stockQuantity: data.stockQuantity.toString(),
+            category: data.category
+          });
+          
+          // Set image preview if available
+          if (data.imageUrl) {
+            setImagePreview(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${data.imageUrl}`);
+          }
+          
+          setLoading(false);
+        })
+        .catch(err => {
+          setError("Failed to load product: " + err.message);
+          setLoading(false);
         });
-        if (data.imageUrl) {
-          setImagePreview(`http://localhost:8080${data.imageUrl}`);
-        }
-        setLoading(false);
-      })
-      .catch(err => {
-        setError("Failed to load product: " + err.message);
-        setLoading(false);
-      });
+    }
   }, [location.state]);
 
   const handleLogout = () => {
@@ -134,12 +108,10 @@ const EditProduct = () => {
     setSubmitting(true);
     setError("");
     
-    const vendorId = sessionStorage.getItem("vendorId");
-    const authToken = sessionStorage.getItem("authToken");
     const productId = location.state?.productId;
     
-    if (!vendorId || !authToken || !productId) {
-      setError("Not authenticated or missing product ID");
+    if (!productId) {
+      setError("Missing product ID");
       setSubmitting(false);
       return;
     }
@@ -164,17 +136,7 @@ const EditProduct = () => {
       productFormData.append("image", formData.image);
     }
 
-    fetch(`http://localhost:8080/api/products/${productId}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${authToken}`
-      },
-      body: productFormData
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to update product");
-        return res.json();
-      })
+    productService.updateProduct(productId, productFormData)
       .then(data => {
         setSuccess(true);
         setTimeout(() => {

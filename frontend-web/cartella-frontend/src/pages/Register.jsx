@@ -1,110 +1,53 @@
-import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import authService from "../api/authService";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
-import "./design/Login.css";
+import googleLogo from "../images/google-logo.png";
 
 const Register = () => {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
 
-  const emailRef = useRef(null);
-  const passwordRef = useRef(null);
-  const phoneRef = useRef(null);
-
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = sessionStorage.getItem("authToken");
-    if (token) {
-      navigate("/dashboard");
-    }
-  }, [navigate]);
-
   const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === "phoneNumber") {
-      const numericValue = value.replace(/\D/g, "");
-      if (numericValue.length > 11) return;
-      setFormData((prev) => ({ ...prev, phoneNumber: numericValue }));
-
-      if (phoneRef.current) {
-        if (numericValue.length !== 11) {
-          phoneRef.current.setCustomValidity("Phone number must be exactly 11 digits.");
-        } else {
-          phoneRef.current.setCustomValidity("");
-        }
-        phoneRef.current.reportValidity();
-      }
-      return;
-    }
-
-    if (name === "email") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      setFormData((prev) => ({ ...prev, email: value }));
-      if (emailRef.current) {
-        if (!emailRegex.test(value)) {
-          emailRef.current.setCustomValidity("Please enter a valid email address.");
-        } else {
-          emailRef.current.setCustomValidity("");
-        }
-        emailRef.current.reportValidity();
-      }
-      return;
-    }
-
-    if (name === "password") {
-      const passwordRegex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-      setFormData((prev) => ({ ...prev, password: value }));
-      if (passwordRef.current) {
-        if (!passwordRegex.test(value)) {
-          passwordRef.current.setCustomValidity(
-            "Password must be 8+ characters, with 1 uppercase, 1 lowercase, 1 number, and 1 special character."
-          );
-        } else {
-          passwordRef.current.setCustomValidity("");
-        }
-        passwordRef.current.reportValidity();
-      }
-      return;
-    }
-
-    setFormData({ ...formData, [name]: value });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Final validity check
-    if (
-      !emailRef.current.checkValidity() ||
-      !passwordRef.current.checkValidity() ||
-      !phoneRef.current.checkValidity()
-    ) {
+    
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords don't match");
       return;
     }
-
+    
+    setIsLoading(true);
+    
     try {
-      const response = await axios.post(
-        "http://localhost:8080/api/users/register",
-        formData
-      );
-      toast.success("Registration Successful!");
+      // Remove confirmPassword as it's not needed in the API
+      const { confirmPassword, ...userData } = formData;
+      
+      await authService.registerUser(userData);
+      alert("Registration successful! Please log in.");
       navigate("/login");
     } catch (error) {
-      toast.error(
-        error.response?.data?.error ||
-        "An error occurred during registration."
-      );
+      console.error("Registration error:", error.response?.data);
+      alert(error.response?.data?.error || "Registration failed");
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleGoogleRegister = () => {
+    alert("Google registration feature is coming soon!");
+    // Will implement OAuth with Google later
   };
 
   return (
@@ -138,7 +81,6 @@ const Register = () => {
             name="email"
             placeholder="Email"
             onChange={handleChange}
-            ref={emailRef}
             required
           />
           <input
@@ -146,20 +88,18 @@ const Register = () => {
             name="password"
             placeholder="Password"
             onChange={handleChange}
-            ref={passwordRef}
             required
           />
           <input
-            type="text"
-            name="phoneNumber"
-            placeholder="Phone Number"
-            maxLength="11"
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm Password"
             onChange={handleChange}
-            value={formData.phoneNumber}
-            ref={phoneRef}
             required
           />
-          <button type="submit">Sign Up</button>
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? "Signing Up..." : "Sign Up"}
+          </button>
           <p>
             Already have an account? <a href="/login">Log In</a>
           </p>
@@ -167,6 +107,11 @@ const Register = () => {
             <a href="/vendor-login">Become Vendor at Cartella</a>
           </p>
         </form>
+
+        <div className="google-register" onClick={handleGoogleRegister}>
+          <img src={googleLogo} alt="Google Logo" />
+          <span>Register with Google</span>
+        </div>
       </div>
     </div>
   );

@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
-import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import authService from "../api/authService";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
+import axios from "axios";
+
 const VendorLogin = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = sessionStorage.getItem("authToken");
-    const vendorId = sessionStorage.getItem("vendorId");
-    if (token && vendorId) {
+    if (authService.isVendorAuthenticated()) {
       navigate("/vendor-dashboard");
     }
   }, [navigate]);
@@ -22,32 +24,44 @@ const VendorLogin = () => {
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
-      handleSubmit(e);
+      handleLogin(e);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const validateForm = () => {
+    // Basic validation: check if fields are not empty
+    return formData.username && formData.password;
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    // Clear any previous messages
+    setMessage("");
+    setError("");
+    
+    // Validate the form
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsLoggingIn(true);
+    
     try {
-      const response = await axios.post(
-        "http://localhost:8080/api/vendors/login",
-        formData
-      );
-      sessionStorage.setItem("authToken", response.data.token);
-      sessionStorage.setItem("username", formData.username);
-      sessionStorage.setItem("userId", response.data.userId);
-      sessionStorage.setItem("vendorId", response.data.vendorId);
-      sessionStorage.setItem("businessName", response.data.businessName);
-      sessionStorage.setItem("joinedDate", response.data.joinedDate);
+      // Use environment variable for API URL
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+      const response = await axios.post(`${API_URL}/vendors/login`, formData);
       
-      alert("Vendor Login Successful!");
+      // Handle the successful login
+      setMessage(response.data.message || "Login successful!");
+      setError("");
       navigate("/vendor-dashboard");
     } catch (error) {
       console.error("Vendor Login error:", error.response?.data);
-      alert(error.response?.data?.error || "Invalid credentials");
+      setError(error.response?.data?.error || "Invalid credentials");
+      setMessage("");
     } finally {
-      setIsLoading(false);
+      setIsLoggingIn(false);
     }
   };
 
@@ -68,7 +82,7 @@ const VendorLogin = () => {
           <h2 className="logo-light-name">Cartella</h2>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleLogin}>
           <h2>VENDOR LOGIN</h2>
           <input
             type="text"
@@ -76,7 +90,7 @@ const VendorLogin = () => {
             placeholder="Username"
             onChange={handleChange}
             onKeyPress={handleKeyPress}
-            disabled={isLoading}
+            disabled={isLoggingIn}
             required
           />
           <input
@@ -85,12 +99,15 @@ const VendorLogin = () => {
             placeholder="Password"
             onChange={handleChange}
             onKeyPress={handleKeyPress}
-            disabled={isLoading}
+            disabled={isLoggingIn}
             required
           />
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? "Logging In..." : "Log In"}
+          <button type="submit" disabled={isLoggingIn}>
+            {isLoggingIn ? "Logging In..." : "Log In"}
           </button>
+
+          {message && <p className="success-message">{message}</p>}
+          {error && <p className="error-message">{error}</p>}
 
           <p>New Vendor? <a href="/vendor-register">Register</a></p>
           <p className="vendor-link">

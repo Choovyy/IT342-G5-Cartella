@@ -3,14 +3,12 @@ import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Card, CardContent, CardActionArea,
   CircularProgress, Alert, Chip, Grid, Select, MenuItem, FormControl,
-  InputLabel, Tab, Tabs, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, 
-  Snackbar, Badge, Divider, Paper, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow
+  InputLabel, Tab, Tabs, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
 } from "@mui/material";
-
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
-import axios from "axios";
+import orderService from "../api/orderService";
+import vendorService from "../api/vendorService";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -37,7 +35,6 @@ const drawerWidth = 240;
 const formatDate = (dateString) => {
   const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
   return new Date(dateString).toLocaleDateString('en-US', options);
-};
 
 // Helper function to get status color
 const getStatusColor = (status) => {
@@ -161,22 +158,19 @@ const Order = () => {
     try {
       setLoading(true);
       
-      // Fetch orders
-      const response = await axios.get(
-        `http://localhost:8080/api/orders/vendor/${vendorId}`,
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
+      // Fetch orders using vendorService
+      const data = await vendorService.getVendorOrders(vendorId);
       
-      if (Array.isArray(response.data)) {
-        console.log("Orders received from backend:", response.data);
-        setOrders(response.data);
+      if (Array.isArray(data)) {
+        console.log("Orders received from backend:", data);
+        setOrders(data);
       } else {
-        console.error("Orders response is not an array:", response.data);
+        console.error("Orders response is not an array:", data);
         setOrders([]);
       }
     } catch (err) {
       console.error("Error fetching orders:", err);
-      setError("Failed to load orders: " + (err.response?.data?.message || err.message));
+      setError("Failed to load orders: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -228,6 +222,8 @@ const Order = () => {
     setFilteredOrders(filtered);
   };
 
+  };
+
   const handleUpdateStatus = (order) => {
     setSelectedOrder(order);
     
@@ -255,17 +251,10 @@ const Order = () => {
     if (!selectedOrder || !newStatus) return;
     
     setProcessingUpdate(true);
-    const authToken = sessionStorage.getItem("authToken");
     
     try {
-      await axios.put(
-        `http://localhost:8080/api/orders/${selectedOrder.orderId}/status`,
-        null,
-        { 
-          headers: { Authorization: `Bearer ${authToken}` },
-          params: { status: newStatus }
-        }
-      );
+      // Use orderService instead of direct axios call
+      await orderService.updateOrderStatus(selectedOrder.orderId, newStatus);
       
       // Show success notification
       setNotification({
@@ -287,7 +276,7 @@ const Order = () => {
       // Show error notification
       setNotification({
         open: true,
-        message: `Failed to update order: ${error.response?.data?.message || error.message}`,
+        message: `Failed to update order: ${error.message}`,
         type: "error"
       });
     } finally {
@@ -349,22 +338,17 @@ const Order = () => {
   );
 
   const fetchOrderWithPaymentDetails = async (orderId) => {
-    const authToken = sessionStorage.getItem("authToken");
-    
     try {
       setLoadingPaymentDetails(true);
-      const response = await axios.get(
-        `http://localhost:8080/api/orders/${orderId}/with-payment`,
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
-      
-      setSelectedOrderDetails(response.data);
+      // Use orderService instead of direct axios call
+      const data = await orderService.getOrderWithPaymentDetails(orderId);
+      setSelectedOrderDetails(data);
       setPaymentDetailsDialogOpen(true);
     } catch (error) {
       console.error("Error fetching order payment details:", error);
       setNotification({
         open: true,
-        message: `Failed to load payment details: ${error.response?.data?.message || error.message}`,
+        message: `Failed to load payment details: ${error.message}`,
         type: "error"
       });
     } finally {
@@ -660,7 +644,7 @@ const Order = () => {
                             >
                               {order.product?.imageUrl ? (
                                 <img
-                                  src={`http://localhost:8080${order.product.imageUrl}`}
+                                  src={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${order.product.imageUrl}`}
                                   alt={order.product.name}
                                   style={{ width: '100%', height: '100%', objectFit: "contain" }}
                                 />

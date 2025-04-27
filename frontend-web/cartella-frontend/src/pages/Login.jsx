@@ -1,19 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import authService from "../api/authService";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
-import googleLogo from "../images/google logo.png";
-import "./design/Login.css";
+import googleLogo from "../images/google-logo.png";
 
 const Login = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = sessionStorage.getItem("authToken");
-    if (token) {
-      navigate("/dashboard"); // Redirect to dashboard if already logged in
+    if (authService.isAuthenticated()) {
+      navigate("/home");
     }
   }, [navigate]);
 
@@ -21,40 +20,30 @@ const Login = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSubmit(e);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
-      // Get API URL from environment variable or fallback to localhost
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-      
-      const response = await axios.post(
-        `${apiUrl}/users/login`, 
-        formData
-      );
-      sessionStorage.setItem("authToken", response.data.token);
-      sessionStorage.setItem("username", formData.username);
-      sessionStorage.setItem("userId", response.data.userId);
-      sessionStorage.setItem("email", response.data.email);
+      await authService.loginUser(formData);
       alert("Login Successful!");
-      navigate("/dashboard");
+      navigate("/home");
     } catch (error) {
       console.error("Login error:", error.response?.data);
       alert(error.response?.data?.error || "Invalid credentials");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
-    console.log("Initiating Google login...");
-    // Get base API URL from environment variable or fallback to localhost
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-    // Remove '/api' from the end if it exists to get the base URL
-    const baseUrl = apiUrl.endsWith('/api') 
-      ? apiUrl.substring(0, apiUrl.length - 4) 
-      : apiUrl;
-    
-    const googleAuthUrl = `${baseUrl}/oauth2/authorization/google`;
-    console.log("Redirecting to:", googleAuthUrl);
-    window.location.href = googleAuthUrl;
+    alert("Google login feature is coming soon!");
+    // Will implement OAuth with Google later
   };
 
   return (
@@ -90,7 +79,9 @@ const Login = () => {
             onChange={handleChange}
             required
           />
-          <button type="submit">Log In</button>
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Logging in...' : 'Log In'}
+          </button>
           
           {/* OR Divider */}
           <div className="or-divider" style={{ color: '#949494' }}>
