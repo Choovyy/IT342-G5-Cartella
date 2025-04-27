@@ -1,5 +1,6 @@
 package cit.edu.cartella.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -13,6 +14,7 @@ public class Tracking {
 
     @OneToOne
     @JoinColumn(name = "order_id", nullable = false)
+    @JsonBackReference("order-tracking")
     private Order order;
 
     @Enumerated(EnumType.STRING)

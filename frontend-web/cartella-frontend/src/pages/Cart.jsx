@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { loadStripe } from '@stripe/stripe-js';
 import addressService from '../api/addressService';
+import paymentService from '../api/paymentService';
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
-  CardContent, CircularProgress, Alert, Button, Divider
+  CardContent, CircularProgress, Alert, Button, Divider,
+  Checkbox, FormControlLabel, FormGroup
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -33,6 +35,8 @@ const Cart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [totalPrice, setTotalPrice] = useState(0);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -48,6 +52,14 @@ const Cart = () => {
     // Fetch cart items
     fetchCartItems(userId, token);
   }, [navigate]);
+
+  // Handle selected items and total price updates when cart items change
+  useEffect(() => {
+    // Reset selections when cart items change
+    setSelectedItems([]);
+    setSelectAll(false);
+    calculateTotalPrice();
+  }, [cartItems]);
 
   const fetchCartItems = async (userId, token) => {
     try {
@@ -72,11 +84,51 @@ const Cart = () => {
     }
   };
 
-  const calculateTotalPrice = (items) => {
-    const total = items.reduce((sum, item) => {
-      return sum + item.subtotal;
+  const calculateTotalPrice = (itemIds = selectedItems) => {
+    const total = cartItems.reduce((sum, item) => {
+      if (itemIds.includes(item.cartItemId)) {
+        return sum + item.subtotal;
+      }
+      return sum;
     }, 0);
     setTotalPrice(total);
+  };
+
+  const handleSelectItem = (cartItemId) => {
+    const isSelected = selectedItems.includes(cartItemId);
+    let newSelectedItems;
+    
+    if (isSelected) {
+      // Remove from selection
+      newSelectedItems = selectedItems.filter(id => id !== cartItemId);
+    } else {
+      // Add to selection
+      newSelectedItems = [...selectedItems, cartItemId];
+    }
+    
+    setSelectedItems(newSelectedItems);
+    
+    // Update select all status
+    setSelectAll(newSelectedItems.length === cartItems.length);
+    
+    // Recalculate total price based on selections
+    calculateTotalPrice(newSelectedItems);
+  };
+
+  const handleSelectAll = () => {
+    const newSelectAll = !selectAll;
+    setSelectAll(newSelectAll);
+    
+    let newSelectedItems = [];
+    if (newSelectAll) {
+      // Select all items
+      newSelectedItems = cartItems.map(item => item.cartItemId);
+    }
+    
+    setSelectedItems(newSelectedItems);
+    
+    // Recalculate total price based on selections
+    calculateTotalPrice(newSelectedItems);
   };
 
   const handleRemoveItem = async (cartItemId) => {
@@ -133,6 +185,12 @@ const Cart = () => {
   };
 
   const handleCheckout = async () => {
+    // Check if any items are selected
+    if (selectedItems.length === 0) {
+      alert("Please select at least one item to checkout.");
+      return;
+    }
+
     try {
       const token = sessionStorage.getItem("authToken");
       const userId = sessionStorage.getItem("userId");
@@ -243,6 +301,7 @@ const Cart = () => {
       <Toolbar />
       <List sx={{ flexGrow: 1 }}>
         {[
+
           { text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
           { text: "Cart", path: "/cart", icon: <ShoppingCartIcon /> },
           { text: "My Purchase", path: "/mypurchase", icon: <HistoryIcon /> },
@@ -369,6 +428,24 @@ const Cart = () => {
             </Typography>
           ) : (
             <>
+              <Box sx={{ mb: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox 
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      sx={{
+                        color: mode === "light" ? "#D32F2F" : "#f44336",
+                        '&.Mui-checked': {
+                          color: mode === "light" ? "#D32F2F" : "#f44336",
+                        },
+                      }}
+                    />
+                  }
+                  label="Select All"
+                />
+              </Box>
+              
               <Grid container spacing={3}>
                 {cartItems.map((item) => (
                   <Grid item xs={12} key={item.cartItemId}>
@@ -381,6 +458,17 @@ const Cart = () => {
                         ? "0 2px 8px rgba(0,0,0,0.1)" 
                         : "0 2px 8px rgba(0,0,0,0.3)"
                     }}>
+                      <Checkbox 
+                        checked={selectedItems.includes(item.cartItemId)}
+                        onChange={() => handleSelectItem(item.cartItemId)}
+                        sx={{
+                          color: mode === "light" ? "#D32F2F" : "#f44336",
+                          '&.Mui-checked': {
+                            color: mode === "light" ? "#D32F2F" : "#f44336",
+                          },
+                          mr: 1
+                        }}
+                      />
                       <CardMedia
                         component="img"
                         sx={{ width: 120, height: 120, objectFit: 'contain', mr: 2 }}

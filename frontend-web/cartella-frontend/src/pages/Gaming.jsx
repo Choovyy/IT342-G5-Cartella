@@ -5,11 +5,13 @@ import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
   CardContent, CircularProgress, Alert, Button, Rating, Dialog,
-  DialogTitle, DialogContent, DialogActions, Divider
+  DialogTitle, DialogContent, DialogActions, Divider, TextField
 } from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import CloseIcon from "@mui/icons-material/Close";
 import StorefrontIcon from "@mui/icons-material/Storefront";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 
 import { ColorModeContext } from "../ThemeContext";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -36,6 +38,8 @@ const Gaming = () => {
   const [error, setError] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [productQuantities, setProductQuantities] = useState({});
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -106,7 +110,7 @@ const Gaming = () => {
     }
   };
 
-  const handleAddToCart = async (productId) => {
+  const handleAddToCart = async (productId, productQuantity = 1) => {
     const userId = sessionStorage.getItem("userId");
     const token = sessionStorage.getItem("authToken");
   
@@ -114,11 +118,17 @@ const Gaming = () => {
       alert("You must be logged in to add items to cart.");
       return;
     }
+
+    // Validate quantity
+    if (productQuantity < 1) {
+      alert("Quantity must be at least 1");
+      return;
+    }
   
     try {
       // Try to add product to cart
       await axios.post(
-        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -140,7 +150,7 @@ const Gaming = () => {
           );
           // Retry adding product
           await axios.post(
-            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
             {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -162,13 +172,35 @@ const Gaming = () => {
     }
   };
 
+  const handleQuantityChange = (productId, newQuantity) => {
+    // Ensure quantity is at least 1 and not more than stock
+    const product = products.find(p => p.productId === productId);
+    if (product) {
+      const validQuantity = Math.max(1, Math.min(newQuantity, product.stockQuantity));
+      setProductQuantities({
+        ...productQuantities,
+        [productId]: validQuantity
+      });
+    }
+  };
+
+  const handleDialogQuantityChange = (newQuantity) => {
+    // Ensure quantity is at least 1 and not more than stock
+    if (selectedProduct) {
+      const validQuantity = Math.max(1, Math.min(newQuantity, selectedProduct.stockQuantity));
+      setQuantity(validQuantity);
+    }
+  };
+
   const handleProductClick = (product) => {
     setSelectedProduct(product);
+    setQuantity(1); // Reset quantity when opening a new product
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setQuantity(1); // Reset quantity when closing dialog
   };
 
   const logoSrc = mode === "light" ? LightLogo : DarkLogo;
@@ -178,6 +210,7 @@ const Gaming = () => {
       <Toolbar />
       <List sx={{ flexGrow: 1 }}>
         {[
+
           { text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
           { text: "Cart", path: "/cart", icon: <ShoppingCartIcon /> },
           { text: "My Purchase", path: "/mypurchase", icon: <HistoryIcon /> },
@@ -328,9 +361,6 @@ const Gaming = () => {
                       ) : (
                         <Box
                           sx={{
-                            height: 200,
-                            width: "100%",
-                            display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             bgcolor: mode === "light" ? "#e0e0e0" : "#333",
@@ -409,31 +439,63 @@ const Gaming = () => {
                           Stock: {product.stockQuantity}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const currentQty = productQuantities[product.productId] || 1;
+                              handleQuantityChange(product.productId, currentQty - 1);
+                            }}
+                            sx={{ color: mode === "light" ? "#D32F2F" : "#ff6b6b" }}
+                          >
+                            <RemoveIcon fontSize="small" />
+                          </IconButton>
+                          <Typography sx={{ width: '30px', textAlign: 'center' }}>
+                            {productQuantities[product.productId] || 1}
+                          </Typography>
+                          <IconButton 
+                            size="small" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const currentQty = productQuantities[product.productId] || 1;
+                              handleQuantityChange(product.productId, currentQty + 1);
+                            }}
+                            sx={{ color: mode === "light" ? "#D32F2F" : "#ff6b6b" }}
+                          >
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
                         <Rating value={product.rating || 0} precision={0.5} readOnly size="small" />
+                      </Box>
+                      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
                         <Button
                           variant="contained"
                           size="small"
+                          fullWidth
                           startIcon={<ShoppingCartIcon />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleAddToCart(product.productId);
+                            handleAddToCart(product.productId, productQuantities[product.productId] || 1);
                           }}
+                          disabled={product.stockQuantity <= 0}
                           sx={{
-                            bgcolor: "#D32F2F",
+                            bgcolor: product.stockQuantity <= 0 ? "grey.400" : "#D32F2F",
                             color: "#fff",
                             "&:hover": {
-                              bgcolor: "#b71c1c",
+                              bgcolor: product.stockQuantity <= 0 ? "grey.400" : "#b71c1c",
                             },
                           }}
                         >
-                          Add to Cart
+                          {product.stockQuantity <= 0 ? "Sold Out" : "Add to Cart"}
                         </Button>
                       </Box>
                     </CardContent>
                   </Card>
                 </Grid>
               ))}
+
             </Grid>
           )}
         </Box>
@@ -554,6 +616,30 @@ const Gaming = () => {
                       </Typography>
                       <Rating value={selectedProduct.rating || 0} precision={0.5} readOnly />
                     </Box>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="h6" gutterBottom>
+                        Quantity
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleDialogQuantityChange(quantity - 1)}
+                          disabled={quantity <= 1 || selectedProduct.stockQuantity <= 0}
+                        >
+                          <RemoveIcon fontSize="small" />
+                        </IconButton>
+                        <Typography variant="body1" sx={{ mx: 2 }}>
+                          {quantity}
+                        </Typography>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleDialogQuantityChange(quantity + 1)}
+                          disabled={quantity >= selectedProduct.stockQuantity || selectedProduct.stockQuantity <= 0}
+                        >
+                          <AddIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </Box>
                   </Grid>
                 </Grid>
               </DialogContent>
@@ -563,18 +649,19 @@ const Gaming = () => {
                   variant="contained" 
                   startIcon={<ShoppingCartIcon />}
                   onClick={() => {
-                    handleAddToCart(selectedProduct.productId);
+                    handleAddToCart(selectedProduct.productId, quantity);
                     handleCloseDialog();
                   }}
+                  disabled={selectedProduct.stockQuantity <= 0}
                   sx={{
-                    bgcolor: "#D32F2F",
+                    bgcolor: selectedProduct.stockQuantity <= 0 ? "grey.400" : "#D32F2F",
                     color: "#fff",
                     "&:hover": {
-                      bgcolor: "#b71c1c",
+                      bgcolor: selectedProduct.stockQuantity <= 0 ? "grey.400" : "#b71c1c",
                     },
                   }}
                 >
-                  Add to Cart
+                  {selectedProduct.stockQuantity <= 0 ? "Sold Out" : "Add to Cart"}
                 </Button>
                 <Button onClick={handleCloseDialog}>Close</Button>
               </DialogActions>

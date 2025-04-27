@@ -17,13 +17,9 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/vendor-dashboard")
 public class VendorDashboardController {
 
-    private final VendorService vendorService;
     private final VendorRepository vendorRepository;
     private final ProductRepository productRepository;
     private final OrderItemRepository orderItemRepository;
-    private final OrderRepository orderRepository;
-    
-
     @Autowired
     public VendorDashboardController(
             VendorService vendorService,
@@ -32,11 +28,9 @@ public class VendorDashboardController {
             OrderItemRepository orderItemRepository,
             OrderRepository orderRepository
     ) {
-        this.vendorService = vendorService;
         this.vendorRepository = vendorRepository;
         this.productRepository = productRepository;
         this.orderItemRepository = orderItemRepository;
-        this.orderRepository = orderRepository;
     }
 
     @GetMapping("/{vendorId}/summary")

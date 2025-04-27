@@ -131,7 +131,20 @@ const VendorProfile = () => {
           throw new Error('Failed to fetch vendor profile');
         }
         
-        const data = await response.json();
+        // Get the response text first
+        const responseText = await response.text();
+        let data;
+        
+        try {
+          // Try to parse the response text as JSON
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          console.error('Raw response:', responseText);
+          throw new Error('Invalid response format from server');
+        }
+        
+        console.log('Vendor data received:', data);
         
         // Set profile data
         setProfileData({

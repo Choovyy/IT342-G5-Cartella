@@ -27,9 +27,48 @@ const ViewOrder = () => {
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [order, setOrder] = useState(null);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [status, setStatus] = useState("");
+  const [statusDescription, setStatusDescription] = useState("");
+
+  // Helper function to get next status options
+  const getNextStatusOptions = (currentStatus) => {
+    switch(currentStatus) {
+      case 'PENDING':
+        return [
+          { value: 'PROCESSING', label: 'Processing - Order is being prepared' }
+        ];
+      case 'PROCESSING':
+        return [
+          { value: 'SHIPPED', label: 'Shipped - Order is on the way' }
+        ];
+      case 'SHIPPED':
+        return [
+          { value: 'DELIVERED', label: 'Delivered - Order has arrived to customer' }
+        ];
+      case 'DELIVERED':
+        return [
+          { value: 'COMPLETED', label: 'Completed - Order has been fulfilled' }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  // Helper function to get status description
+  const getStatusDescription = (status) => {
+    const descriptions = {
+      PENDING: "Order received and awaiting processing",
+      PROCESSING: "Order is being processed",
+      SHIPPED: "Order has been shipped",
+      DELIVERED: "Order has been delivered to the customer",
+      COMPLETED: "Order has been completed",
+      CANCELLED: "Order has been cancelled"
+    };
+    return descriptions[status] || status;
+  };
 
   useEffect(() => {
     const authToken = sessionStorage.getItem("authToken");
@@ -58,6 +97,7 @@ const ViewOrder = () => {
         setOrder(data);
         setOrderConfirmed(data.status !== "PENDING");
         setStatus(data.status);
+        setStatusDescription(getStatusDescription(data.status));
         setLoading(false);
       })
       .catch(err => {
@@ -112,6 +152,12 @@ const ViewOrder = () => {
       })
       .then(data => {
         setStatus(newStatus);
+        setStatusDescription(getStatusDescription(newStatus));
+        
+        // Show success message about payment status if order is delivered
+        if (newStatus === 'DELIVERED') {
+          setSuccess("Order status updated to DELIVERED. Payment status will be automatically marked as COMPLETED.");
+        }
       })
       .catch(err => {
         setError("Failed to update status: " + err.message);
@@ -206,7 +252,11 @@ const ViewOrder = () => {
           </Box>
         ) : error ? (
           <Alert severity="error">{error}</Alert>
-        ) : order ? (
+        ) : success ? (
+          <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>
+        ) : null}
+
+        {!loading && !error && order ? (
           <Paper elevation={2} sx={{ p: 3, position: "relative" }}>
             <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={3}>
               {/* Customer Info */}
@@ -286,10 +336,11 @@ const ViewOrder = () => {
                       <FormControl size="small" sx={{ minWidth: 180 }}>
                         <InputLabel>Status</InputLabel>
                         <Select value={status} onChange={handleStatusChange} label="Status">
-                          <MenuItem value="WAREHOUSE">At Warehouse</MenuItem>
-                          <MenuItem value="CITY_HUB">At City Hub</MenuItem>
-                          <MenuItem value="OUT_FOR_DELIVERY">Out for Delivery</MenuItem>
-                          <MenuItem value="DELIVERED">Parcel Delivered</MenuItem>
+                          {getNextStatusOptions(status).map(option => (
+                            <MenuItem key={option.value} value={option.value}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
                         </Select>
                       </FormControl>
                       <Button

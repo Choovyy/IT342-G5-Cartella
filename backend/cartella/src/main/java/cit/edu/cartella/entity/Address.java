@@ -1,7 +1,10 @@
 package cit.edu.cartella.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "addresses")
@@ -13,7 +16,12 @@ public class Address {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonBackReference("user-addresses")
     private User user;
+    
+    @OneToMany(mappedBy = "address", cascade = CascadeType.ALL)
+    @JsonManagedReference("address-orders")
+    private List<Order> orders;
 
     @Column(nullable = false)
     private String streetAddress;
@@ -131,5 +139,14 @@ public class Address {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    // Add getter and setter for orders
+    public List<Order> getOrders() {
+        return orders;
+    }
+
+    public void setOrders(List<Order> orders) {
+        this.orders = orders;
     }
 }
