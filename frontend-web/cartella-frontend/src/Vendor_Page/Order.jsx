@@ -35,6 +35,7 @@ const drawerWidth = 240;
 const formatDate = (dateString) => {
   const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
   return new Date(dateString).toLocaleDateString('en-US', options);
+};
 
 // Helper function to get status color
 const getStatusColor = (status) => {
@@ -220,8 +221,6 @@ const Order = () => {
     }
     
     setFilteredOrders(filtered);
-  };
-
   };
 
   const handleUpdateStatus = (order) => {

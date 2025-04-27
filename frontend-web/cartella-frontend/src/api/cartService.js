@@ -47,6 +47,28 @@ const cartService = {
       console.error('Error adding item to cart:', error);
       throw error;
     }
+  },
+  
+  // Create a new cart for a user
+  createCart: async (userId) => {
+    try {
+      const response = await api.post(`/cart/create/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating cart:', error);
+      throw error;
+    }
+  },
+  
+  // Clear all items from cart
+  clearCart: async (userId) => {
+    try {
+      const response = await api.delete(`/cart/${userId}/clear`);
+      return response.data;
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      throw error;
+    }
   }
 };
 
