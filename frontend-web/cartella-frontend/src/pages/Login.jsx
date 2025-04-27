@@ -24,8 +24,11 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Get API URL from environment variable or fallback to localhost
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+      
       const response = await axios.post(
-        "http://localhost:8080/api/users/login", 
+        `${apiUrl}/users/login`, 
         formData
       );
       sessionStorage.setItem("authToken", response.data.token);
@@ -42,7 +45,14 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     console.log("Initiating Google login...");
-    const googleAuthUrl = "http://localhost:8080/oauth2/authorization/google";
+    // Get base API URL from environment variable or fallback to localhost
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+    // Remove '/api' from the end if it exists to get the base URL
+    const baseUrl = apiUrl.endsWith('/api') 
+      ? apiUrl.substring(0, apiUrl.length - 4) 
+      : apiUrl;
+    
+    const googleAuthUrl = `${baseUrl}/oauth2/authorization/google`;
     console.log("Redirecting to:", googleAuthUrl);
     window.location.href = googleAuthUrl;
   };
