@@ -5,8 +5,10 @@ import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
   CardContent, CircularProgress, Alert, Button, Rating, Dialog,
-  DialogTitle, DialogContent, DialogActions, Divider
+  DialogTitle, DialogContent, DialogActions, Divider, TextField
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import CloseIcon from "@mui/icons-material/Close";
 import StorefrontIcon from "@mui/icons-material/Storefront";
@@ -36,6 +38,8 @@ const HomeAppliance = () => {
   const [error, setError] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [productQuantities, setProductQuantities] = useState({});
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -104,7 +108,7 @@ const HomeAppliance = () => {
     }
   };
 
-  const handleAddToCart = async (productId) => {
+  const handleAddToCart = async (productId, productQuantity = 1) => {
     const userId = sessionStorage.getItem("userId");
     const token = sessionStorage.getItem("authToken");
   
@@ -112,11 +116,17 @@ const HomeAppliance = () => {
       alert("You must be logged in to add items to cart.");
       return;
     }
+
+    // Validate quantity
+    if (productQuantity < 1) {
+      alert("Quantity must be at least 1");
+      return;
+    }
   
     try {
       // Try to add product to cart
       await axios.post(
-        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -138,7 +148,7 @@ const HomeAppliance = () => {
           );
           // Retry adding product
           await axios.post(
-            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
             {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -162,11 +172,33 @@ const HomeAppliance = () => {
 
   const handleProductClick = (product) => {
     setSelectedProduct(product);
+    setQuantity(1); // Reset quantity when opening a new product
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setQuantity(1); // Reset quantity when closing dialog
+  };
+
+  const handleQuantityChange = (productId, newQuantity) => {
+    // Ensure quantity is at least 1 and not more than stock
+    const product = products.find(p => p.productId === productId);
+    if (product) {
+      const validQuantity = Math.max(1, Math.min(newQuantity, product.stockQuantity));
+      setProductQuantities({
+        ...productQuantities,
+        [productId]: validQuantity
+      });
+    }
+  };
+
+  const handleDialogQuantityChange = (newQuantity) => {
+    // Ensure quantity is at least 1 and not more than stock
+    if (selectedProduct) {
+      const validQuantity = Math.max(1, Math.min(newQuantity, selectedProduct.stockQuantity));
+      setQuantity(validQuantity);
+    }
   };
 
   const logoSrc = mode === "light" ? LightLogo : DarkLogo;
@@ -176,6 +208,7 @@ const HomeAppliance = () => {
       <Toolbar />
       <List sx={{ flexGrow: 1 }}>
         {[
+
           { text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
           { text: "Cart", path: "/cart", icon: <ShoppingCartIcon /> },
           { text: "My Purchase", path: "/mypurchase", icon: <HistoryIcon /> },
@@ -407,15 +440,45 @@ const HomeAppliance = () => {
                           Stock: {product.stockQuantity}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const currentQty = productQuantities[product.productId] || 1;
+                              handleQuantityChange(product.productId, currentQty - 1);
+                            }}
+                            sx={{ color: mode === "light" ? "#D32F2F" : "#ff6b6b" }}
+                          >
+                            <RemoveIcon fontSize="small" />
+                          </IconButton>
+                          <Typography sx={{ width: '30px', textAlign: 'center' }}>
+                            {productQuantities[product.productId] || 1}
+                          </Typography>
+                          <IconButton 
+                            size="small" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const currentQty = productQuantities[product.productId] || 1;
+                              handleQuantityChange(product.productId, currentQty + 1);
+                            }}
+                            sx={{ color: mode === "light" ? "#D32F2F" : "#ff6b6b" }}
+                          >
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
                         <Rating value={product.rating || 0} precision={0.5} readOnly size="small" />
+                      </Box>
+                      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
                         <Button
                           variant="contained"
                           size="small"
+                          fullWidth
                           startIcon={<ShoppingCartIcon />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleAddToCart(product.productId);
+                            handleAddToCart(product.productId, productQuantities[product.productId] || 1);
                           }}
                           sx={{
                             bgcolor: "#D32F2F",
@@ -432,6 +495,7 @@ const HomeAppliance = () => {
                   </Card>
                 </Grid>
               ))}
+
             </Grid>
           )}
         </Box>
@@ -552,6 +616,42 @@ const HomeAppliance = () => {
                       </Typography>
                       <Rating value={selectedProduct.rating || 0} precision={0.5} readOnly />
                     </Box>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="h6" gutterBottom>
+                        Quantity
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <IconButton 
+                          onClick={() => handleDialogQuantityChange(quantity - 1)}
+                          disabled={quantity <= 1}
+                          sx={{ color: mode === "light" ? "#D32F2F" : "#ff6b6b" }}
+                        >
+                          <RemoveIcon />
+                        </IconButton>
+                        <TextField
+                          value={quantity}
+                          onChange={(e) => {
+                            const newValue = parseInt(e.target.value) || 1;
+                            handleDialogQuantityChange(newValue);
+                          }}
+                          inputProps={{ 
+                            min: 1, 
+                            max: selectedProduct.stockQuantity,
+                            style: { textAlign: 'center' }
+                          }}
+                          variant="outlined"
+                          size="small"
+                          sx={{ width: '80px', mx: 1 }}
+                        />
+                        <IconButton 
+                          onClick={() => handleDialogQuantityChange(quantity + 1)}
+                          disabled={quantity >= selectedProduct.stockQuantity}
+                          sx={{ color: mode === "light" ? "#D32F2F" : "#ff6b6b" }}
+                        >
+                          <AddIcon />
+                        </IconButton>
+                      </Box>
+                    </Box>
                   </Grid>
                 </Grid>
               </DialogContent>
@@ -561,7 +661,7 @@ const HomeAppliance = () => {
                   variant="contained" 
                   startIcon={<ShoppingCartIcon />}
                   onClick={() => {
-                    handleAddToCart(selectedProduct.productId);
+                    handleAddToCart(selectedProduct.productId, quantity);
                     handleCloseDialog();
                   }}
                   sx={{

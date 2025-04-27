@@ -1,5 +1,7 @@
 package cit.edu.cartella.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,10 +17,12 @@ public class Order {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonBackReference("user-orders")
     private User user;
 
     @ManyToOne
     @JoinColumn(name = "address_id", nullable = false)
+    @JsonBackReference("address-orders")
     private Address address;
 
     @Column(nullable = false)
@@ -32,10 +36,16 @@ public class Order {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    @JsonManagedReference("order-items")
     private List<OrderItem> orderItems;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    @JsonManagedReference("order-tracking")
     private Tracking tracking;
+
+    @OneToOne(mappedBy = "order")
+    @JsonManagedReference("order-payment")
+    private Payment payment;
 
     // Default Constructor
     public Order() {}
@@ -123,5 +133,13 @@ public class Order {
 
     public void setTracking(Tracking tracking) {
         this.tracking = tracking;
+    }
+
+    public Payment getPayment() {
+        return payment;
+    }
+
+    public void setPayment(Payment payment) {
+        this.payment = payment;
     }
 }

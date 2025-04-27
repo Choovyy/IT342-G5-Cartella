@@ -10,6 +10,8 @@ import {
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import CloseIcon from "@mui/icons-material/Close";
 import StorefrontIcon from "@mui/icons-material/Storefront";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 
 import { ColorModeContext } from "../ThemeContext";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -36,6 +38,8 @@ const WomenAccessories = () => {
   const [error, setError] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [productQuantities, setProductQuantities] = useState({});
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -104,7 +108,7 @@ const WomenAccessories = () => {
     }
   };
 
-  const handleAddToCart = async (productId) => {
+  const handleAddToCart = async (productId, productQuantity = 1) => {
     const userId = sessionStorage.getItem("userId");
     const token = sessionStorage.getItem("authToken");
   
@@ -112,11 +116,17 @@ const WomenAccessories = () => {
       alert("You must be logged in to add items to cart.");
       return;
     }
+
+    // Validate quantity
+    if (productQuantity < 1) {
+      alert("Quantity must be at least 1");
+      return;
+    }
   
     try {
       // Try to add product to cart
       await axios.post(
-        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -138,7 +148,7 @@ const WomenAccessories = () => {
           );
           // Retry adding product
           await axios.post(
-            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=1`,
+            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
             {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -160,13 +170,35 @@ const WomenAccessories = () => {
     }
   };
 
+  const handleQuantityChange = (productId, newQuantity) => {
+    // Ensure quantity is at least 1 and not more than stock
+    const product = products.find(p => p.productId === productId);
+    if (product) {
+      const validQuantity = Math.max(1, Math.min(newQuantity, product.stockQuantity));
+      setProductQuantities({
+        ...productQuantities,
+        [productId]: validQuantity
+      });
+    }
+  };
+
+  const handleDialogQuantityChange = (newQuantity) => {
+    // Ensure quantity is at least 1 and not more than stock
+    if (selectedProduct) {
+      const validQuantity = Math.max(1, Math.min(newQuantity, selectedProduct.stockQuantity));
+      setQuantity(validQuantity);
+    }
+  };
+
   const handleProductClick = (product) => {
     setSelectedProduct(product);
+    setQuantity(1); // Reset quantity when opening a new product
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setQuantity(1); // Reset quantity when closing dialog
   };
 
   const logoSrc = mode === "light" ? LightLogo : DarkLogo;
@@ -176,6 +208,7 @@ const WomenAccessories = () => {
       <Toolbar />
       <List sx={{ flexGrow: 1 }}>
         {[
+
           { text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
           { text: "Cart", path: "/cart", icon: <ShoppingCartIcon /> },
           { text: "My Purchase", path: "/mypurchase", icon: <HistoryIcon /> },
@@ -410,15 +443,45 @@ const WomenAccessories = () => {
                           {product.stockQuantity <= 0 ? "Sold Out" : `Stock: ${product.stockQuantity}`}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const currentQty = productQuantities[product.productId] || 1;
+                              handleQuantityChange(product.productId, currentQty - 1);
+                            }}
+                            sx={{ color: mode === "light" ? "#D32F2F" : "#ff6b6b" }}
+                          >
+                            <RemoveIcon fontSize="small" />
+                          </IconButton>
+                          <Typography sx={{ width: '30px', textAlign: 'center' }}>
+                            {productQuantities[product.productId] || 1}
+                          </Typography>
+                          <IconButton 
+                            size="small" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const currentQty = productQuantities[product.productId] || 1;
+                              handleQuantityChange(product.productId, currentQty + 1);
+                            }}
+                            sx={{ color: mode === "light" ? "#D32F2F" : "#ff6b6b" }}
+                          >
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
                         <Rating value={product.rating || 0} precision={0.5} readOnly size="small" />
+                      </Box>
+                      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
                         <Button
                           variant="contained"
                           size="small"
+                          fullWidth
                           startIcon={<ShoppingCartIcon />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleAddToCart(product.productId);
+                            handleAddToCart(product.productId, productQuantities[product.productId] || 1);
                           }}
                           disabled={product.stockQuantity <= 0}
                           sx={{
@@ -436,6 +499,7 @@ const WomenAccessories = () => {
                   </Card>
                 </Grid>
               ))}
+
             </Grid>
           )}
         </Box>
