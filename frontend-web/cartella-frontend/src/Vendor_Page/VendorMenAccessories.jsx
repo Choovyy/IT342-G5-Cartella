@@ -5,6 +5,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
+import productService from "../api/productService";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -29,33 +30,44 @@ const VendorMenAccessories = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const vendorId = sessionStorage.getItem("vendorId");
-    const authToken = sessionStorage.getItem("authToken");
-    if (!vendorId || !authToken) {
-      setError("Not authenticated. Please log in again.");
-      setLoading(false);
-      return;
-    }
-    fetch(`http://localhost:8080/api/products/vendor/${vendorId}/category/Men's Accessories`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch products");
-        return res.json();
-      })
-      .then(data => setProducts(data))
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+    const fetchProducts = async () => {
+      const vendorId = sessionStorage.getItem("vendorId");
+      if (!vendorId) {
+        setError("Not authenticated. Please log in again.");
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const data = await productService.getProductsByVendorAndCategory(vendorId, "Men's Accessories");
+        setProducts(data);
+      } catch (err) {
+        setError(err.message || "Failed to fetch products");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProducts();
   }, []);
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("vendorId");
     navigate("/login");
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (searchText.trim()) {
-      console.log("Searching for:", searchText);
+      try {
+        setLoading(true);
+        const data = await productService.searchProducts(searchText);
+        setProducts(data);
+      } catch (err) {
+        setError("Search failed: " + err.message);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 

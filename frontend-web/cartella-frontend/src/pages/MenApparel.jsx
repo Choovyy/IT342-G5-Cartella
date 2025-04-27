@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import productService from "../api/productService";
+import api from "../api/api";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
   CardContent, CircularProgress, Alert, Button, Rating, Dialog,
-  DialogTitle, DialogContent, DialogActions, Divider, TextField
+  DialogTitle, DialogContent, DialogActions, Divider
 } from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import CloseIcon from "@mui/icons-material/Close";
@@ -49,14 +50,8 @@ const MenApparel = () => {
       return;
     }
 
-    // Fetch products for Men's Apparel category
-    fetch("http://localhost:8080/api/products/category/Men's%20Apparel", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch products");
-        return res.json();
-      })
+    // Fetch products for Men's Apparel category using productService
+    productService.getProductsByCategory("Men's Apparel")
       .then(data => {
         setProducts(data);
         setFilteredProducts(data);
@@ -68,15 +63,14 @@ const MenApparel = () => {
         setLoading(false);
       });
 
-    // Verify authentication
-    axios.get("/login", {
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch((error) => {
-      console.error("Error verifying auth:", error);
-      alert("Session expired. Please log in again.");
-      sessionStorage.removeItem("authToken");
-      navigate("/login");
-    });
+    // Verify authentication using api
+    api.get("/login")
+      .catch((error) => {
+        console.error("Error verifying auth:", error);
+        alert("Session expired. Please log in again.");
+        sessionStorage.removeItem("authToken");
+        navigate("/login");
+      });
   }, [navigate]);
 
   useEffect(() => {
@@ -124,12 +118,8 @@ const MenApparel = () => {
     }
   
     try {
-      // Try to add product to cart
-      await axios.post(
-        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // Try to add product to cart using productService
+      await productService.addToCart(userId, productId, productQuantity);
       alert("Product added to cart!");
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -141,17 +131,11 @@ const MenApparel = () => {
           (error.response.data && error.response.data.message && error.response.data.message.includes("Cart not found")))
       ) {
         try {
-          await axios.post(
-            `http://localhost:8080/api/cart/${userId}`,
-            {},
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          // Create cart then retry using productService
+          await productService.createCart(userId);
+          
           // Retry adding product
-          await axios.post(
-            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
-            {},
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          await productService.addToCart(userId, productId, productQuantity);
           alert("Product added to cart!");
         } catch (err) {
           console.error("Error creating cart or adding product:", err);
@@ -345,7 +329,7 @@ const MenApparel = () => {
                       {product.imageUrl ? (
                         <CardMedia
                           component="img"
-                          image={`http://localhost:8080${product.imageUrl}`}
+                          image={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'}${product.imageUrl}`}
                           alt={product.name}
                           sx={{
                             height: 200,
@@ -550,7 +534,7 @@ const MenApparel = () => {
                         }}
                       >
                         <img
-                          src={`http://localhost:8080${selectedProduct.imageUrl}`}
+                          src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'}${selectedProduct.imageUrl}`}
                           alt={selectedProduct.name}
                           style={{
                             maxWidth: "100%",
@@ -654,50 +638,8 @@ const MenApparel = () => {
                   variant="contained" 
                   startIcon={<ShoppingCartIcon />}
                   onClick={() => {
-                    const userId = sessionStorage.getItem("userId");
-                    const token = sessionStorage.getItem("authToken");
-                    
-                    if (!userId || !token) {
-                      alert("You must be logged in to add items to cart.");
-                      return;
-                    }
-                    
-                    // Add to cart with selected quantity
-                    axios.post(`http://localhost:8080/api/cart/${userId}/add/${selectedProduct.productId}?quantity=${quantity}`, {}, {
-                      headers: { Authorization: `Bearer ${token}` }
-                    })
-                    .then(response => {
-                      alert("Product added to cart successfully!");
-                      handleCloseDialog();
-                    })
-                    .catch(error => {
-                      console.error("Error adding to cart:", error);
-                      if (error.response && error.response.status === 404) {
-                        // Cart doesn't exist, create one first
-                        axios.post(`http://localhost:8080/api/cart/${userId}`, {}, {
-                          headers: { Authorization: `Bearer ${token}` }
-                        })
-                        .then(() => {
-                          // Now add the product to the newly created cart
-                          return axios.post(`http://localhost:8080/api/cart/${userId}/add/${selectedProduct.productId}?quantity=${quantity}`, {}, {
-                            headers: { Authorization: `Bearer ${token}` }
-                          });
-                        })
-                        .then(() => {
-                          alert("Product added to cart successfully!");
-                          handleCloseDialog();
-                        })
-                        .catch(err => {
-                          console.error("Error creating cart or adding product:", err);
-                          alert("Failed to add product to cart. Please try again.");
-                        });
-                      } else if (error.response && error.response.data && error.response.data.message) {
-                        // Display the specific error message from the server
-                        alert(error.response.data.message);
-                      } else {
-                        alert("Failed to add product to cart. Please try again.");
-                      }
-                    });
+                    handleAddToCart(selectedProduct.productId, quantity);
+                    handleCloseDialog();
                   }}
                   disabled={selectedProduct.stockQuantity <= 0}
                   sx={{

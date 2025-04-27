@@ -17,6 +17,7 @@ import {
 
 import { useNavigate, useParams } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
+import api from "../api/api"; // Import the API utility
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -52,16 +53,10 @@ const ViewProduct = () => {
       return;
     }
 
-    // Fetch product details
-    fetch(`http://localhost:8080/api/products/${productId}`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch product");
-        return res.json();
-      })
-      .then(data => {
-        setProduct(data);
+    // Fetch product details using the API utility
+    api.get(`/products/${productId}`)
+      .then(response => {
+        setProduct(response.data);
         setLoading(false);
       })
       .catch(err => {
@@ -182,7 +177,7 @@ const ViewProduct = () => {
             <Box sx={{ flex: 1 }}>
               {product.imageUrl ? (
                 <img
-                  src={`http://localhost:8080${product.imageUrl}`}
+                  src={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${product.imageUrl}`}
                   alt={product.name}
                   style={{ width: "100%", maxWidth: 300, borderRadius: 10 }}
                 />

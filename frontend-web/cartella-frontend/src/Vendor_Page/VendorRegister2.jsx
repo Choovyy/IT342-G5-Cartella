@@ -115,7 +115,9 @@ const VendorRegister2 = () => {
         fullData.gender = fullData.gender.toUpperCase();
       }
       
-      const response = await axios.post("http://localhost:8080/api/vendors/register", fullData);
+      // Use environment variable for API URL
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+      const response = await axios.post(`${API_URL}/vendors/register`, fullData);
       
       setMessage(response.data.message || "Registration successful! Redirecting to login...");
       setError("");
