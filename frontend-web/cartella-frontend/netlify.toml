@@ -1,0 +1,15 @@
+# Netlify configuration
+
+# Build settings
+[build]
+  base = "frontend-web/cartella-frontend/"
+  publish = "dist"
+  command = "npm run build"
+
+# Redirects
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variables will be set in the Netlify dashboard
