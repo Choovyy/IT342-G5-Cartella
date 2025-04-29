@@ -1,11 +1,12 @@
 import React, { useContext, useEffect, useState } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, CircularProgress, Alert, Snackbar
+  ListItemText, IconButton, InputBase, CircularProgress
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
+import { toast, ToastContainer } from "react-toastify";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -18,87 +19,12 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logoLight from "../images/Cartella Logo (Light).jpeg";
 import logoDark from "../images/Cartella Logo (Dark2).jpeg";
 
-
 import {
   LineChart,
   lineElementClasses,
-  axisClasses,
-  legendClasses,
-  chartsGridClasses
 } from "@mui/x-charts";
 
 const drawerWidth = 240;
-
-const gray = {
-  100: "#f5f5f5",
-  200: "#eeeeee",
-  300: "#e0e0e0",
-  500: "#9e9e9e",
-  700: "#616161",
-  900: "#212121"
-};
-
-export const chartsCustomizations = {
-  MuiChartsAxis: {
-    styleOverrides: {
-      root: ({ theme }) => ({
-        [`& .${axisClasses.line}`]: { stroke: gray[300] },
-        [`& .${axisClasses.tick}`]: { stroke: gray[300] },
-        [`& .${axisClasses.tickLabel}`]: {
-          fill: gray[500],
-          fontWeight: 500,
-        },
-        ...(theme.applyStyles && theme.applyStyles("dark", {
-          [`& .${axisClasses.line}`]: { stroke: gray[700] },
-          [`& .${axisClasses.tick}`]: { stroke: gray[700] },
-          [`& .${axisClasses.tickLabel}`]: { fill: gray[300], fontWeight: 500 },
-        })),
-      }),
-    },
-  },
-  MuiChartsTooltip: {
-    styleOverrides: {
-      mark: ({ theme }) => ({
-        ry: 6,
-        boxShadow: "none",
-        border: `1px solid ${(theme.vars || theme).palette.divider}`,
-      }),
-      table: ({ theme }) => ({
-        border: `1px solid ${(theme.vars || theme).palette.divider}`,
-        borderRadius: theme.shape.borderRadius,
-        background: "hsl(0, 0%, 100%)",
-        ...(theme.applyStyles && theme.applyStyles("dark", {
-          background: gray[900],
-        })),
-      }),
-    },
-  },
-  MuiChartsLegend: {
-    styleOverrides: {
-      root: {
-        [`& .${legendClasses.mark}`]: { ry: 6 },
-      },
-    },
-  },
-  MuiChartsGrid: {
-    styleOverrides: {
-      root: ({ theme }) => ({
-        [`& .${chartsGridClasses.line}`]: {
-          stroke: gray[200],
-          strokeDasharray: "4 2",
-          strokeWidth: 0.8,
-        },
-        ...(theme.applyStyles && theme.applyStyles("dark", {
-          [`& .${chartsGridClasses.line}`]: {
-            stroke: gray[700],
-            strokeDasharray: "4 2",
-            strokeWidth: 0.8,
-          },
-        })),
-      }),
-    },
-  },
-};
 
 const VendorDashboard = () => {
   const [userDetails, setUserDetails] = useState({
@@ -125,77 +51,82 @@ const VendorDashboard = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [error, setError] = useState("");
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  
+
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
 
   useEffect(() => {
-    // Fetch user details from localStorage
     const username = sessionStorage.getItem("username");
     const userId = sessionStorage.getItem("userId");
     const vendorId = sessionStorage.getItem("vendorId");
     const businessName = sessionStorage.getItem("businessName");
     const joinedDate = sessionStorage.getItem("joinedDate");
     const authToken = sessionStorage.getItem("authToken");
-    
-    // Check if user is authenticated
+
     if (!authToken || !vendorId) {
-      navigate("/vendor-login");
+      toast.info("You are not logged in. Redirecting to Vendor Login", {
+        position: "bottom-right",
+        closeButton: false,
+        style: {
+          backgroundColor: "#ffffff",
+          color: "#2196F3",
+          border: "1px solid #cccccc",
+          fontSize: "14px",
+          padding: "10px 15px",
+          borderRadius: "8px",
+          pointerEvents: "none",
+        },
+      });
+
+      setTimeout(() => {
+        navigate("/vendor-login");
+      }, 2000);
       return;
     }
-    
+
     setUserDetails({ username, userId, vendorId, businessName, joinedDate });
-    
-    // Fetch dashboard data
+
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        setError("");
-        
-        // Fetch summary data
-        const summaryResponse = await fetch(`http://localhost:8080/api/vendor-dashboard/${vendorId}/summary`, {
+
+        const summaryResponse = await fetch(`https://it342-g5-cartella.onrender.com/api/vendor-dashboard/${vendorId}/summary`, {
           headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
+            Authorization: `Bearer ${authToken}`,
+          },
         });
-        
+
         if (!summaryResponse.ok) {
-          throw new Error('Failed to fetch summary data');
+          throw new Error("Failed to fetch summary data");
         }
-        
+
         const summaryData = await summaryResponse.json();
-        
-        // Update user details with data from API
-        setUserDetails(prev => ({
+
+        setUserDetails((prev) => ({
           ...prev,
           businessName: summaryData.businessName || prev.businessName,
-          joinedDate: summaryData.joinedDate || prev.joinedDate
+          joinedDate: summaryData.joinedDate || prev.joinedDate,
         }));
-        
-        // Set dashboard data
+
         setDashboardData({
           totalProducts: summaryData.totalProducts || 0,
           totalOrders: summaryData.totalOrders || 0,
           totalRevenue: summaryData.totalRevenue || 0,
           totalSoldItems: summaryData.totalSoldItems || 0,
         });
-        
-        // Fetch chart data
-        const chartResponse = await fetch(`http://localhost:8080/api/vendor-dashboard/${vendorId}/chart-data`, {
+
+        const chartResponse = await fetch(`https://it342-g5-cartella.onrender.com/api/vendor-dashboard/${vendorId}/chart-data`, {
           headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
+            Authorization: `Bearer ${authToken}`,
+          },
         });
-        
+
         if (!chartResponse.ok) {
-          throw new Error('Failed to fetch chart data');
+          throw new Error("Failed to fetch chart data");
         }
-        
+
         const chartData = await chartResponse.json();
-        
-        // Set chart data
+
         setChartData({
           labels: chartData.labels || ["Jan", "Feb", "Mar", "Apr"],
           products: chartData.products || [0, 0, 0, 0],
@@ -203,14 +134,26 @@ const VendorDashboard = () => {
           revenue: chartData.revenue || [0, 0, 0, 0],
         });
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setError('Failed to load dashboard data. Please try again later.');
-        setOpenSnackbar(true);
+        console.error("Error fetching dashboard data:", error);
+
+        toast.error("Failed to load dashboard data. Please try again later.", {
+          position: "bottom-right",
+          closeButton: false,
+          style: {
+            backgroundColor: "#ffffff",
+            color: "#ff3333",
+            border: "1px solid #cccccc",
+            fontSize: "14px",
+            padding: "10px 15px",
+            borderRadius: "8px",
+            pointerEvents: "none",
+          },
+        });
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchDashboardData();
   }, [navigate]);
 
@@ -222,19 +165,30 @@ const VendorDashboard = () => {
     sessionStorage.removeItem("businessName");
     sessionStorage.removeItem("joinedDate");
     console.log("User logged out");
-    alert("You have been logged out successfully.");
-    navigate("/vendor-login");
+
+    toast.info("Logging Out", {
+      position: "bottom-right",
+      closeButton: false,
+      style: {
+        backgroundColor: "#ffffff",
+        color: "#2196F3",
+        border: "1px solid #cccccc",
+        fontSize: "14px",
+        padding: "10px 15px",
+        borderRadius: "8px",
+        pointerEvents: "none",
+      },
+    });
+
+    setTimeout(() => {
+      navigate("/vendor-login");
+    }, 2000);
   };
 
   const handleSearch = () => {
     if (searchText.trim()) {
       console.log("Searching for:", searchText);
-      // Implement search functionality here
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
   };
 
   const logoSrc = mode === "light" ? logoLight : logoDark;
@@ -280,7 +234,7 @@ const VendorDashboard = () => {
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box display="flex" alignItems="center">
             <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
-            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3,  fontFamily: "GDS Didot, serif" }}>
+            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3, fontFamily: "GDS Didot, serif" }}>
               Cartella
             </Typography>
             <Box
@@ -352,12 +306,11 @@ const VendorDashboard = () => {
         </Typography>
 
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
             <CircularProgress />
           </Box>
         ) : (
           <>
-            {/* Summary Cards */}
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, my: 4, flexWrap: "wrap" }}>
               <Box
                 sx={{
@@ -421,7 +374,6 @@ const VendorDashboard = () => {
               </Box>
             </Box>
 
-            {/* Charts Section */}
             <Box sx={{ display: "flex", justifyContent: "center", gap: 4, my: 4, flexWrap: "wrap" }}>
               <Box
                 sx={{
@@ -485,18 +437,15 @@ const VendorDashboard = () => {
           </>
         )}
       </Box>
-      
-      {/* Error Snackbar */}
-      <Snackbar 
-        open={openSnackbar} 
-        autoHideDuration={6000} 
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
+
+      <ToastContainer
+        hideProgressBar={false}
+        closeButton={false}
+        newestOnTop={false}
+        pauseOnHover={false}
+        draggable={false}
+        autoClose={2000}
+      />
     </Box>
   );
 };

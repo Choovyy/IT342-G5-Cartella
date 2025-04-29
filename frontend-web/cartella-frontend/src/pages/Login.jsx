@@ -42,9 +42,12 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     console.log("Initiating Google login...");
-    // Use the exact redirect URI that's registered in Google Cloud Console
-    const googleAuthUrl = "https://it342-g5-cartella.onrender.com/oauth2/code/google";
+    
+    // This should point to the authorization endpoint, not the callback URL
+    const googleAuthUrl = "https://it342-g5-cartella.onrender.com/oauth2/authorization/google";
     console.log("Redirecting to:", googleAuthUrl);
+    
+    // Use this approach for more control over the OAuth flow
     window.location.href = googleAuthUrl;
   };
 

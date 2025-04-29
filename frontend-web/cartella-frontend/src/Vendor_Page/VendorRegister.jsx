@@ -17,151 +17,102 @@ const VendorRegister = () => {
     businessRegistrationNumber: "",
   });
 
-  const [errors, setErrors] = useState({
-    username: "",
-    password: "",
-    email: "",
-    phone: "",
-    dob: "",
-  });
-
-  const [serverError, setServerError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
   const phoneRef = useRef(null);
   const usernameRef = useRef(null);
   const dobRef = useRef(null);
 
+  const [serverError, setServerError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
-
-  // Validation functions
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePassword = (password) => {
-    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return passwordRegex.test(password);
-  };
-
-  const validatePhone = (phone) => {
-    // Exactly 11 digits
-    const phoneRegex = /^\d{11}$/;
-    return phoneRegex.test(phone);
-  };
-
-  const validateUsername = (username) => {
-    // At least 4 characters, letters, numbers, underscore only
-    const usernameRegex = /^[a-zA-Z0-9_]{4,}$/;
-    return usernameRegex.test(username);
-  };
-
-  const validateDateOfBirth = (dob) => {
-    if (!dob) return false;
-    
-    const birthDate = new Date(dob);
-    const today = new Date();
-    
-    // Calculate age
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age >= 18;
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
-    // Clear server error when user starts typing
-    setServerError("");
-    
-    // Validate on change
-    validateField(name, value);
-  };
 
-  const validateField = (name, value) => {
-    let error = "";
-    
-    switch (name) {
-      case "email":
-        if (!value) {
-          error = "Email is required";
-        } else if (!validateEmail(value)) {
-          error = "Please enter a valid email address";
+    setServerError("");
+
+    if (name === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRef.current) {
+        if (!emailRegex.test(value)) {
+          emailRef.current.setCustomValidity("Please enter a valid email address.");
+        } else {
+          emailRef.current.setCustomValidity("");
         }
-        break;
-      case "password":
-        if (!value) {
-          error = "Password is required";
-        } else if (!validatePassword(value)) {
-          error = "Password must be 8+ characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character";
-        }
-        break;
-      case "phone":
-        if (!value) {
-          error = "Phone number is required";
-        } else if (!validatePhone(value)) {
-          error = "Phone number must be exactly 11 digits";
-        }
-        break;
-      case "username":
-        if (!value) {
-          error = "Username is required";
-        } else if (!validateUsername(value)) {
-          error = "Username must be at least 4 characters (letters, numbers, underscore only)";
-        }
-        break;
-      case "dob":
-        if (!value) {
-          error = "Date of birth is required";
-        } else if (!validateDateOfBirth(value)) {
-          error = "You must be at least 18 years old to register";
-        }
-        break;
-      default:
-        break;
+        emailRef.current.reportValidity();
+      }
     }
-    
-    setErrors(prev => ({ ...prev, [name]: error }));
-    return !error;
+
+    if (name === "password") {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (passwordRef.current) {
+        if (!passwordRegex.test(value)) {
+          passwordRef.current.setCustomValidity(
+            "Password must be 8+ characters, with 1 uppercase, 1 lowercase, 1 number, and 1 special character."
+          );
+        } else {
+          passwordRef.current.setCustomValidity("");
+        }
+        passwordRef.current.reportValidity();
+      }
+    }
+
+    if (name === "phone") {
+      const numericValue = value.replace(/\D/g, "");
+      if (phoneRef.current) {
+        if (numericValue.length !== 11) {
+          phoneRef.current.setCustomValidity("Phone number must be exactly 11 digits.");
+        } else {
+          phoneRef.current.setCustomValidity("");
+        }
+        phoneRef.current.reportValidity();
+      }
+      setFormData((prev) => ({ ...prev, phone: numericValue }));
+    }
+
+    if (name === "dob") {
+      if (dobRef.current) {
+        if (!value) {
+          dobRef.current.setCustomValidity("Date of birth is required.");
+        } else {
+          const birthDate = new Date(value);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          if (age < 18) {
+            dobRef.current.setCustomValidity("You must be at least 18 years old to register.");
+          } else {
+            dobRef.current.setCustomValidity("");
+          }
+        }
+        dobRef.current.reportValidity();
+      }
+    }
   };
 
-  const validateForm = () => {
-    let isValid = true;
-    
-    // Validate all fields
-    Object.keys(formData).forEach(field => {
-      const fieldValid = validateField(field, formData[field]);
-      if (!fieldValid) isValid = false;
-    });
-    
-    return isValid;
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Clear any previous server errors
     setServerError("");
-    
-    // Validate the form
-    if (!validateForm()) {
+
+    if (
+      !emailRef.current.checkValidity() ||
+      !passwordRef.current.checkValidity() ||
+      !phoneRef.current.checkValidity() ||
+      !usernameRef.current.checkValidity() ||
+      !dobRef.current.checkValidity()
+    ) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      // Navigate to the next step with form data
       navigate("/vendor-register-step2", { state: formData });
     } catch (err) {
       console.error("Registration error:", err);
@@ -189,7 +140,7 @@ const VendorRegister = () => {
 
         <form onSubmit={handleSubmit}>
           <h2>VENDOR REGISTER</h2>
-          
+
           {/* Server Error Display */}
           {serverError && (
             <div className="error-message" style={{ color: "red", marginBottom: "15px", textAlign: "center" }}>
@@ -197,59 +148,41 @@ const VendorRegister = () => {
             </div>
           )}
 
-          <div className="form-field">
-            <input
-              type="text"
-              name="username"
-              placeholder="Username"
-              value={formData.username}
-              onChange={handleChange}
-              className={errors.username ? "error" : ""}
-              required
-            />
-            {errors.username && <div className="error-text">{errors.username}</div>}
-          </div>
-          
-          <div className="form-field">
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              className={errors.password ? "error" : ""}
-              required
-            />
-            {errors.password && <div className="error-text">{errors.password}</div>}
-          </div>
-          
-          <div className="form-field">
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              className={errors.email ? "error" : ""}
-              required
-            />
-            {errors.email && <div className="error-text">{errors.email}</div>}
-          </div>
-          
-          <div className="form-field">
-            <input
-              type="text"
-              name="phone"
-              placeholder="Phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className={errors.phone ? "error" : ""}
-              required
-            />
-            {errors.phone && <div className="error-text">{errors.phone}</div>}
-          </div>
+          <input
+            type="text"
+            name="username"
+            placeholder="Username"
+            onChange={handleChange}
+            ref={usernameRef}
+            required
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            onChange={handleChange}
+            ref={passwordRef}
+            required
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            onChange={handleChange}
+            ref={emailRef}
+            required
+          />
+          <input
+            type="text"
+            name="phone"
+            placeholder="Phone"
+            onChange={handleChange}
+            ref={phoneRef}
+            value={formData.phone}
+            maxLength="11"
+            required
+          />
 
-          {/* Birth Date - Inline Label and Input */}
           <div className="form-field" style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", marginBottom: "10px" }}>
             <label htmlFor="dob" style={{ fontSize: "14px", minWidth: "80px" }}>Birth Date</label>
             <input
@@ -258,11 +191,10 @@ const VendorRegister = () => {
               id="dob"
               value={formData.dob}
               onChange={handleChange}
-              className={errors.dob ? "error" : ""}
+              ref={dobRef}
               required
               style={{ flex: 1 }}
             />
-            {errors.dob && <div className="error-text">{errors.dob}</div>}
           </div>
 
           <button type="submit" disabled={isSubmitting}>
@@ -271,8 +203,7 @@ const VendorRegister = () => {
 
           <div style={{ marginTop: '15px', textAlign: 'center' }}>
             <p style={{ margin: '5px 0' }}>
-              Already have a vendor account?
-              <Link to="/vendor-login"> Log In</Link>
+              Already have a vendor account? <Link to="/vendor-login">Log In</Link>
             </p>
             <p style={{ margin: '5px 0' }}>
               <Link to="/login">Customer Log In</Link>
