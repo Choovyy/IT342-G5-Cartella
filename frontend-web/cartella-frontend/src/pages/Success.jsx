@@ -43,17 +43,17 @@ const Success = () => {
           // This will help in cases where the payment was successful but redirect parameters were lost
           try {
             // Check if user has an address
-            const addressResponse = await axios.get(`http://localhost:8080/api/addresses/user/${userId}`);
+            const addressResponse = await axios.get(`https://it342-g5-cartella.onrender.com/api/addresses/user/${userId}`);
             if (!addressResponse.data || addressResponse.data.length === 0) {
               throw new Error('No address found. Please add an address before completing your purchase.');
             }
             
             // Create order
-            const orderResponse = await axios.post(`http://localhost:8080/api/orders/create/${userId}`);
+            const orderResponse = await axios.post(`https://it342-g5-cartella.onrender.com/api/orders/create/${userId}`);
             setOrderDetails(orderResponse.data);
             
             // Clear cart
-            await axios.delete(`http://localhost:8080/api/cart/${userId}/clear`);
+            await axios.delete(`https://it342-g5-cartella.onrender.com/api/cart/${userId}/clear`);
             
             setSuccess(true);
           } catch (fallbackErr) {
@@ -72,18 +72,18 @@ const Success = () => {
             await paymentService.updatePaymentStatusBySessionId(sessionId, 'PENDING', token);
             
             // Check if user has an address
-            const addressResponse = await axios.get(`http://localhost:8080/api/addresses/user/${userId}`);
+            const addressResponse = await axios.get(`https://it342-g5-cartella.onrender.com/api/addresses/user/${userId}`);
             if (!addressResponse.data || addressResponse.data.length === 0) {
               throw new Error('No address found. Please add an address before completing your purchase.');
             }
             
             // Create order
-            const orderResponse = await axios.post(`http://localhost:8080/api/orders/create/${userId}`);
+            const orderResponse = await axios.post(`https://it342-g5-cartella.onrender.com/api/orders/create/${userId}`);
             console.log("Order created:", orderResponse.data);
             setOrderDetails(orderResponse.data);
             
             // Clear cart
-            await axios.delete(`http://localhost:8080/api/cart/${userId}/clear`);
+            await axios.delete(`https://it342-g5-cartella.onrender.com/api/cart/${userId}/clear`);
             
             setSuccess(true);
           } catch (paymentErr) {
@@ -91,15 +91,15 @@ const Success = () => {
             
             // Try to create the order even if payment update fails
             try {
-              const addressResponse = await axios.get(`http://localhost:8080/api/addresses/user/${userId}`);
+              const addressResponse = await axios.get(`https://it342-g5-cartella.onrender.com/api/addresses/user/${userId}`);
               if (!addressResponse.data || addressResponse.data.length === 0) {
                 throw new Error('No address found. Please add an address before completing your purchase.');
               }
               
-              const orderResponse = await axios.post(`http://localhost:8080/api/orders/create/${userId}`);
+              const orderResponse = await axios.post(`https://it342-g5-cartella.onrender.com/api/orders/create/${userId}`);
               setOrderDetails(orderResponse.data);
               
-              await axios.delete(`http://localhost:8080/api/cart/${userId}/clear`);
+              await axios.delete(`https://it342-g5-cartella.onrender.com/api/cart/${userId}/clear`);
               
               setSuccess(true);
             } catch (orderErr) {

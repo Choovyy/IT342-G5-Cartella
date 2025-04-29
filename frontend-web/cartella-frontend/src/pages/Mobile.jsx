@@ -50,7 +50,7 @@ const Mobile = () => {
     }
 
     // Fetch products for Mobile category
-    fetch("http://localhost:8080/api/products/category/Mobiles%20%26%20Gadgets", {
+    fetch("https://it342-g5-cartella.onrender.com/api/products/category/Mobiles%20%26%20Gadgets", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -128,7 +128,7 @@ const Mobile = () => {
     try {
       // Try to add product to cart
       await axios.post(
-        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
+        `https://it342-g5-cartella.onrender.com/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -144,13 +144,13 @@ const Mobile = () => {
       ) {
         try {
           await axios.post(
-            `http://localhost:8080/api/cart/${userId}`,
+            `https://it342-g5-cartella.onrender.com/api/cart/${userId}`,
             {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
           // Retry adding product
           await axios.post(
-            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
+            `https://it342-g5-cartella.onrender.com/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
             {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -345,7 +345,7 @@ const Mobile = () => {
                       {product.imageUrl ? (
                         <CardMedia
                           component="img"
-                          image={`http://localhost:8080${product.imageUrl}`}
+                          image={`https://it342-g5-cartella.onrender.com${product.imageUrl}`}
                           alt={product.name}
                           sx={{
                             height: 200,
@@ -551,7 +551,7 @@ const Mobile = () => {
                         }}
                       >
                         <img
-                          src={`http://localhost:8080${selectedProduct.imageUrl}`}
+                          src={`https://it342-g5-cartella.onrender.com${selectedProduct.imageUrl}`}
                           alt={selectedProduct.name}
                           style={{
                             maxWidth: "100%",

@@ -50,7 +50,7 @@ const MenAccessories = () => {
     }
 
     // Fetch products for Men's Accessories category
-    fetch("http://localhost:8080/api/products/category/Men's%20Accessories", {
+    fetch("https://it342-g5-cartella.onrender.com/api/products/category/Men's%20Accessories", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -126,7 +126,7 @@ const MenAccessories = () => {
     try {
       // Try to add product to cart
       await axios.post(
-        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
+        `https://it342-g5-cartella.onrender.com/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -142,13 +142,13 @@ const MenAccessories = () => {
       ) {
         try {
           await axios.post(
-            `http://localhost:8080/api/cart/${userId}`,
+            `https://it342-g5-cartella.onrender.com/api/cart/${userId}`,
             {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
           // Retry adding product
           await axios.post(
-            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
+            `https://it342-g5-cartella.onrender.com/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
             {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -386,7 +386,7 @@ const MenAccessories = () => {
                       {product.imageUrl ? (
                         <CardMedia
                           component="img"
-                          image={`http://localhost:8080${product.imageUrl}`}
+                          image={`https://it342-g5-cartella.onrender.com${product.imageUrl}`}
                           alt={product.name}
                           sx={{
                             height: 200,
@@ -572,7 +572,7 @@ const MenAccessories = () => {
                           }}
                         >
                           <img
-                            src={`http://localhost:8080${selectedProduct.imageUrl}`}
+                            src={`https://it342-g5-cartella.onrender.com${selectedProduct.imageUrl}`}
                             alt={selectedProduct.name}
                             style={{
                               maxWidth: "100%",
@@ -685,7 +685,7 @@ const MenAccessories = () => {
                       }
                       
                       // Add to cart with selected quantity
-                      axios.post(`http://localhost:8080/api/cart/${userId}/add/${selectedProduct.productId}?quantity=${quantity}`, {}, {
+                      axios.post(`https://it342-g5-cartella.onrender.com/api/cart/${userId}/add/${selectedProduct.productId}?quantity=${quantity}`, {}, {
                         headers: { Authorization: `Bearer ${token}` }
                       })
                       .then(response => {
@@ -696,12 +696,12 @@ const MenAccessories = () => {
                         console.error("Error adding to cart:", error);
                         if (error.response && error.response.status === 404) {
                           // Cart doesn't exist, create one first
-                          axios.post(`http://localhost:8080/api/cart/${userId}`, {}, {
+                          axios.post(`https://it342-g5-cartella.onrender.com/api/cart/${userId}`, {}, {
                             headers: { Authorization: `Bearer ${token}` }
                           })
                           .then(() => {
                             // Now add the product to the newly created cart
-                            return axios.post(`http://localhost:8080/api/cart/${userId}/add/${selectedProduct.productId}?quantity=${quantity}`, {}, {
+                            return axios.post(`https://it342-g5-cartella.onrender.com/api/cart/${userId}/add/${selectedProduct.productId}?quantity=${quantity}`, {}, {
                               headers: { Authorization: `Bearer ${token}` }
                             });
                           })

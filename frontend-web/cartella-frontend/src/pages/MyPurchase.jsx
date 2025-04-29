@@ -83,7 +83,7 @@ const MyPurchase = () => {
         
         // Fetch orders
         const ordersResponse = await axios.get(
-          `http://localhost:8080/api/orders/${userId}`,
+          `https://it342-g5-cartella.onrender.com/api/orders/${userId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         
@@ -183,7 +183,7 @@ const MyPurchase = () => {
     
     try {
       const response = await axios.post(
-        `http://localhost:8080/api/orders/${selectedOrderId}/cancel`,
+        `https://it342-g5-cartella.onrender.com/api/orders/${selectedOrderId}/cancel`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -201,7 +201,7 @@ const MyPurchase = () => {
         
         // Refresh orders list
         const ordersResponse = await axios.get(
-          `http://localhost:8080/api/orders/${userId}`,
+          `https://it342-g5-cartella.onrender.com/api/orders/${userId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         

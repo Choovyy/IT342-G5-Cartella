@@ -65,7 +65,7 @@ const Cart = () => {
     try {
       setLoading(true);
       // Use the new DTO endpoint to get cart items with product details
-      const response = await axios.get(`http://localhost:8080/api/cart/items-dto/${userId}`, {
+      const response = await axios.get(`https://it342-g5-cartella.onrender.com/api/cart/items-dto/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -136,7 +136,7 @@ const Cart = () => {
     const userId = sessionStorage.getItem("userId");
     
     try {
-      await axios.delete(`http://localhost:8080/api/cart/remove/${cartItemId}`, {
+      await axios.delete(`https://it342-g5-cartella.onrender.com/api/cart/remove/${cartItemId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -158,7 +158,7 @@ const Cart = () => {
     }
     
     try {
-      await axios.put(`http://localhost:8080/api/cart/update/${cartItemId}?quantity=${newQuantity}`, {}, {
+      await axios.put(`https://it342-g5-cartella.onrender.com/api/cart/update/${cartItemId}?quantity=${newQuantity}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -260,7 +260,7 @@ const Cart = () => {
       // Create checkout session on the backend
       console.log("Creating payment intent with address ID:", defaultAddress.addressId);
       const response = await axios.post(
-        'http://localhost:8080/api/payment/create-payment-intent',
+        'https://it342-g5-cartella.onrender.com/api/payment/create-payment-intent',
         {
           amount: totalPrice * 100, // Convert to cents
           currency: 'php',
@@ -472,7 +472,7 @@ const Cart = () => {
                       <CardMedia
                         component="img"
                         sx={{ width: 120, height: 120, objectFit: 'contain', mr: 2 }}
-                        image={item.productImageUrl ? `http://localhost:8080${item.productImageUrl}` : 'https://via.placeholder.com/120'}
+                        image={item.productImageUrl ? `https://it342-g5-cartella.onrender.com${item.productImageUrl}` : 'https://via.placeholder.com/120'}
                         alt={item.productName}
                       />
                       <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>

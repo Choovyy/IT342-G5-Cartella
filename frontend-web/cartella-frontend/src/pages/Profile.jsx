@@ -114,7 +114,7 @@ const Profile = () => {
         if (email) {
           console.log("Fetching user data for email:", email);
           setIsGoogleUser(true);
-          const response = await axios.get(`http://localhost:8080/dashboard`, {
+          const response = await axios.get(`https://it342-g5-cartella.onrender.com/dashboard`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
