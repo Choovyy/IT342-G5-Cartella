@@ -42,7 +42,9 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     console.log("Initiating Google login...");
-    const googleAuthUrl = "https://it342-g5-cartella.onrender.com/oauth2/code/google";
+    // Use the authorized redirect URI from Google Cloud Console
+    const redirectUri = "https://it342-g5-cartella.onrender.com/oauth2/code/google";
+    const googleAuthUrl = `https://it342-g5-cartella.onrender.com/oauth2/authorize/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
     console.log("Redirecting to:", googleAuthUrl);
     window.location.href = googleAuthUrl;
   };
