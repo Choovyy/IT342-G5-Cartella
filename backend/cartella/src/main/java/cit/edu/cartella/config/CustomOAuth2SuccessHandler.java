@@ -21,7 +21,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final String frontendBaseUrl = "https://cartellag5.netlify.app";
-
+    
     public CustomOAuth2SuccessHandler(JwtUtil jwtUtil, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
