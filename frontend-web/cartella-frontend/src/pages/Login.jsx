@@ -42,7 +42,7 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     console.log("Initiating Google login...");
-    const googleAuthUrl = "http://localhost:8080/oauth2/authorization/google";
+    const googleAuthUrl = "https://it342-g5-cartella.onrender.com/oauth2/authorization/google";
     console.log("Redirecting to:", googleAuthUrl);
     window.location.href = googleAuthUrl;
   };
