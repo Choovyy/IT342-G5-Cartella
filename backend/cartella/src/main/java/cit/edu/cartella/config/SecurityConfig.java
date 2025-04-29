@@ -47,6 +47,7 @@ public class SecurityConfig {
                                 "/api/users/**",
                                 "/login/google",
                                 "/oauth2/success",
+                                "/oauth2/code/google",
                                 "/dashboard",
                                 "/oauth2/authorization/google",
                                 "/api/addresses/**",
@@ -77,7 +78,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(List.of(
+            "http://localhost:5173", 
+            "https://cartella-app.netlify.app", 
+            "https://cartellag5.netlify.app"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
@@ -95,7 +100,7 @@ public class SecurityConfig {
     private OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
         OidcClientInitiatedLogoutSuccessHandler successHandler =
                 new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
-        successHandler.setPostLogoutRedirectUri("http://localhost:5173");
+        successHandler.setPostLogoutRedirectUri("https://cartella-app.netlify.app");
         return successHandler;
     }
 }

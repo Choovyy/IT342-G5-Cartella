@@ -20,6 +20,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final String frontendBaseUrl = "https://cartellag5.netlify.app";
 
     public CustomOAuth2SuccessHandler(JwtUtil jwtUtil, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
@@ -42,7 +43,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             String email = oauth2User.getAttribute("email");
             if (email == null || email.isEmpty()) {
                 System.err.println("Email attribute is missing or empty");
-                response.sendRedirect("http://localhost:5173/login?error=missing_email");
+                response.sendRedirect(frontendBaseUrl + "/login?error=missing_email");
                 return;
             }
             
@@ -50,7 +51,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             Optional<User> userOpt = userRepository.findByEmail(email);
             if (userOpt.isEmpty()) {
                 System.err.println("User not found for email: " + email);
-                response.sendRedirect("http://localhost:5173/login?error=user_not_found");
+                response.sendRedirect(frontendBaseUrl + "/login?error=user_not_found");
                 return;
             }
             
@@ -66,20 +67,20 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             String encodedUserId = URLEncoder.encode(user.getUserId().toString(), StandardCharsets.UTF_8);
             
             // Redirect to frontend with token - make sure this matches the route in App.jsx
-            String redirectUrl = "http://localhost:5173/oauth-success?token=" + encodedToken + 
+            String redirectUrl = frontendBaseUrl + "/oauth-success?token=" + encodedToken + 
                                "&email=" + encodedEmail + 
                                "&userId=" + encodedUserId;
             System.out.println("Redirecting to: " + redirectUrl); // Debug: Log the redirect URL
             
             // Set CORS headers for the redirect
-            response.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+            response.setHeader("Access-Control-Allow-Origin", frontendBaseUrl);
             response.setHeader("Access-Control-Allow-Credentials", "true");
             
             response.sendRedirect(redirectUrl);
         } catch (Exception e) {
             System.err.println("Error in OAuth success handler: " + e.getMessage());
             e.printStackTrace();
-            response.sendRedirect("http://localhost:5173/login?error=oauth_failed");
+            response.sendRedirect(frontendBaseUrl + "/login?error=oauth_failed");
         }
     }
 }

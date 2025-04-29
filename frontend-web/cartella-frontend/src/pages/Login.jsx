@@ -25,7 +25,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/users/login", 
+        "https://it342-g5-cartella.onrender.com/api/users/login", 
         formData
       );
       sessionStorage.setItem("authToken", response.data.token);
@@ -42,9 +42,8 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     console.log("Initiating Google login...");
-    // Use the authorized redirect URI from Google Cloud Console
-    const redirectUri = "https://it342-g5-cartella.onrender.com/oauth2/code/google";
-    const googleAuthUrl = `https://it342-g5-cartella.onrender.com/oauth2/authorize/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
+    // Use the exact redirect URI that's registered in Google Cloud Console
+    const googleAuthUrl = "https://it342-g5-cartella.onrender.com/oauth2/code/google";
     console.log("Redirecting to:", googleAuthUrl);
     window.location.href = googleAuthUrl;
   };
