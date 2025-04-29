@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import logo from "../images/Cartella Logo Transparent.png";
+import bgImage from "../images/home.jpg";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -15,22 +16,18 @@ const Home = () => {
         overflow: "hidden",
       }}
     >
-      {/* Video Background */}
+      {/* Background Image */}
       <Box
-        component="video"
-        autoPlay
-        muted
-        loop
         sx={{
           position: "absolute",
           width: "100%",
           height: "100%",
-          objectFit: "cover",
+          backgroundImage: `url(${bgImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
           zIndex: -1,
         }}
-      >
-        <source src="/src/images/home.mp4" type="video/mp4" />
-      </Box>
+      />
 
       {/* Content Overlay */}
       <Box
