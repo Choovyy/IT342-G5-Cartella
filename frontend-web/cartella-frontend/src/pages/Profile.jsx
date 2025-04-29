@@ -114,10 +114,13 @@ const Profile = () => {
         if (email) {
           console.log("Fetching user data for email:", email);
           setIsGoogleUser(true);
-          // Using the centralized API configuration instead of hardcoded localhost URL
-          const response = await userService.getUserByEmail(email);
-          console.log("User data response:", response);
-          userData = response;
+          const response = await axios.get(`http://localhost:8080/dashboard`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          console.log("Dashboard response:", response.data);
+          userData = response.data;
         } else {
           const username = sessionStorage.getItem("username");
           console.log("Fetching user data for username:", username);

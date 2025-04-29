@@ -1,15 +1,14 @@
 // ViewOrder.jsx
-import React, { useEffect, useState, useContext } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import orderService from "../api/orderService";
-import { ColorModeContext } from "../ThemeContext";
-
+import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Paper, Divider,
   Button, MenuItem, Select, FormControl, InputLabel,
   CircularProgress, Alert
 } from "@mui/material";
+
+import { useNavigate, useParams } from "react-router-dom";
+import { ColorModeContext } from "../ThemeContext";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -86,8 +85,14 @@ const ViewOrder = () => {
       return;
     }
 
-    // Fetch order details using orderService
-    orderService.getOrderById(orderId)
+    // Fetch order details
+    fetch(`http://localhost:8080/api/orders/${orderId}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch order");
+        return res.json();
+      })
       .then(data => {
         setOrder(data);
         setOrderConfirmed(data.status !== "PENDING");
@@ -108,11 +113,21 @@ const ViewOrder = () => {
   };
 
   const handleConfirmOrder = () => {
-    orderService.confirmOrder(orderId)
+    const authToken = sessionStorage.getItem("authToken");
+    
+    fetch(`http://localhost:8080/api/orders/${orderId}/confirm`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${authToken}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to confirm order");
+        return res.json();
+      })
       .then(data => {
         setOrderConfirmed(true);
         setStatus(data.status);
-        setStatusDescription(getStatusDescription(data.status));
       })
       .catch(err => {
         setError("Failed to confirm order: " + err.message);
@@ -121,8 +136,20 @@ const ViewOrder = () => {
 
   const handleStatusChange = (event) => {
     const newStatus = event.target.value;
+    const authToken = sessionStorage.getItem("authToken");
     
-    orderService.updateOrderStatus(orderId, newStatus)
+    fetch(`http://localhost:8080/api/orders/${orderId}/status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ status: newStatus })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to update status");
+        return res.json();
+      })
       .then(data => {
         setStatus(newStatus);
         setStatusDescription(getStatusDescription(newStatus));
@@ -254,7 +281,7 @@ const ViewOrder = () => {
                 <Box display="flex" alignItems="flex-start" gap={3}>
                   {order.product.imageUrl ? (
                     <img
-                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}${order.product.imageUrl}`}
+                      src={`http://localhost:8080${order.product.imageUrl}`}
                       alt={order.product.name}
                       style={{ width: 160, height: "auto", borderRadius: 8 }}
                     />

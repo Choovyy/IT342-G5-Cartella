@@ -1,16 +1,12 @@
-import React, { useContext, useState, useEffect, useMemo } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, Paper,
-  Button, TablePagination, CircularProgress, Alert,
-  Card, CardContent, CardMedia, Grid, Dialog, DialogTitle,
-  DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem
+  ListItemText, IconButton, InputBase, Button, Grid, Card, CardMedia, CardContent,
+  FormControl, InputLabel, Select, MenuItem, CircularProgress, Alert, CardActions,
+  Dialog, DialogTitle, DialogContent, DialogActions
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
-import productService from "../api/productService";
-import vendorService from "../api/vendorService";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -50,15 +46,27 @@ const VendorProducts = () => {
       return;
     }
 
-    // Fetch categories using productService
-    productService.getProductCategories()
+    // Fetch categories
+    fetch("http://localhost:8080/api/products/categories", {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch categories");
+        return res.json();
+      })
       .then(data => {
         setCategories(["All", ...data]);
       })
       .catch(err => setError("Failed to load categories: " + err.message));
 
-    // Fetch products using productService
-    productService.getProductsByVendor(vendorId)
+    // Fetch products
+    fetch(`http://localhost:8080/api/products/vendor/${vendorId}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch products");
+        return res.json();
+      })
       .then(data => {
         setProducts(data);
         setFilteredProducts(data);
@@ -110,15 +118,23 @@ const VendorProducts = () => {
   };
 
   const handleDeleteConfirm = () => {
-    if (!productToDelete) {
-      setError("Missing product ID");
+    const vendorId = sessionStorage.getItem("vendorId");
+    const authToken = sessionStorage.getItem("authToken");
+    
+    if (!vendorId || !authToken || !productToDelete) {
+      setError("Not authenticated or missing product ID");
       setDeleteDialogOpen(false);
       return;
     }
 
-    // Use productService instead of direct fetch
-    productService.deleteProduct(productToDelete.productId)
-      .then(() => {
+    fetch(`http://localhost:8080/api/products/${productToDelete.productId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${authToken}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to delete product");
         setProducts(products.filter(p => p.productId !== productToDelete.productId));
         setFilteredProducts(filteredProducts.filter(p => p.productId !== productToDelete.productId));
         setDeleteDialogOpen(false);
@@ -135,8 +151,8 @@ const VendorProducts = () => {
   };
 
   const logoSrc = mode === "light"
-    ? "../images/Cartella Logo (Light).jpeg"
-    : "../images/Cartella Logo (Dark2).jpeg";
+    ? "src/images/Cartella Logo (Light).jpeg"
+    : "src/images/Cartella Logo (Dark2).jpeg";
 
   const drawerItems = [
     { text: "Sales Overview", icon: <AssessmentIcon />, path: "/vendor-dashboard" },
@@ -319,7 +335,7 @@ const VendorProducts = () => {
                     {product.imageUrl ? (
                       <CardMedia
                         component="img"
-                        image={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'}${product.imageUrl}`}
+                        image={`http://localhost:8080${product.imageUrl}`}
                         alt={product.name}
                         sx={{
                           height: 200,
@@ -462,7 +478,6 @@ const VendorProducts = () => {
                 </Card>
               </Grid>
             ))}
-
           </Grid>
         )}
 
@@ -486,4 +501,4 @@ const VendorProducts = () => {
   );
 };
 
-export default VendorProducts;
+export default VendorProducts; 

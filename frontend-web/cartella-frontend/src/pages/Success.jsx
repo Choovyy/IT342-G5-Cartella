@@ -3,10 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Box, Typography, Button, CircularProgress, Alert } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import axios from 'axios';
 import paymentService from '../api/paymentService';
-import addressService from '../api/addressService';
-import cartService from '../api/cartService';
-import orderService from '../api/orderService';
 
 const Success = () => {
   const navigate = useNavigate();
@@ -28,7 +26,7 @@ const Success = () => {
         if (!userId) {
           throw new Error('User not found. Please log in again.');
         }
-        
+
         // Get query parameters - session_id should be passed from Stripe
         const queryParams = new URLSearchParams(location.search);
         const sessionId = queryParams.get('session_id');
@@ -45,17 +43,17 @@ const Success = () => {
           // This will help in cases where the payment was successful but redirect parameters were lost
           try {
             // Check if user has an address
-            const addresses = await addressService.getAddressesByUserId(userId);
-            if (!addresses || addresses.length === 0) {
+            const addressResponse = await axios.get(`http://localhost:8080/api/addresses/user/${userId}`);
+            if (!addressResponse.data || addressResponse.data.length === 0) {
               throw new Error('No address found. Please add an address before completing your purchase.');
             }
             
             // Create order
-            const orderResponse = await orderService.createOrder({ userId });
-            setOrderDetails(orderResponse);
+            const orderResponse = await axios.post(`http://localhost:8080/api/orders/create/${userId}`);
+            setOrderDetails(orderResponse.data);
             
             // Clear cart
-            await cartService.clearCart(userId);
+            await axios.delete(`http://localhost:8080/api/cart/${userId}/clear`);
             
             setSuccess(true);
           } catch (fallbackErr) {
@@ -74,17 +72,18 @@ const Success = () => {
             await paymentService.updatePaymentStatusBySessionId(sessionId, 'PENDING', token);
             
             // Check if user has an address
-            const addresses = await addressService.getAddressesByUserId(userId);
-            if (!addresses || addresses.length === 0) {
+            const addressResponse = await axios.get(`http://localhost:8080/api/addresses/user/${userId}`);
+            if (!addressResponse.data || addressResponse.data.length === 0) {
               throw new Error('No address found. Please add an address before completing your purchase.');
             }
             
             // Create order
-            const orderResponse = await orderService.createOrder({ userId });
-            setOrderDetails(orderResponse);
+            const orderResponse = await axios.post(`http://localhost:8080/api/orders/create/${userId}`);
+            console.log("Order created:", orderResponse.data);
+            setOrderDetails(orderResponse.data);
             
             // Clear cart
-            await cartService.clearCart(userId);
+            await axios.delete(`http://localhost:8080/api/cart/${userId}/clear`);
             
             setSuccess(true);
           } catch (paymentErr) {
@@ -92,15 +91,15 @@ const Success = () => {
             
             // Try to create the order even if payment update fails
             try {
-              const addresses = await addressService.getAddressesByUserId(userId);
-              if (!addresses || addresses.length === 0) {
+              const addressResponse = await axios.get(`http://localhost:8080/api/addresses/user/${userId}`);
+              if (!addressResponse.data || addressResponse.data.length === 0) {
                 throw new Error('No address found. Please add an address before completing your purchase.');
               }
               
-              const orderResponse = await orderService.createOrder({ userId });
-              setOrderDetails(orderResponse);
+              const orderResponse = await axios.post(`http://localhost:8080/api/orders/create/${userId}`);
+              setOrderDetails(orderResponse.data);
               
-              await cartService.clearCart(userId);
+              await axios.delete(`http://localhost:8080/api/cart/${userId}/clear`);
               
               setSuccess(true);
             } catch (orderErr) {

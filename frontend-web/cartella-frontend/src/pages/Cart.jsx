@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useContext } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import productService from "../api/productService";
-import cartService from "../api/cartService";
-import orderService from "../api/orderService";
-import addressService from "../api/addressService";
-import paymentService from "../api/paymentService";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { loadStripe } from '@stripe/stripe-js';
+import addressService from '../api/addressService';
+import paymentService from '../api/paymentService';
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
-  CardContent, CircularProgress, Alert, Button, Divider, Paper,
-  FormControlLabel, Checkbox
+  CardContent, CircularProgress, Alert, Button, Divider,
+  Checkbox, FormControlLabel, FormGroup
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -23,14 +22,13 @@ import HistoryIcon from "@mui/icons-material/History";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
-import LightLogo from "../images/Cartella Logo (Light).jpeg";
-import DarkLogo from "../images/Cartella Logo (Dark2).jpeg";
 
 const drawerWidth = 240;
 
+const stripePromise = loadStripe('pk_test_51RH2ZDCoSzNJio8VMI45wqQIhh4Rv7qBoUlOFWZJFOjDd5XU4LbJzPtDE98LsQ8luIwV9Polma5NFnnQHphv9pJ100uNNRnz3A');
+
 const Cart = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
   const [cartItems, setCartItems] = useState([]);
@@ -66,12 +64,14 @@ const Cart = () => {
   const fetchCartItems = async (userId, token) => {
     try {
       setLoading(true);
-      // Use cartService instead of direct axios call
-      const data = await cartService.getCartItemsDto(userId);
+      // Use the new DTO endpoint to get cart items with product details
+      const response = await axios.get(`http://localhost:8080/api/cart/items-dto/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
-      if (data) {
-        setCartItems(data);
-        calculateTotalPrice(data);
+      if (response.data) {
+        setCartItems(response.data);
+        calculateTotalPrice(response.data);
       } else {
         setCartItems([]);
         setTotalPrice(0);
@@ -136,8 +136,9 @@ const Cart = () => {
     const userId = sessionStorage.getItem("userId");
     
     try {
-      // Use cartService instead of direct axios call
-      await cartService.removeCartItem(cartItemId);
+      await axios.delete(`http://localhost:8080/api/cart/remove/${cartItemId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
       // Refresh cart after removal
       fetchCartItems(userId, token);
@@ -157,8 +158,9 @@ const Cart = () => {
     }
     
     try {
-      // Use cartService instead of direct axios call
-      await cartService.updateCartItemQuantity(cartItemId, newQuantity);
+      await axios.put(`http://localhost:8080/api/cart/update/${cartItemId}?quantity=${newQuantity}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
       // Refresh cart after update
       fetchCartItems(userId, token);
@@ -255,17 +257,22 @@ const Cart = () => {
       sessionStorage.setItem('defaultAddressId', defaultAddress.addressId);
       console.log("Stored default address ID in session storage");
 
-      // Create payment intent using paymentService
+      // Create checkout session on the backend
       console.log("Creating payment intent with address ID:", defaultAddress.addressId);
-      const response = await paymentService.createPaymentIntent({
-        amount: totalPrice * 100, // Convert to cents
-        currency: 'php',
-        userId: userId,
-        addressId: defaultAddress.addressId, // Include the default address ID
-        cartItemIds: selectedItems // Include selected cart item IDs
-      }, token);
+      const response = await axios.post(
+        'http://localhost:8080/api/payment/create-payment-intent',
+        {
+          amount: totalPrice * 100, // Convert to cents
+          currency: 'php',
+          userId: userId,
+          addressId: defaultAddress.addressId // Include the default address ID
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-      const { clientSecret: sessionId } = response;
+      const { clientSecret: sessionId } = response.data;
 
       // Load Stripe
       const stripe = await stripePromise;
@@ -286,8 +293,8 @@ const Cart = () => {
 
   const logoSrc =
     mode === "light"
-      ? LightLogo
-      : DarkLogo;
+      ? "src/images/Cartella Logo (Light).jpeg"
+      : "src/images/Cartella Logo (Dark2).jpeg";
 
   const drawer = (
     <Box display="flex" flexDirection="column" height="100%">
@@ -465,9 +472,7 @@ const Cart = () => {
                       <CardMedia
                         component="img"
                         sx={{ width: 120, height: 120, objectFit: 'contain', mr: 2 }}
-                        image={item.productImageUrl 
-                          ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'}${item.productImageUrl}` 
-                          : 'https://via.placeholder.com/120'}
+                        image={item.productImageUrl ? `http://localhost:8080${item.productImageUrl}` : 'https://via.placeholder.com/120'}
                         alt={item.productName}
                       />
                       <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>

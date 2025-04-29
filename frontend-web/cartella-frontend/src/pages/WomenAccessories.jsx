@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import productService from "../api/productService";
-import api from "../api/api";
+import axios from "axios";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
@@ -50,8 +49,14 @@ const WomenAccessories = () => {
       return;
     }
 
-    // Fetch products for Women's Accessories category using productService
-    productService.getProductsByCategory("Women's Accessories")
+    // Fetch products for Women's Accessories category
+    fetch("http://localhost:8080/api/products/category/Women's%20Accessories", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch products");
+        return res.json();
+      })
       .then(data => {
         setProducts(data);
         setFilteredProducts(data);
@@ -63,14 +68,15 @@ const WomenAccessories = () => {
         setLoading(false);
       });
 
-    // Verify authentication using api
-    api.get("/login")
-      .catch((error) => {
-        console.error("Error verifying auth:", error);
-        alert("Session expired. Please log in again.");
-        sessionStorage.removeItem("authToken");
-        navigate("/login");
-      });
+    // Verify authentication
+    axios.get("/login", {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch((error) => {
+      console.error("Error verifying auth:", error);
+      alert("Session expired. Please log in again.");
+      sessionStorage.removeItem("authToken");
+      navigate("/login");
+    });
   }, [navigate]);
 
   useEffect(() => {
@@ -118,8 +124,12 @@ const WomenAccessories = () => {
     }
   
     try {
-      // Try to add product to cart using productService
-      await productService.addToCart(userId, productId, productQuantity);
+      // Try to add product to cart
+      await axios.post(
+        `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       alert("Product added to cart!");
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -131,11 +141,17 @@ const WomenAccessories = () => {
           (error.response.data && error.response.data.message && error.response.data.message.includes("Cart not found")))
       ) {
         try {
-          // Create cart then retry using productService
-          await productService.createCart(userId);
-          
+          await axios.post(
+            `http://localhost:8080/api/cart/${userId}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
           // Retry adding product
-          await productService.addToCart(userId, productId, productQuantity);
+          await axios.post(
+            `http://localhost:8080/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
           alert("Product added to cart!");
         } catch (err) {
           console.error("Error creating cart or adding product:", err);
@@ -329,7 +345,7 @@ const WomenAccessories = () => {
                       {product.imageUrl ? (
                         <CardMedia
                           component="img"
-                          image={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'}${product.imageUrl}`}
+                          image={`http://localhost:8080${product.imageUrl}`}
                           alt={product.name}
                           sx={{
                             height: 200,
@@ -535,7 +551,7 @@ const WomenAccessories = () => {
                         }}
                       >
                         <img
-                          src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'}${selectedProduct.imageUrl}`}
+                          src={`http://localhost:8080${selectedProduct.imageUrl}`}
                           alt={selectedProduct.name}
                           style={{
                             maxWidth: "100%",

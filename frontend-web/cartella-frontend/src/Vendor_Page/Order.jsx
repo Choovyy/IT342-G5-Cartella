@@ -3,12 +3,14 @@ import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Card, CardContent, CardActionArea,
   CircularProgress, Alert, Chip, Grid, Select, MenuItem, FormControl,
-  InputLabel, Tab, Tabs, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
+  InputLabel, Tab, Tabs, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, 
+  Snackbar, Badge, Divider, Paper, Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow
 } from "@mui/material";
+
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
-import orderService from "../api/orderService";
-import vendorService from "../api/vendorService";
+import axios from "axios";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -159,19 +161,22 @@ const Order = () => {
     try {
       setLoading(true);
       
-      // Fetch orders using vendorService
-      const data = await vendorService.getVendorOrders(vendorId);
+      // Fetch orders
+      const response = await axios.get(
+        `http://localhost:8080/api/orders/vendor/${vendorId}`,
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
       
-      if (Array.isArray(data)) {
-        console.log("Orders received from backend:", data);
-        setOrders(data);
+      if (Array.isArray(response.data)) {
+        console.log("Orders received from backend:", response.data);
+        setOrders(response.data);
       } else {
-        console.error("Orders response is not an array:", data);
+        console.error("Orders response is not an array:", response.data);
         setOrders([]);
       }
     } catch (err) {
       console.error("Error fetching orders:", err);
-      setError("Failed to load orders: " + err.message);
+      setError("Failed to load orders: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -250,10 +255,17 @@ const Order = () => {
     if (!selectedOrder || !newStatus) return;
     
     setProcessingUpdate(true);
+    const authToken = sessionStorage.getItem("authToken");
     
     try {
-      // Use orderService instead of direct axios call
-      await orderService.updateOrderStatus(selectedOrder.orderId, newStatus);
+      await axios.put(
+        `http://localhost:8080/api/orders/${selectedOrder.orderId}/status`,
+        null,
+        { 
+          headers: { Authorization: `Bearer ${authToken}` },
+          params: { status: newStatus }
+        }
+      );
       
       // Show success notification
       setNotification({
@@ -275,7 +287,7 @@ const Order = () => {
       // Show error notification
       setNotification({
         open: true,
-        message: `Failed to update order: ${error.message}`,
+        message: `Failed to update order: ${error.response?.data?.message || error.message}`,
         type: "error"
       });
     } finally {
@@ -337,17 +349,22 @@ const Order = () => {
   );
 
   const fetchOrderWithPaymentDetails = async (orderId) => {
+    const authToken = sessionStorage.getItem("authToken");
+    
     try {
       setLoadingPaymentDetails(true);
-      // Use orderService instead of direct axios call
-      const data = await orderService.getOrderWithPaymentDetails(orderId);
-      setSelectedOrderDetails(data);
+      const response = await axios.get(
+        `http://localhost:8080/api/orders/${orderId}/with-payment`,
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      
+      setSelectedOrderDetails(response.data);
       setPaymentDetailsDialogOpen(true);
     } catch (error) {
       console.error("Error fetching order payment details:", error);
       setNotification({
         open: true,
-        message: `Failed to load payment details: ${error.message}`,
+        message: `Failed to load payment details: ${error.response?.data?.message || error.message}`,
         type: "error"
       });
     } finally {
@@ -643,7 +660,7 @@ const Order = () => {
                             >
                               {order.product?.imageUrl ? (
                                 <img
-                                  src={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${order.product.imageUrl}`}
+                                  src={`http://localhost:8080${order.product.imageUrl}`}
                                   alt={order.product.name}
                                   style={{ width: '100%', height: '100%', objectFit: "contain" }}
                                 />
