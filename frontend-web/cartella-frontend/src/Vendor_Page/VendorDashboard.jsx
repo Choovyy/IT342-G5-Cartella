@@ -1,16 +1,11 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
-  AppBar, Toolbar, Typography, Drawer, Box, List, ListItem, 
-  ListItemText, IconButton, InputBase, Card, CardContent, 
-  Grid, Paper, CircularProgress, Alert, Snackbar
+  AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
+  ListItemText, IconButton, InputBase, CircularProgress, Alert, Snackbar
 } from "@mui/material";
+
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
-
-// Import API services
-import vendorService from "../api/vendorService";
-import orderService from "../api/orderService";
-import productService from "../api/productService";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -159,8 +154,18 @@ const VendorDashboard = () => {
         setIsLoading(true);
         setError("");
         
-        // Fetch dashboard summary data using vendorService
-        const summaryData = await vendorService.getVendorDashboardSummary(vendorId);
+        // Fetch summary data
+        const summaryResponse = await fetch(`http://localhost:8080/api/vendor-dashboard/${vendorId}/summary`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (!summaryResponse.ok) {
+          throw new Error('Failed to fetch summary data');
+        }
+        
+        const summaryData = await summaryResponse.json();
         
         // Update user details with data from API
         setUserDetails(prev => ({
@@ -177,8 +182,18 @@ const VendorDashboard = () => {
           totalSoldItems: summaryData.totalSoldItems || 0,
         });
         
-        // Fetch chart data using vendorService
-        const chartData = await vendorService.getVendorDashboardChartData(vendorId);
+        // Fetch chart data
+        const chartResponse = await fetch(`http://localhost:8080/api/vendor-dashboard/${vendorId}/chart-data`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (!chartResponse.ok) {
+          throw new Error('Failed to fetch chart data');
+        }
+        
+        const chartData = await chartResponse.json();
         
         // Set chart data
         setChartData({

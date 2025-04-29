@@ -5,7 +5,6 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
-import api from "../api/api"; // Import the API utility
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -37,9 +36,14 @@ const VendorWomenAccessories = () => {
       setLoading(false);
       return;
     }
-    // Use the API utility instead of direct fetch
-    api.get(`/products/vendor/${vendorId}/category/Women's Accessories`)
-      .then(response => setProducts(response.data))
+    fetch(`http://localhost:8080/api/products/vendor/${vendorId}/category/Women's Accessories`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch products");
+        return res.json();
+      })
+      .then(data => setProducts(data))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -211,7 +215,7 @@ const VendorWomenAccessories = () => {
                   {product.imageUrl ? (
                     <CardMedia
                       component="img"
-                      image={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${product.imageUrl}`}
+                      image={`http://localhost:8080${product.imageUrl}`}
                       alt={product.name}
                       sx={{
                         maxHeight: 210,

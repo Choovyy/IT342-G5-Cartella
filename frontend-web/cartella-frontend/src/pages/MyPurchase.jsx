@@ -26,8 +26,8 @@ import ReceiptIcon from "@mui/icons-material/Receipt";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import axios from "axios";
 import paymentService from "../api/paymentService";
-import orderService from "../api/orderService";
 
 const drawerWidth = 240;
 
@@ -81,8 +81,11 @@ const MyPurchase = () => {
       try {
         setLoading(true);
         
-        // Fetch orders using orderService
-        const ordersResponse = await orderService.getOrdersByUserId(userId, token);
+        // Fetch orders
+        const ordersResponse = await axios.get(
+          `http://localhost:8080/api/orders/${userId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         
         // Make sure orders is an array before setting state
         if (Array.isArray(ordersResponse.data)) {
@@ -179,13 +182,16 @@ const MyPurchase = () => {
     const userId = sessionStorage.getItem("userId");
     
     try {
-      // Use orderService instead of direct axios call
-      const response = await orderService.cancelOrder(selectedOrderId, token);
+      const response = await axios.post(
+        `http://localhost:8080/api/orders/${selectedOrderId}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       
       // Close dialog
       setCancelDialogOpen(false);
       
-      if (response.success) {
+      if (response.data.success) {
         // Show success notification
         setNotification({
           open: true,
@@ -193,8 +199,11 @@ const MyPurchase = () => {
           type: 'success'
         });
         
-        // Refresh orders list using orderService
-        const ordersResponse = await orderService.getOrdersByUserId(userId, token);
+        // Refresh orders list
+        const ordersResponse = await axios.get(
+          `http://localhost:8080/api/orders/${userId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         
         if (Array.isArray(ordersResponse.data)) {
           setOrders(ordersResponse.data);
@@ -203,7 +212,7 @@ const MyPurchase = () => {
         // Show error notification
         setNotification({
           open: true,
-          message: response.message || 'Failed to cancel order',
+          message: response.data.message || 'Failed to cancel order',
           type: 'error'
         });
       }
@@ -517,7 +526,6 @@ const MyPurchase = () => {
                       </Accordion>
                     </Grid>
                   ))}
-
               </Grid>
             ) : (
               <Box p={5} textAlign="center" bgcolor={mode === "light" ? "#F5F5F5" : "#2A2A2A"} borderRadius={2}>

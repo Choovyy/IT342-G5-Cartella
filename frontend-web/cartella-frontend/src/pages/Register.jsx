@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer, Slide } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
 import "./design/Login.css";
-import authService from "../api/authService";
 
 const Register = () => {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
-    phoneNumber: "",
   });
 
   const emailRef = useRef(null);
@@ -62,7 +61,8 @@ const Register = () => {
     }
 
     if (name === "password") {
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      const passwordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
       setFormData((prev) => ({ ...prev, password: value }));
       if (passwordRef.current) {
         if (!passwordRegex.test(value)) {
@@ -83,6 +83,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Final validity check
     if (
       !emailRef.current.checkValidity() ||
       !passwordRef.current.checkValidity() ||
@@ -92,41 +93,17 @@ const Register = () => {
     }
 
     try {
-      await authService.registerUser(formData);
-
-      toast.success("Registration Successful", {
-        position: "bottom-right",
-        closeButton: false,
-        style: {
-          backgroundColor: "#ffffff",
-          color: "#333333",
-          border: "1px solid #cccccc",
-          fontSize: "14px",
-          padding: "10px 15px",
-          borderRadius: "8px",
-          pointerEvents: "none",
-        }
-      });
-
-      setTimeout(() => {
-        navigate("/login");
-      }, 3000); // same 3s delay as login
+      const response = await axios.post(
+        "http://localhost:8080/api/users/register",
+        formData
+      );
+      toast.success("Registration Successful!");
+      navigate("/login");
     } catch (error) {
-      console.error("Register error:", error.response?.data);
-
-      toast.error(error.response?.data?.error || "An error occurred during registration", {
-        position: "bottom-right",
-        closeButton: false,
-        style: {
-          backgroundColor: "#ffffff",
-          color: "#ff3333",
-          border: "1px solid #cccccc",
-          fontSize: "14px",
-          padding: "10px 15px",
-          borderRadius: "8px",
-          pointerEvents: "none",
-        }
-      });
+      toast.error(
+        error.response?.data?.error ||
+        "An error occurred during registration."
+      );
     }
   };
 
@@ -141,6 +118,7 @@ const Register = () => {
 
       {/* RIGHT SIDE - REGISTER FORM */}
       <div className="login-form-container">
+        {/* TOP - LIGHT LOGO AND NAME */}
         <div className="logo-light-container">
           <img src={logoLight} alt="Cartella Light Logo" className="logo-light-image" />
           <h2 className="logo-light-name">Cartella</h2>
@@ -190,17 +168,6 @@ const Register = () => {
           </p>
         </form>
       </div>
-
-      {/* Toast Container */}
-      <ToastContainer
-        hideProgressBar={false}
-        closeButton={false}
-        newestOnTop={false}
-        pauseOnHover={false}
-        draggable={false}
-        autoClose={2000}
-        transition={Slide}
-      />
     </div>
   );
 };
