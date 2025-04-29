@@ -42,7 +42,7 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     console.log("Initiating Google login...");
-    const googleAuthUrl = "https://it342-g5-cartella.onrender.com/oauth2/authorization/google";
+    const googleAuthUrl = "https://it342-g5-cartella.onrender.com/login/oauth2/code/google";
     console.log("Redirecting to:", googleAuthUrl);
     window.location.href = googleAuthUrl;
   };
