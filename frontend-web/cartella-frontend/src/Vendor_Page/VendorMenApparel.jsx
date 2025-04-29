@@ -33,7 +33,7 @@ const VendorMenApparel = () => {
       setLoading(false);
       return;
     }
-    fetch(`http://localhost:8080/api/products/vendor/${vendorId}/category/Men's Apparel`, {
+    fetch(`https://it342-g5-cartella.onrender.com/api/products/vendor/${vendorId}/category/Men's Apparel`, {
       headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(res => {
@@ -214,7 +214,7 @@ const VendorMenApparel = () => {
                   {product.imageUrl ? (
                     <CardMedia
                       component="img"
-                      image={`http://localhost:8080${product.imageUrl}`}
+                      image={`https://it342-g5-cartella.onrender.com${product.imageUrl}`}
                       alt={product.name}
                       sx={{
                         maxHeight: 210,

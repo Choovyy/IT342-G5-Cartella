@@ -163,7 +163,7 @@ const Order = () => {
       
       // Fetch orders
       const response = await axios.get(
-        `http://localhost:8080/api/orders/vendor/${vendorId}`,
+        `https://it342-g5-cartella.onrender.com/api/orders/vendor/${vendorId}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       
@@ -259,7 +259,7 @@ const Order = () => {
     
     try {
       await axios.put(
-        `http://localhost:8080/api/orders/${selectedOrder.orderId}/status`,
+        `https://it342-g5-cartella.onrender.com/api/orders/${selectedOrder.orderId}/status`,
         null,
         { 
           headers: { Authorization: `Bearer ${authToken}` },
@@ -354,7 +354,7 @@ const Order = () => {
     try {
       setLoadingPaymentDetails(true);
       const response = await axios.get(
-        `http://localhost:8080/api/orders/${orderId}/with-payment`,
+        `https://it342-g5-cartella.onrender.com/api/orders/${orderId}/with-payment`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       
@@ -660,7 +660,7 @@ const Order = () => {
                             >
                               {order.product?.imageUrl ? (
                                 <img
-                                  src={`http://localhost:8080${order.product.imageUrl}`}
+                                  src={`https://it342-g5-cartella.onrender.com${order.product.imageUrl}`}
                                   alt={order.product.name}
                                   style={{ width: '100%', height: '100%', objectFit: "contain" }}
                                 />

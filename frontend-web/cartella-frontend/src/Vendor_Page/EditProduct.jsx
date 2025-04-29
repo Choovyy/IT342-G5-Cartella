@@ -56,7 +56,7 @@ const EditProduct = () => {
     }
 
     // Fetch categories
-    fetch("http://localhost:8080/api/products/categories", {
+    fetch("https://it342-g5-cartella.onrender.com/api/products/categories", {
       headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(res => {
@@ -72,7 +72,7 @@ const EditProduct = () => {
       });
 
     // Fetch product details
-    fetch(`http://localhost:8080/api/products/${productId}`, {
+    fetch(`https://it342-g5-cartella.onrender.com/api/products/${productId}`, {
       headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(res => {
@@ -89,7 +89,7 @@ const EditProduct = () => {
           image: null
         });
         if (data.imageUrl) {
-          setImagePreview(`http://localhost:8080${data.imageUrl}`);
+          setImagePreview(`https://it342-g5-cartella.onrender.com${data.imageUrl}`);
         }
         setLoading(false);
       })
@@ -164,7 +164,7 @@ const EditProduct = () => {
       productFormData.append("image", formData.image);
     }
 
-    fetch(`http://localhost:8080/api/products/${productId}`, {
+    fetch(`https://it342-g5-cartella.onrender.com/api/products/${productId}`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${authToken}`

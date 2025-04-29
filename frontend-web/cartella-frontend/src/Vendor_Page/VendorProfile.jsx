@@ -121,7 +121,7 @@ const VendorProfile = () => {
     const fetchVendorProfile = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`http://localhost:8080/api/vendors/${vendorId}`, {
+        const response = await fetch(`https://it342-g5-cartella.onrender.com/api/vendors/${vendorId}`, {
           headers: {
             'Authorization': `Bearer ${authToken}`
           }
@@ -225,7 +225,7 @@ const VendorProfile = () => {
       const authToken = sessionStorage.getItem("authToken");
       const vendorId = sessionStorage.getItem("vendorId");
       
-      const response = await fetch(`http://localhost:8080/api/vendors/${vendorId}`, {
+      const response = await fetch(`https://it342-g5-cartella.onrender.com/api/vendors/${vendorId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -371,7 +371,7 @@ const VendorProfile = () => {
       const username = sessionStorage.getItem("username");
       
       // First, verify the current password
-      const verifyResponse = await fetch(`http://localhost:8080/api/auth/verify-password`, {
+      const verifyResponse = await fetch(`https://it342-g5-cartella.onrender.com/api/auth/verify-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -389,7 +389,7 @@ const VendorProfile = () => {
       }
       
       // If current password is correct, proceed with password change
-      const response = await fetch(`http://localhost:8080/api/users/username/${username}`, {
+      const response = await fetch(`https://it342-g5-cartella.onrender.com/api/users/username/${username}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -503,7 +503,7 @@ const VendorProfile = () => {
       const authToken = sessionStorage.getItem("authToken");
       const username = sessionStorage.getItem("username");
       
-      const response = await fetch(`http://localhost:8080/api/users/username/${username}`, {
+      const response = await fetch(`https://it342-g5-cartella.onrender.com/api/users/username/${username}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

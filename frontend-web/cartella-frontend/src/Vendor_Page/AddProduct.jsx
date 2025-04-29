@@ -48,7 +48,7 @@ const AddProduct = () => {
     }
 
     // Fetch categories
-    fetch("http://localhost:8080/api/products/categories", {
+    fetch("https://it342-g5-cartella.onrender.com/api/products/categories", {
       headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(res => {
@@ -127,7 +127,7 @@ const AddProduct = () => {
       productFormData.append("image", formData.image);
     }
 
-    fetch(`http://localhost:8080/api/products/${vendorId}`, {
+    fetch(`https://it342-g5-cartella.onrender.com/api/products/${vendorId}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${authToken}`

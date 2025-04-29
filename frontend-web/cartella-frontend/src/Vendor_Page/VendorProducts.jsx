@@ -47,7 +47,7 @@ const VendorProducts = () => {
     }
 
     // Fetch categories
-    fetch("http://localhost:8080/api/products/categories", {
+    fetch("https://it342-g5-cartella.onrender.com/api/products/categories", {
       headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(res => {
@@ -60,7 +60,7 @@ const VendorProducts = () => {
       .catch(err => setError("Failed to load categories: " + err.message));
 
     // Fetch products
-    fetch(`http://localhost:8080/api/products/vendor/${vendorId}`, {
+    fetch(`https://it342-g5-cartella.onrender.com/api/products/vendor/${vendorId}`, {
       headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(res => {
@@ -127,7 +127,7 @@ const VendorProducts = () => {
       return;
     }
 
-    fetch(`http://localhost:8080/api/products/${productToDelete.productId}`, {
+    fetch(`https://it342-g5-cartella.onrender.com/api/products/${productToDelete.productId}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${authToken}`
@@ -335,7 +335,7 @@ const VendorProducts = () => {
                     {product.imageUrl ? (
                       <CardMedia
                         component="img"
-                        image={`http://localhost:8080${product.imageUrl}`}
+                        image={`https://it342-g5-cartella.onrender.com${product.imageUrl}`}
                         alt={product.name}
                         sx={{
                           height: 200,

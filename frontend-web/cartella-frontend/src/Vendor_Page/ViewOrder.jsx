@@ -86,7 +86,7 @@ const ViewOrder = () => {
     }
 
     // Fetch order details
-    fetch(`http://localhost:8080/api/orders/${orderId}`, {
+    fetch(`https://it342-g5-cartella.onrender.com/api/orders/${orderId}`, {
       headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(res => {
@@ -115,7 +115,7 @@ const ViewOrder = () => {
   const handleConfirmOrder = () => {
     const authToken = sessionStorage.getItem("authToken");
     
-    fetch(`http://localhost:8080/api/orders/${orderId}/confirm`, {
+    fetch(`https://it342-g5-cartella.onrender.com/api/orders/${orderId}/confirm`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${authToken}`
@@ -138,7 +138,7 @@ const ViewOrder = () => {
     const newStatus = event.target.value;
     const authToken = sessionStorage.getItem("authToken");
     
-    fetch(`http://localhost:8080/api/orders/${orderId}/status`, {
+    fetch(`https://it342-g5-cartella.onrender.com/api/orders/${orderId}/status`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -281,7 +281,7 @@ const ViewOrder = () => {
                 <Box display="flex" alignItems="flex-start" gap={3}>
                   {order.product.imageUrl ? (
                     <img
-                      src={`http://localhost:8080${order.product.imageUrl}`}
+                      src={`https://it342-g5-cartella.onrender.com${order.product.imageUrl}`}
                       alt={order.product.name}
                       style={{ width: 160, height: "auto", borderRadius: 8 }}
                     />
