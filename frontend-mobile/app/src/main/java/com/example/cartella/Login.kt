@@ -21,6 +21,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.POST
 
+
 class Login : AppCompatActivity() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
@@ -33,7 +34,7 @@ class Login : AppCompatActivity() {
 
         // Initialize Retrofit for API communication
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://your-api-base-url.com/") // Replace with your actual API URL
+            .baseUrl("https://it342-g5-cartella.onrender.com/") // Replace with your actual API URL
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
