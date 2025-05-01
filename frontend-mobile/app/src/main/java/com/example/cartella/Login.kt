@@ -21,7 +21,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.POST
 
-
 class Login : AppCompatActivity() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
@@ -32,15 +31,13 @@ class Login : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.login)
 
-        // Initialize Retrofit for API communication
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://it342-g5-cartella.onrender.com/") // Replace with your actual API URL
+            .baseUrl("https://it342-g5-cartella.onrender.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
         apiService = retrofit.create(ApiService::class.java)
 
-        // Configure Google Sign In
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -48,7 +45,6 @@ class Login : AppCompatActivity() {
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Regular login button
         val loginButton = findViewById<Button>(R.id.btnSignUp)
         val usernameEditText = findViewById<EditText>(R.id.editTextUsername)
         val passwordEditText = findViewById<EditText>(R.id.editTextPassword)
@@ -61,143 +57,92 @@ class Login : AppCompatActivity() {
                 Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-
-            // Sign in with email/username and password
             signInWithCredentials(username, password)
         }
 
-        // Google Sign-In button
         val googleButton = findViewById<Button>(R.id.btnGoogle)
-        googleButton.setOnClickListener {
-            signInWithGoogle()
-        }
+        googleButton.setOnClickListener { signInWithGoogle() }
 
-        // Navigate to Register screen
-        val bottomLinks = findViewById<TextView>(R.id.bottomLinks)
-        bottomLinks.setOnClickListener {
+        findViewById<TextView>(R.id.bottomLinks).setOnClickListener {
             startActivity(Intent(this, Register::class.java))
         }
     }
 
     private fun signInWithCredentials(username: String, password: String) {
-        val loginRequest = LoginRequest(username, password)
-
-        apiService.login(loginRequest).enqueue(object : Callback<LoginResponse> {
+        apiService.login(LoginRequest(username, password)).enqueue(object : Callback<LoginResponse> {
             override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
                 if (response.isSuccessful && response.body() != null) {
                     val loginResponse = response.body()!!
-
-                    // Save the auth token to shared preferences
-                    val sharedPref = getSharedPreferences("CartellaPref", MODE_PRIVATE)
-                    with(sharedPref.edit()) {
+                    getSharedPreferences("CartellaPref", MODE_PRIVATE).edit().apply {
                         putString("auth_token", loginResponse.token)
                         putString("user_id", loginResponse.userId)
                         putString("username", loginResponse.username)
+                        putString("user_type", loginResponse.userType)
                         apply()
                     }
-
-                    Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()
-                    navigateToProfile()
+                    navigateToDashboard(loginResponse.userType)
                 } else {
-                    Toast.makeText(this@Login,
-                        "Authentication failed: ${response.errorBody()?.string()}",
-                        Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@Login, "Login failed", Toast.LENGTH_SHORT).show()
                 }
             }
 
             override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
-                Toast.makeText(this@Login,
-                    "Login failed: ${t.message}",
-                    Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@Login, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         })
     }
 
     private fun signInWithGoogle() {
-        val signInIntent = googleSignInClient.signInIntent
-        startActivityForResult(signInIntent, RC_SIGN_IN)
+        startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-
         if (requestCode == RC_SIGN_IN) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            handleGoogleSignInResult(task)
+            GoogleSignIn.getSignedInAccountFromIntent(data).let { handleGoogleSignInResult(it) }
         }
     }
 
     private fun handleGoogleSignInResult(completedTask: Task<GoogleSignInAccount>) {
         try {
-            val account = completedTask.getResult(ApiException::class.java)
-            // Google Sign In was successful, authenticate with your backend server
-            val idToken = account.idToken!!
-            val googleAuthRequest = GoogleAuthRequest(idToken)
-
-            apiService.googleAuth(googleAuthRequest).enqueue(object : Callback<LoginResponse> {
-                override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
-                    if (response.isSuccessful && response.body() != null) {
-                        val loginResponse = response.body()!!
-
-                        // Save the auth token
-                        val sharedPref = getSharedPreferences("CartellaPref", MODE_PRIVATE)
-                        with(sharedPref.edit()) {
-                            putString("auth_token", loginResponse.token)
-                            putString("user_id", loginResponse.userId)
-                            putString("username", loginResponse.username)
-                            apply()
+            completedTask.getResult(ApiException::class.java)?.let { account ->
+                apiService.googleAuth(GoogleAuthRequest(account.idToken!!)).enqueue(object : Callback<LoginResponse> {
+                    override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                        if (response.isSuccessful && response.body() != null) {
+                            val loginResponse = response.body()!!
+                            getSharedPreferences("CartellaPref", MODE_PRIVATE).edit().apply {
+                                putString("auth_token", loginResponse.token)
+                                putString("user_id", loginResponse.userId)
+                                putString("username", loginResponse.username)
+                                putString("user_type", loginResponse.userType)
+                                apply()
+                            }
+                            navigateToDashboard(loginResponse.userType)
                         }
-
-                        Toast.makeText(this@Login, "Google login successful", Toast.LENGTH_SHORT).show()
-                        navigateToProfile()
-                    } else {
-                        Toast.makeText(this@Login,
-                            "Google authentication failed: ${response.errorBody()?.string()}",
-                            Toast.LENGTH_SHORT).show()
                     }
-                }
 
-                override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
-                    Toast.makeText(this@Login,
-                        "Google login failed: ${t.message}",
-                        Toast.LENGTH_SHORT).show()
-                }
-            })
-
+                    override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+                        Toast.makeText(this@Login, "Google login failed", Toast.LENGTH_SHORT).show()
+                    }
+                })
+            }
         } catch (e: ApiException) {
-            // Google Sign In failed
-            Toast.makeText(this, "Google sign in failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Google error: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun navigateToProfile() {
-        val intent = Intent(this, Profile::class.java)
-        startActivity(intent)
-        finish() // Close login activity
+    private fun navigateToDashboard(userType: String) {
+        val target = if (userType == "vendor") VendorDashboard::class.java else Dashboard::class.java
+        startActivity(Intent(this, target))
+        finish()
     }
 }
 
-// Data classes for API requests and responses
-data class LoginRequest(
-    val username: String,
-    val password: String
-)
+data class LoginRequest(val username: String, val password: String)
+data class GoogleAuthRequest(val idToken: String)
+data class LoginResponse(val token: String, val userId: String, val username: String, val userType: String)
 
-data class GoogleAuthRequest(
-    val idToken: String
-)
-
-data class LoginResponse(
-    val token: String,
-    val userId: String,
-    val username: String
-)
-
-// Retrofit interface for API calls
 interface ApiService {
-    @POST("api/login")
-    fun login(@Body loginRequest: LoginRequest): Call<LoginResponse>
-
-    @POST("api/auth/google")
-    fun googleAuth(@Body googleAuthRequest: GoogleAuthRequest): Call<LoginResponse>
+    @POST("api/login") fun login(@Body loginRequest: LoginRequest): Call<LoginResponse>
+    @POST("api/auth/google") fun googleAuth(@Body googleAuthRequest: GoogleAuthRequest): Call<LoginResponse>
 }

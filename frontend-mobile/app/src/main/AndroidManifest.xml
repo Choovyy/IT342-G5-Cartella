@@ -13,6 +13,12 @@
         android:theme="@style/Theme.Cartella"
         tools:targetApi="31">
 
+        <activity android:name=".Login" />
+        <activity android:name=".Register" />
+        <activity android:name=".VendorLogin"/>
+        <activity android:name=".VendorDashboard"/>
+        <activity android:name="Dashboard"/>
+
         <activity
             android:name=".LandingPage"
             android:exported="true">
@@ -22,10 +28,8 @@
             </intent-filter>
         </activity>
 
-        <!-- 👇 Add this line -->
-        <activity android:name=".Login" />
-
     </application>
+
 
 
 </manifest>
