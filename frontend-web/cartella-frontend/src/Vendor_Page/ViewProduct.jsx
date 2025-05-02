@@ -101,7 +101,7 @@ const ViewProduct = () => {
       <List>
         <ListItem button onClick={handleLogout}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>

@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, CircularProgress
+  ListItemText, IconButton, InputBase, CircularProgress, Modal, Button
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -27,6 +27,8 @@ import {
 const drawerWidth = 240;
 
 const VendorDashboard = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [userDetails, setUserDetails] = useState({
     username: "",
     userId: "",
@@ -64,23 +66,7 @@ const VendorDashboard = () => {
     const authToken = sessionStorage.getItem("authToken");
 
     if (!authToken || !vendorId) {
-      toast.info("You are not logged in. Redirecting to Vendor Login", {
-        position: "bottom-right",
-        closeButton: false,
-        style: {
-          backgroundColor: "#ffffff",
-          color: "#2196F3",
-          border: "1px solid #cccccc",
-          fontSize: "14px",
-          padding: "10px 15px",
-          borderRadius: "8px",
-          pointerEvents: "none",
-        },
-      });
-
-      setTimeout(() => {
-        navigate("/vendor-login");
-      }, 2000);
+      setIsModalOpen(true);
       return;
     }
 
@@ -157,6 +143,11 @@ const VendorDashboard = () => {
     fetchDashboardData();
   }, [navigate]);
 
+  const handleLoginRedirect = () => {
+    setIsModalOpen(false);
+    navigate("/vendor-login");
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
     sessionStorage.removeItem("username");
@@ -164,25 +155,7 @@ const VendorDashboard = () => {
     sessionStorage.removeItem("vendorId");
     sessionStorage.removeItem("businessName");
     sessionStorage.removeItem("joinedDate");
-    console.log("User logged out");
-
-    toast.info("Logging Out", {
-      position: "bottom-right",
-      closeButton: false,
-      style: {
-        backgroundColor: "#ffffff",
-        color: "#2196F3",
-        border: "1px solid #cccccc",
-        fontSize: "14px",
-        padding: "10px 15px",
-        borderRadius: "8px",
-        pointerEvents: "none",
-      },
-    });
-
-    setTimeout(() => {
-      navigate("/vendor-login");
-    }, 2000);
+    navigate("/vendor-login");
   };
 
   const handleSearch = () => {
@@ -212,9 +185,9 @@ const VendorDashboard = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -386,11 +359,29 @@ const VendorDashboard = () => {
               >
                 <Typography variant="h6" align="center">Total Orders</Typography>
                 <LineChart
-                  xAxis={[{ data: chartData.labels }]}
-                  series={[{ data: chartData.orders, label: "Orders", color: "#F44336" }]}
+                  xAxis={[{ data: chartData.labels, scaleType: 'point' }]}
+                  series={[{
+                    data: chartData.orders,
+                    label: "Orders",
+                    color: "#F44336",
+                    area: true,
+                    showMark: true,
+                    curve: "linear",
+                  }]}
                   width={480}
                   height={280}
-                  sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
+                  sx={{
+                    '.MuiLineElement-root': {
+                      strokeWidth: 2,
+                      strokeLinecap: 'round',
+                    },
+                    '.MuiMarkElement-root': {
+                      stroke: '#F44336',
+                      scale: '0.6',
+                      fill: '#fff',
+                      strokeWidth: 2,
+                    },
+                  }}
                 />
               </Box>
 
@@ -405,11 +396,29 @@ const VendorDashboard = () => {
               >
                 <Typography variant="h6" align="center">Total Products</Typography>
                 <LineChart
-                  xAxis={[{ data: chartData.labels }]}
-                  series={[{ data: chartData.products, label: "Products", color: "#2196F3" }]}
+                  xAxis={[{ data: chartData.labels, scaleType: 'point' }]}
+                  series={[{
+                    data: chartData.products,
+                    label: "Products",
+                    color: "#2196F3",
+                    area: true,
+                    showMark: true,
+                    curve: "linear",
+                  }]}
                   width={480}
                   height={280}
-                  sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
+                  sx={{
+                    '.MuiLineElement-root': {
+                      strokeWidth: 2,
+                      strokeLinecap: 'round',
+                    },
+                    '.MuiMarkElement-root': {
+                      stroke: '#2196F3',
+                      scale: '0.6',
+                      fill: '#fff',
+                      strokeWidth: 2,
+                    },
+                  }}
                 />
               </Box>
             </Box>
@@ -426,17 +435,131 @@ const VendorDashboard = () => {
               >
                 <Typography variant="h6" align="center">Total Revenue</Typography>
                 <LineChart
-                  xAxis={[{ data: chartData.labels }]}
-                  series={[{ data: chartData.revenue, label: "Revenue (₱)", color: "#4CAF50" }]}
+                  xAxis={[{ data: chartData.labels, scaleType: 'point' }]}
+                  series={[{
+                    data: chartData.revenue,
+                    label: "Revenue (₱)",
+                    color: "#4CAF50",
+                    area: true,
+                    showMark: true,
+                    curve: "linear",
+                  }]}
                   width={1000}
                   height={280}
-                  sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
+                  sx={{
+                    '.MuiLineElement-root': {
+                      strokeWidth: 2,
+                      strokeLinecap: 'round',
+                    },
+                    '.MuiMarkElement-root': {
+                      stroke: '#4CAF50',
+                      scale: '0.6',
+                      fill: '#fff',
+                      strokeWidth: 2,
+                    },
+                  }}
                 />
               </Box>
             </Box>
           </>
         )}
       </Box>
+
+      {/* Modal for Not Logged In */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => {}}
+        aria-labelledby="not-logged-in-modal"
+        aria-describedby="not-logged-in-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="not-logged-in-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Modal for Logout Confirmation */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
 
       <ToastContainer
         hideProgressBar={false}

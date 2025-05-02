@@ -57,6 +57,9 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("email");
+    sessionStorage.removeItem("username");
+    sessionStorage.removeItem("userId");
     navigate("/login");
   };
 
@@ -120,7 +123,7 @@ const Dashboard = () => {
       <List>
         <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -213,21 +216,21 @@ const Dashboard = () => {
         sx={{
           flexGrow: 1,
           bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+          color: mode === "light" ? "#000" : "#FFF",
           p: 3,
           mt: 8,
-          color: mode === "light" ? "#000" : "#FFF",
-          height: "calc(100vh - 64px)", // Subtract the AppBar height
-          overflow: "hidden", // Prevent double scrollbars
+          overflow: "auto",
+          height: "92vh",
         }}
       >
+        <Typography variant="h4" gutterBottom>
+          Categories
+        </Typography>
         <Box
           sx={{
             width: "100%",
             maxWidth: "1200px",
             mx: "auto",
-            overflowY: "auto",
-            pr: 2, // Add padding for the scrollbar
-            height: "100%",
             "&::-webkit-scrollbar": {
               width: "8px",
             },
@@ -244,9 +247,6 @@ const Dashboard = () => {
             },
           }}
         >
-          <Typography variant="h4" gutterBottom>
-            Categories
-          </Typography>
           <Grid container spacing={20} justifyContent="center">
             {/* Top Row */}
             {[0, 1, 2].map((i) => {

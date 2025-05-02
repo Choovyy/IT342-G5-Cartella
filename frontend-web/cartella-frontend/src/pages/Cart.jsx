@@ -8,7 +8,7 @@ import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
   CardContent, CircularProgress, Alert, Button, Divider,
-  Checkbox, FormControlLabel, FormGroup
+  Checkbox, FormControlLabel, Modal
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -37,6 +37,8 @@ const Cart = () => {
   const [totalPrice, setTotalPrice] = useState(0);
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -44,14 +46,18 @@ const Cart = () => {
     const userId = sessionStorage.getItem("userId");
     
     if (!token || !email || !userId) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setIsAuthModalOpen(true);
       return;
     }
 
     // Fetch cart items
     fetchCartItems(userId, token);
   }, [navigate]);
+
+  const handleLoginRedirect = () => {
+    setIsAuthModalOpen(false);
+    navigate("/login");
+  };
 
   // Handle selected items and total price updates when cart items change
   useEffect(() => {
@@ -315,9 +321,9 @@ const Cart = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -424,7 +430,22 @@ const Cart = () => {
             <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
           ) : cartItems.length === 0 ? (
             <Typography align="center" sx={{ mt: 10 }}>
-              Your cart is empty. <Button color="primary" onClick={() => navigate("/dashboard")}>Continue Shopping</Button>
+              Your cart is empty. 
+              <Button 
+                color="primary" 
+                onClick={() => navigate("/dashboard")}
+                sx={{ 
+                  bgcolor: "#D32F2F",
+                  "&:hover": { bgcolor: "#B71C1C" },
+                  textTransform: "none",
+                  fontWeight: "100",
+                  fontSize: "1rem",
+                  color: "#fff",
+                  ml: '15px'
+                }}
+              >
+                Continue Shopping
+              </Button>
             </Typography>
           ) : (
             <>
@@ -561,6 +582,102 @@ const Cart = () => {
           )}
         </Box>
       </Box>
+
+      {/* Add Logout Modal at the end of the component */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+      {/* Authentication Modal */}
+      <Modal
+        open={isAuthModalOpen}
+        onClose={() => {}}
+        aria-labelledby="auth-modal"
+        aria-describedby="auth-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="auth-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
     </Box>
   );
 };

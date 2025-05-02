@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast, ToastContainer, Slide } from "react-toastify";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
 import googleLogo from "../images/google logo.png";
@@ -32,11 +33,39 @@ const Login = () => {
       sessionStorage.setItem("username", formData.username);
       sessionStorage.setItem("userId", response.data.userId);
       sessionStorage.setItem("email", response.data.email);
-      alert("Login Successful!");
-      navigate("/dashboard");
+      
+      toast.success("Logging In", {
+        position: "bottom-right",
+        closeButton: false,
+        style: {
+          backgroundColor: "#ffffff",
+          color: "#333333",
+          border: "1px solid #cccccc",
+          fontSize: "14px",
+          padding: "10px 15px",
+          borderRadius: "8px",
+          pointerEvents: "none",
+        }
+      });
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 3000);
     } catch (error) {
-      console.error("Login error:", error.response?.data);
-      alert(error.response?.data?.error || "Invalid credentials");
+      console.error("Login error:", error.response?.data);      
+      toast.error("Invalid Credentials", {
+        position: "bottom-right",
+        closeButton: false,
+        style: {
+          backgroundColor: "#ffffff",
+          color: "#ff3333",
+          border: "1px solid #cccccc",
+          fontSize: "14px",
+          padding: "10px 15px",
+          borderRadius: "8px",
+          pointerEvents: "none",
+        }
+      });
     }
   };
 
@@ -110,6 +139,17 @@ const Login = () => {
           </p>
         </form>
       </div>
+      
+      {/* Toast Container */}
+      <ToastContainer
+        hideProgressBar={false}
+        closeButton={false}
+        newestOnTop={false}
+        pauseOnHover={false}
+        draggable={false}
+        autoClose={2000}
+        transition={Slide}
+      />
     </div>
   );
 };
