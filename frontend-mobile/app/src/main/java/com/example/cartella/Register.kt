@@ -48,25 +48,34 @@ class Register : AppCompatActivity() {
         val password = passwordEdit.text.toString().trim()
         val phone = numberEdit.text.toString().trim()
 
+        // Check if any of the fields are empty
         if (username.isEmpty() || email.isEmpty() || password.isEmpty() || phone.isEmpty()) {
             Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
             return
         }
 
+        // Proceed with registration if all fields are valid
         val request = RegisterRequest(username, email, password, phone)
 
         RetrofitClient.instance.registerUser(request).enqueue(object : Callback<RegisterResponse> {
             override fun onResponse(call: Call<RegisterResponse>, response: Response<RegisterResponse>) {
+                // Check if response is successful
                 if (response.isSuccessful && response.body() != null) {
                     Toast.makeText(this@Register, "Registered successfully", Toast.LENGTH_LONG).show()
                     startActivity(Intent(this@Register, Login::class.java))
                     finish()
                 } else {
-                    Toast.makeText(this@Register, "Registration failed", Toast.LENGTH_LONG).show()
+                    // Handle error if the response is not successful
+                    if (response.code() == 400) {
+                        Toast.makeText(this@Register, "Bad Request: Please check your input.", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(this@Register, "Registration failed: ${response.message()}", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
 
             override fun onFailure(call: Call<RegisterResponse>, t: Throwable) {
+                // Display error message if request fails
                 Toast.makeText(this@Register, "Error: ${t.message}", Toast.LENGTH_LONG).show()
             }
         })
