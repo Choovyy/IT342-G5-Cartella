@@ -47,4 +47,14 @@ public class NotificationService {
     public void deleteNotification(Long notificationId) {
         notificationRepository.deleteById(notificationId);
     }
+
+    public void addPaymentNotification(Long userId, String paymentDetails) {
+        String message = "Payment successful: " + paymentDetails;
+        createNotification(userId, message);
+    }
+
+    public void addOrderStatusNotification(Long userId, String orderStatus, String orderDetails) {
+        String message = "Order " + orderStatus + ": " + orderDetails;
+        createNotification(userId, message);
+    }
 }

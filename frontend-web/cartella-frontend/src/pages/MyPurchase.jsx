@@ -28,6 +28,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import axios from "axios";
 import paymentService from "../api/paymentService";
+import addressService from "../api/addressService";
 
 const drawerWidth = 240;
 
@@ -90,7 +91,14 @@ const MyPurchase = () => {
         
         // Make sure orders is an array before setting state
         if (Array.isArray(ordersResponse.data)) {
-          setOrders(ordersResponse.data);
+          // Enhance orders with complete address information
+          let enhancedOrders = await fetchOrderAddresses(ordersResponse.data);
+          
+          // Additionally enhance orders with complete product information
+          enhancedOrders = await enhanceOrderItemsWithProducts(enhancedOrders);
+          
+          console.log("Orders with enhanced address and product info:", enhancedOrders);
+          setOrders(enhancedOrders);
         } else {
           console.error("Orders response is not an array:", ordersResponse.data);
           setOrders([]);
@@ -240,6 +248,125 @@ const MyPurchase = () => {
 
   const closeNotification = () => {
     setNotification({...notification, open: false});
+  };
+
+  // Fetch order addresses and enhance orders with complete address information
+  const fetchOrderAddresses = async (orders) => {
+    try {
+      const token = sessionStorage.getItem("authToken");
+      const userId = sessionStorage.getItem("userId");
+      
+      if (!token || !userId || !Array.isArray(orders)) {
+        return orders;
+      }
+      
+      // Get addresses for the user
+      let addresses = [];
+      const email = sessionStorage.getItem("email");
+      const username = sessionStorage.getItem("username");
+      
+      if (email) {
+        console.log("Fetching addresses for email:", email);
+        addresses = await addressService.getAddressesByEmail(email);
+      } else if (username) {
+        console.log("Fetching addresses for username:", username);
+        addresses = await addressService.getAddressesByUsername(username);
+      }
+      
+      console.log("All addresses:", addresses);
+      
+      // Enhance orders with address details
+      const enhancedOrders = orders.map(order => {
+        // If order already has complete address info, don't modify it
+        if (order.address && order.address.streetAddress) {
+          return order;
+        }
+        
+        // Otherwise, try to find matching address
+        const orderAddress = order.address || {};
+        const addressId = orderAddress.addressId;
+        
+        if (addressId) {
+          const fullAddress = addresses.find(addr => addr.addressId === addressId);
+          if (fullAddress) {
+            return {
+              ...order,
+              address: {
+                ...orderAddress,
+                ...fullAddress
+              }
+            };
+          }
+        }
+        
+        return order;
+      });
+      
+      return enhancedOrders;
+    } catch (error) {
+      console.error("Error fetching order addresses:", error);
+      return orders;
+    }
+  };
+
+  // Enhance order items with complete product information
+  const enhanceOrderItemsWithProducts = async (orders) => {
+    try {
+      const token = sessionStorage.getItem("authToken");
+      
+      if (!token || !Array.isArray(orders)) {
+        return orders;
+      }
+      
+      // Process each order to enhance its order items with complete product information
+      const enhancedOrders = await Promise.all(orders.map(async (order) => {
+        // Skip if order has no items
+        if (!order.orderItems || !Array.isArray(order.orderItems) || order.orderItems.length === 0) {
+          return order;
+        }
+        
+        // Process each order item
+        const enhancedItems = await Promise.all(order.orderItems.map(async (item) => {
+          // Skip if item already has complete product info
+          if (item.product && item.product.name && item.product.description) {
+            return item;
+          }
+          
+          // If item has product ID but incomplete product info, fetch the complete product
+          if (item.product && item.product.productId) {
+            try {
+              console.log(`Fetching complete product info for product ID: ${item.product.productId}`);
+              const productResponse = await axios.get(
+                `https://it342-g5-cartella.onrender.com/api/products/${item.product.productId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              
+              if (productResponse.data) {
+                console.log(`Enhanced product info retrieved for ID ${item.product.productId}`);
+                return {
+                  ...item,
+                  product: productResponse.data
+                };
+              }
+            } catch (productError) {
+              console.error(`Error fetching product ${item.product.productId}:`, productError);
+            }
+          }
+          
+          return item;
+        }));
+        
+        return {
+          ...order,
+          orderItems: enhancedItems
+        };
+      }));
+      
+      return enhancedOrders;
+    } catch (error) {
+      console.error("Error enhancing order items with products:", error);
+      return orders;
+    }
   };
 
   return (
@@ -425,10 +552,14 @@ const MyPurchase = () => {
                                   <Grid container spacing={2} alignItems="center">
                                     <Grid item xs={7}>
                                       <Typography variant="body1" fontWeight="600">
-                                        {item.product ? item.product.name : "Product Unavailable"}
+                                        {item.product && (item.product.name || item.product.productId) ? 
+                                          item.product.name : 
+                                          (item.productName || "Product Unavailable")}
                                       </Typography>
                                       <Typography variant="body2" color="text.secondary">
-                                        {item.product ? item.product.description : "No description available"}
+                                        {item.product && item.product.description ? 
+                                          item.product.description : 
+                                          (item.productDescription || "No description available")}
                                       </Typography>
                                     </Grid>
                                     <Grid item xs={2}>
@@ -462,19 +593,32 @@ const MyPurchase = () => {
                                     </Typography>
                                     {order.address ? (
                                       <>
-                                        <Typography variant="body2">
-                                          {order.address.streetAddress || "No street address provided"}
+                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                          <strong>Full Name:</strong> {order.address.fullName || order.user?.username || "Not provided"}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                          <strong>Street Address:</strong> {order.address.streetAddress || "No street address provided"}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                          <strong>City/Region:</strong> {order.address.city ? 
+                                            `${order.address.city}${order.address.state ? `, ${order.address.state}` : ""}` : 
+                                            "No city information provided"}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                          <strong>Postal Code:</strong> {order.address.postalCode || "Not provided"}
                                         </Typography>
                                         <Typography variant="body2">
-                                          {order.address.city ? `${order.address.city}, ${order.address.state || ""} ${order.address.postalCode || ""}` : "No city information provided"}
+                                          <strong>Country:</strong> {order.address.country || "No country information provided"}
                                         </Typography>
-                                        <Typography variant="body2">
-                                          {order.address.country || "No country information provided"}
-                                        </Typography>
+                                        {order.address.phoneNumber && (
+                                          <Typography variant="body2" sx={{ mt: 1 }}>
+                                            <strong>Phone:</strong> {order.address.phoneNumber}
+                                          </Typography>
+                                        )}
                                       </>
                                     ) : (
                                       <Typography variant="body2" color="text.secondary">
-                                        Address information not available
+                                        Address information not available.
                                       </Typography>
                                     )}
                                   </CardContent>

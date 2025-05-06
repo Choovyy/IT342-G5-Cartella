@@ -4,6 +4,7 @@ import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Modal, Button
 } from "@mui/material";
+import axios from "axios";
 
 import { ColorModeContext } from "../ThemeContext";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -24,6 +25,9 @@ const Notification = () => {
   const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -31,7 +35,67 @@ const Notification = () => {
       setIsModalOpen(true);
       return;
     }
+
+    fetchNotifications();
   }, [navigate]);
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const userId = sessionStorage.getItem("userId");
+      const response = await axios.get(
+        `https://it342-g5-cartella.onrender.com/api/notifications/${userId}`,
+        {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("authToken")}` },
+        }
+      );
+      setNotifications(response.data);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+      setError("Failed to load notifications. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      await axios.put(
+        `https://it342-g5-cartella.onrender.com/api/notifications/${notificationId}/read`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("authToken")}` },
+        }
+      );
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification.notificationId === notificationId
+            ? { ...notification, isRead: true }
+            : notification
+        )
+      );
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  };
+
+  const deleteNotification = async (notificationId) => {
+    try {
+      await axios.delete(
+        `https://it342-g5-cartella.onrender.com/api/notifications/${notificationId}`,
+        {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("authToken")}` },
+        }
+      );
+      setNotifications((prev) =>
+        prev.filter((notification) => notification.notificationId !== notificationId)
+      );
+    } catch (err) {
+      console.error("Error deleting notification:", err);
+    }
+  };
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
@@ -80,6 +144,74 @@ const Notification = () => {
       </List>
     </Box>
   );
+
+  const renderNotifications = () => {
+    if (loading) return <p>Loading notifications...</p>;
+    if (error) return <p>{error}</p>;
+    if (notifications.length === 0) return <p>No notifications available.</p>;
+
+    return notifications.map((notification) => (
+      <div key={notification.notificationId} style={{ marginBottom: "1rem", border: "1px solid #ccc", padding: "1rem", borderRadius: "8px" }}>
+        <h4>{notification.message}</h4>
+        <p><strong>Created At:</strong> {new Date(notification.createdAt).toLocaleString()}</p>
+        {notification.paymentDetails && (
+          <p><strong>Payment:</strong> {notification.paymentDetails}</p>
+        )}
+        {notification.orderDetails && (
+          <p><strong>Order:</strong> {notification.orderDetails}</p>
+        )}
+        {notification.trackingDetails && (
+          <p><strong>Tracking:</strong> {notification.trackingDetails}</p>
+        )}
+        {notification.estimatedDelivery && (
+          <p><strong>Estimated Delivery:</strong> {notification.estimatedDelivery}</p>
+        )}
+
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+          {notification.orderId && (
+            <button
+              onClick={() => navigate(`/order/${notification.orderId}`)}
+              style={{ padding: "0.5rem 1rem", backgroundColor: "#1976d2", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
+            >
+              View Order
+            </button>
+          )}
+          {notification.trackingDetails && (
+            <button
+              onClick={() => navigate(`/tracking/${notification.orderId}`)}
+              style={{ padding: "0.5rem 1rem", backgroundColor: "#388e3c", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
+            >
+              Track Shipment
+            </button>
+          )}
+          {notification.paymentDetails && (
+            <button
+              onClick={() => navigate(`/receipt/${notification.paymentId}`)}
+              style={{ padding: "0.5rem 1rem", backgroundColor: "#d32f2f", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
+            >
+              View Receipt
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+          <button
+            onClick={() => markAsRead(notification.notificationId)}
+            disabled={notification.isRead}
+            style={{ padding: "0.5rem 1rem", backgroundColor: notification.isRead ? "#ccc" : "#0288d1", color: "#fff", border: "none", borderRadius: "4px", cursor: notification.isRead ? "not-allowed" : "pointer" }}
+          >
+            Mark as Read
+          </button>
+          <button
+            onClick={() => deleteNotification(notification.notificationId)}
+            style={{ padding: "0.5rem 1rem", backgroundColor: "#f44336", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    ));
+  };
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -134,6 +266,7 @@ const Notification = () => {
       >
         <Typography variant="h4">Notifications</Typography>
         <Typography paragraph>View all your latest alerts and updates here.</Typography>
+        {renderNotifications()}
       </Box>
 
       {/* Modal for Not Logged In */}

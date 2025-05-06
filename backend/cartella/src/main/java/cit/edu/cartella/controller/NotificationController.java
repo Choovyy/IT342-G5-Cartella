@@ -40,4 +40,24 @@ public class NotificationController {
         notificationService.deleteNotification(notificationId);
         return ResponseEntity.noContent().build();
     }
+
+    // Add these endpoints to the NotificationController.java file
+
+@PostMapping("/{userId}/payment")
+public ResponseEntity<Notification> addPaymentNotification(
+        @PathVariable Long userId, 
+        @RequestBody String paymentDetails) {
+    notificationService.addPaymentNotification(userId, paymentDetails);
+    return ResponseEntity.ok().build();
+}
+
+@PostMapping("/{userId}/order-status")
+public ResponseEntity<Notification> addOrderStatusNotification(
+        @PathVariable Long userId,
+        @RequestParam String status, 
+        @RequestBody String orderDetails) {
+    notificationService.addOrderStatusNotification(userId, status, orderDetails);
+    return ResponseEntity.ok().build();
+}
+
 }
