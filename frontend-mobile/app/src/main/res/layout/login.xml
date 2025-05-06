@@ -164,7 +164,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:fontFamily="@font/poppins"
-        android:text="New to Cartella? Sign up\nBecome Vendor at Cartella"
+        android:text="New to Cartella? Sign up"
         android:textAlignment="center"
         android:textColor="#D32F2F"
         android:textSize="14sp"

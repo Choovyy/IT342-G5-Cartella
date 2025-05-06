@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="clothes_icon" type="id" />
+    <item name="watch_icon" type="id" />
+    <item name="home_icon" type="id" />
+    <item name="cart_icon" type="id" />
+    <item name="orders_icon" type="id" />
+    <item name="notifications_icon" type="id" />
+    <item name="profile_icon" type="id" />
+</resources>

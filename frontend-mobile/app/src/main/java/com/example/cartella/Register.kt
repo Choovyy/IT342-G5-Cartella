@@ -1,116 +1,104 @@
 package com.example.cartella
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.POST
+import org.json.JSONObject
+import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
 
 class Register : AppCompatActivity() {
 
-    private lateinit var usernameEdit: EditText
-    private lateinit var emailEdit: EditText
-    private lateinit var passwordEdit: EditText
-    private lateinit var numberEdit: EditText
-    private lateinit var signUpButton: Button
-    private lateinit var loginLink: TextView
+    private lateinit var registerBtn: Button
+    private lateinit var editTextUsername: EditText
+    private lateinit var editTextEmail: EditText
+    private lateinit var editTextPassword: EditText
+    private lateinit var editTextNumber: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.register)
 
-        usernameEdit = findViewById(R.id.editTextUsername)
-        emailEdit = findViewById(R.id.editTextEmail)
-        passwordEdit = findViewById(R.id.editTextPassword)
-        numberEdit = findViewById(R.id.editTextNumber)
-        signUpButton = findViewById(R.id.btnSignUp)
-        loginLink = findViewById(R.id.bottomLinks)
+        // Bind views
+        registerBtn = findViewById(R.id.btnSignUp)
+        editTextUsername = findViewById(R.id.editTextUsername)
+        editTextEmail = findViewById(R.id.editTextEmail)
+        editTextPassword = findViewById(R.id.editTextPassword)
+        editTextNumber = findViewById(R.id.editTextNumber)
 
-        signUpButton.setOnClickListener {
-            registerUser()
-        }
+        // Set button click listener
+        registerBtn.setOnClickListener {
+            val username = editTextUsername.text.toString()
+            val email = editTextEmail.text.toString()
+            val password = editTextPassword.text.toString()
+            val phoneNumber = editTextNumber.text.toString()
 
-        loginLink.setOnClickListener {
-            startActivity(Intent(this, Login::class.java))
-            finish()
+            // Validate fields before making request
+            if (username.isEmpty() || email.isEmpty() || password.isEmpty() || phoneNumber.isEmpty()) {
+                Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // Make the network request
+            registerUser(username, email, password, phoneNumber)
         }
     }
 
-    private fun registerUser() {
-        val username = usernameEdit.text.toString().trim()
-        val email = emailEdit.text.toString().trim()
-        val password = passwordEdit.text.toString().trim()
-        val phone = numberEdit.text.toString().trim()
+    private fun registerUser(username: String, email: String, password: String, phoneNumber: String) {
+        // Run network operation in a separate thread to avoid blocking the UI
+        Thread {
+            try {
+                // Prepare the URL for the registration API
+                val url = URL("https://it342-g5-cartella.onrender.com/api/users/register")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.doOutput = true
 
-        // Check if any of the fields are empty
-        if (username.isEmpty() || email.isEmpty() || password.isEmpty() || phone.isEmpty()) {
-            Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
-            return
-        }
+                // Prepare JSON body with the registration data
+                val jsonBody = """
+                    {
+                        "username": "$username",
+                        "email": "$email",
+                        "password": "$password",
+                        "phone_number": "$phoneNumber"
+                    }
+                """.trimIndent()
 
-        // Proceed with registration if all fields are valid
-        val request = RegisterRequest(username, email, password, phone)
+                // Send JSON body to the server
+                val outputStream: OutputStream = conn.outputStream
+                val writer = BufferedWriter(OutputStreamWriter(outputStream, "UTF-8"))
+                writer.write(jsonBody)
+                writer.flush()
+                writer.close()
+                outputStream.close()
 
-        RetrofitClient.instance.registerUser(request).enqueue(object : Callback<RegisterResponse> {
-            override fun onResponse(call: Call<RegisterResponse>, response: Response<RegisterResponse>) {
-                // Check if response is successful
-                if (response.isSuccessful && response.body() != null) {
-                    Toast.makeText(this@Register, "Registered successfully", Toast.LENGTH_LONG).show()
-                    startActivity(Intent(this@Register, Login::class.java))
-                    finish()
+                // Get the response code to determine success or failure
+                val responseCode = conn.responseCode
+
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    // Successfully registered, handle the response if needed
+                    val response = conn.inputStream.bufferedReader().readText()
+
+                    // Switch back to the main UI thread to update the UI
+                    runOnUiThread {
+                        Toast.makeText(this, "Registration Successful", Toast.LENGTH_SHORT).show()
+                        // Optionally, redirect to login or next activity
+                    }
                 } else {
-                    // Handle error if the response is not successful
-                    if (response.code() == 400) {
-                        Toast.makeText(this@Register, "Bad Request: Please check your input.", Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(this@Register, "Registration failed: ${response.message()}", Toast.LENGTH_LONG).show()
+                    // Handle error response
+                    runOnUiThread {
+                        Toast.makeText(this, "Registration Failed", Toast.LENGTH_SHORT).show()
                     }
                 }
+            } catch (e: Exception) {
+                // Handle exception and show error
+                runOnUiThread {
+                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
-
-            override fun onFailure(call: Call<RegisterResponse>, t: Throwable) {
-                // Display error message if request fails
-                Toast.makeText(this@Register, "Error: ${t.message}", Toast.LENGTH_LONG).show()
-            }
-        })
-    }
-
-    // Inner class for RegisterRequest
-    data class RegisterRequest(
-        val username: String,
-        val email: String,
-        val password: String,
-        val phone: String
-    )
-
-    // Inner class for RegisterResponse
-    data class RegisterResponse(
-        val message: String
-    )
-
-    // Retrofit client object for making API calls
-    object RetrofitClient {
-        private const val BASE_URL = "https://it342-g5-cartella.onrender.com"
-
-        val instance: ApiService by lazy {
-            val retrofit = Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-
-            retrofit.create(ApiService::class.java)
-        }
-    }
-
-    // Define your API service interface here
-    interface ApiService {
-        @POST("api/register")
-        fun registerUser(@Body request: RegisterRequest): Call<RegisterResponse>
+        }.start() // Start the network thread
     }
 }
+
