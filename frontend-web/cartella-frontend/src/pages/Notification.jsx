@@ -2,7 +2,8 @@ import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Modal, Button
+  ListItemText, IconButton, InputBase, Modal, Button, Paper, Avatar, Divider,
+  CircularProgress, Fade, Badge, Tooltip
 } from "@mui/material";
 import axios from "axios";
 
@@ -16,6 +17,19 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import HistoryIcon from "@mui/icons-material/History";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import InfoIcon from "@mui/icons-material/Info";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import CreditCardIcon from "@mui/icons-material/CreditCard";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import DoneIcon from "@mui/icons-material/Done";
+import DeleteIcon from "@mui/icons-material/Delete";
+import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
 
 const drawerWidth = 240;
 
@@ -116,6 +130,31 @@ const Notification = () => {
     }
   };
 
+  const markAllAsRead = async () => {
+    const unreadNotifications = notifications.filter((n) => !n.isRead);
+    if (unreadNotifications.length === 0) return;
+
+    try {
+      // Mark each unread notification as read one by one
+      for (const notification of unreadNotifications) {
+        await axios.put(
+          `https://it342-g5-cartella.onrender.com/api/notifications/${notification.notificationId}/read`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${sessionStorage.getItem("authToken")}` },
+          }
+        );
+      }
+      
+      // Update state to reflect all notifications as read
+      setNotifications((prev) =>
+        prev.map((notification) => ({ ...notification, isRead: true }))
+      );
+    } catch (err) {
+      console.error("Error marking all notifications as read:", err);
+    }
+  };
+
   const logoSrc = mode === "light"
     ? "src/images/Cartella Logo (Light).jpeg"
     : "src/images/Cartella Logo (Dark2).jpeg";
@@ -145,72 +184,210 @@ const Notification = () => {
     </Box>
   );
 
+  const getTimeSince = (date) => {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    let interval = Math.floor(seconds / 31536000);
+
+    if (interval > 1) return `${interval} years ago`;
+    interval = Math.floor(seconds / 2592000);
+    if (interval > 1) return `${interval} months ago`;
+    interval = Math.floor(seconds / 86400);
+    if (interval > 1) return `${interval} days ago`;
+    interval = Math.floor(seconds / 3600);
+    if (interval > 1) return `${interval} hours ago`;
+    interval = Math.floor(seconds / 60);
+    if (interval > 1) return `${interval} minutes ago`;
+    return `${Math.floor(seconds)} seconds ago`;
+  };
+
   const renderNotifications = () => {
     if (loading) return <p>Loading notifications...</p>;
     if (error) return <p>{error}</p>;
-    if (notifications.length === 0) return <p>No notifications available.</p>;
+    if (notifications.length === 0) return (
+      <Box sx={{ textAlign: 'center', py: 5 }}>
+        <NotificationsOffIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+        <Typography variant="h6" color="text.secondary">No notifications available</Typography>
+        <Typography variant="body2" color="text.secondary">When you receive notifications, they will appear here</Typography>
+      </Box>
+    );
 
-    return notifications.map((notification) => (
-      <div key={notification.notificationId} style={{ marginBottom: "1rem", border: "1px solid #ccc", padding: "1rem", borderRadius: "8px" }}>
-        <h4>{notification.message}</h4>
-        <p><strong>Created At:</strong> {new Date(notification.createdAt).toLocaleString()}</p>
-        {notification.paymentDetails && (
-          <p><strong>Payment:</strong> {notification.paymentDetails}</p>
-        )}
-        {notification.orderDetails && (
-          <p><strong>Order:</strong> {notification.orderDetails}</p>
-        )}
-        {notification.trackingDetails && (
-          <p><strong>Tracking:</strong> {notification.trackingDetails}</p>
-        )}
-        {notification.estimatedDelivery && (
-          <p><strong>Estimated Delivery:</strong> {notification.estimatedDelivery}</p>
-        )}
+    return notifications.map((notification) => {
+      // Determine notification type and set appropriate icon and color
+      let icon = <InfoIcon />;
+      let color = "#2196F3"; // default blue
+      let bgColor = `${color}15`; // very light shade of the color
 
-        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-          {notification.orderId && (
-            <button
-              onClick={() => navigate(`/order/${notification.orderId}`)}
-              style={{ padding: "0.5rem 1rem", backgroundColor: "#1976d2", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
-            >
-              View Order
-            </button>
-          )}
-          {notification.trackingDetails && (
-            <button
-              onClick={() => navigate(`/tracking/${notification.orderId}`)}
-              style={{ padding: "0.5rem 1rem", backgroundColor: "#388e3c", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
-            >
-              Track Shipment
-            </button>
-          )}
-          {notification.paymentDetails && (
-            <button
-              onClick={() => navigate(`/receipt/${notification.paymentId}`)}
-              style={{ padding: "0.5rem 1rem", backgroundColor: "#d32f2f", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
-            >
-              View Receipt
-            </button>
-          )}
-        </div>
+      if (notification.message.includes("Order")) {
+        if (notification.message.includes("PENDING")) {
+          icon = <HourglassEmptyIcon />;
+          color = "#FF9800"; // orange
+        } else if (notification.message.includes("PROCESSING")) {
+          icon = <LocalShippingIcon />;
+          color = "#2196F3"; // blue
+        } else if (notification.message.includes("SHIPPED")) {
+          icon = <LocalShippingIcon />;
+          color = "#9C27B0"; // purple
+        } else if (notification.message.includes("DELIVERED") || notification.message.includes("COMPLETED")) {
+          icon = <CheckCircleIcon />;
+          color = "#4CAF50"; // green
+        } else if (notification.message.includes("CANCELLED")) {
+          icon = <CancelIcon />;
+          color = "#F44336"; // red
+        }
+        bgColor = `${color}15`;
+      } else if (notification.message.includes("Payment")) {
+        icon = <CreditCardIcon />;
+        color = "#D32F2F"; // red
+        bgColor = `${color}15`;
+      }
 
-        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-          <button
-            onClick={() => markAsRead(notification.notificationId)}
-            disabled={notification.isRead}
-            style={{ padding: "0.5rem 1rem", backgroundColor: notification.isRead ? "#ccc" : "#0288d1", color: "#fff", border: "none", borderRadius: "4px", cursor: notification.isRead ? "not-allowed" : "pointer" }}
-          >
-            Mark as Read
-          </button>
-          <button
-            onClick={() => deleteNotification(notification.notificationId)}
-            style={{ padding: "0.5rem 1rem", backgroundColor: "#f44336", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    ));
+      const timeSince = getTimeSince(new Date(notification.createdAt));
+
+      return (
+        <Paper 
+          key={notification.notificationId} 
+          elevation={notification.isRead ? 0 : 2}
+          sx={{ 
+            mb: 2, 
+            p: 2, 
+            borderRadius: '12px',
+            position: 'relative', 
+            border: `1px solid ${notification.isRead ? '#e0e0e0' : color}`,
+            backgroundColor: notification.isRead ? 'background.paper' : bgColor,
+            transition: 'all 0.3s ease',
+            '&:hover': { 
+              transform: 'translateY(-2px)',
+              boxShadow: 3 
+            }
+          }}
+        >
+          {!notification.isRead && (
+            <Box 
+              sx={{ 
+                position: 'absolute', 
+                top: 12, 
+                right: 12, 
+                width: 10, 
+                height: 10, 
+                borderRadius: '50%', 
+                backgroundColor: color 
+              }} 
+            />
+          )}
+          
+          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+            <Avatar sx={{ bgcolor: color, mr: 2 }}>
+              {icon}
+            </Avatar>
+            
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography variant="h6" component="div" sx={{ mb: 1, pr: 3 }}>
+                {notification.message}
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {timeSince}
+              </Typography>
+              
+              {notification.paymentDetails && (
+                <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <Typography variant="body2">
+                    <strong>Payment:</strong> {notification.paymentDetails}
+                  </Typography>
+                </Box>
+              )}
+              
+              {notification.orderDetails && (
+                <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <Typography variant="body2">
+                    <strong>Order:</strong> {notification.orderDetails}
+                  </Typography>
+                </Box>
+              )}
+              
+              {notification.trackingDetails && (
+                <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <Typography variant="body2">
+                    <strong>Tracking:</strong> {notification.trackingDetails}
+                  </Typography>
+                </Box>
+              )}
+              
+              {notification.estimatedDelivery && (
+                <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <Typography variant="body2">
+                    <strong>Estimated Delivery:</strong> {notification.estimatedDelivery}
+                  </Typography>
+                </Box>
+              )}
+
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+                {notification.orderId && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<VisibilityIcon />}
+                    onClick={() => navigate(`/order/${notification.orderId}`)}
+                    sx={{ borderColor: '#1976d2', color: '#1976d2' }}
+                  >
+                    View Order
+                  </Button>
+                )}
+                
+                {notification.trackingDetails && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<LocalShippingIcon />}
+                    onClick={() => navigate(`/tracking/${notification.orderId}`)}
+                    sx={{ borderColor: '#388e3c', color: '#388e3c' }}
+                  >
+                    Track Shipment
+                  </Button>
+                )}
+                
+                {notification.paymentDetails && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<ReceiptIcon />}
+                    onClick={() => navigate(`/receipt/${notification.paymentId}`)}
+                    sx={{ borderColor: '#d32f2f', color: '#d32f2f' }}
+                  >
+                    View Receipt
+                  </Button>
+                )}
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant={notification.isRead ? "text" : "outlined"}
+                  color="primary"
+                  disabled={notification.isRead}
+                  onClick={() => markAsRead(notification.notificationId)}
+                  startIcon={<DoneIcon />}
+                >
+                  {notification.isRead ? "Read" : "Mark as Read"}
+                </Button>
+                
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => deleteNotification(notification.notificationId)}
+                  startIcon={<DeleteIcon />}
+                >
+                  Delete
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
+      );
+    });
   };
 
   return (
@@ -264,9 +441,42 @@ const Notification = () => {
           color: mode === "light" ? "#000" : "#FFF",
         }}
       >
-        <Typography variant="h4">Notifications</Typography>
-        <Typography paragraph>View all your latest alerts and updates here.</Typography>
-        {renderNotifications()}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <div>
+            <Typography variant="h4" component="h1">Notifications</Typography>
+            <Typography variant="body1" color="text.secondary">
+              View all your latest alerts and updates here
+            </Typography>
+          </div>
+          <Box>
+            <Tooltip title="Refresh notifications">
+              <IconButton 
+                onClick={fetchNotifications} 
+                disabled={loading}
+                sx={{ mr: 1 }}
+              >
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+            <Button 
+              variant="outlined" 
+              color="primary"
+              onClick={markAllAsRead}
+              disabled={loading || notifications.length === 0 || notifications.every(n => n.isRead)}
+              startIcon={<DoneAllIcon />}
+            >
+              Mark all as read
+            </Button>
+          </Box>
+        </Box>
+        
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          renderNotifications()
+        )}
       </Box>
 
       {/* Modal for Not Logged In */}

@@ -295,6 +295,71 @@ const Order = () => {
         }
       );
       
+      // Determine a user-friendly status message based on the new status
+      let statusMessage = "";
+      switch(newStatus) {
+        case "PROCESSING":
+          statusMessage = "Your order is now being processed and prepared for shipping.";
+          break;
+        case "SHIPPED":
+          statusMessage = "Your order has been shipped and is on its way to you!";
+          break;
+        case "DELIVERED":
+          statusMessage = "Your order has been delivered. Thank you for shopping with us!";
+          break;
+        case "COMPLETED":
+          statusMessage = "Your order is now complete. We hope you enjoyed your purchase!";
+          break;
+        case "CANCELLED":
+          statusMessage = "Your order has been cancelled. Please contact support if you have any questions.";
+          break;
+        default:
+          statusMessage = `Your order status is now: ${newStatus}`;
+      }
+      
+      // Add additional details for shipping
+      if (newStatus === "SHIPPED") {
+        // Get the current date and add 3-5 days for estimated delivery
+        const today = new Date();
+        const minDelivery = new Date(today);
+        minDelivery.setDate(today.getDate() + 3);
+        
+        const maxDelivery = new Date(today);
+        maxDelivery.setDate(today.getDate() + 5);
+        
+        const formatDate = (date) => {
+          return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          });
+        };
+        
+        const estimatedDelivery = `${formatDate(minDelivery)} - ${formatDate(maxDelivery)}`;
+        
+        // Add tracking details to order status manually via notification API
+        try {
+          // First, ensure we have the user ID
+          if (selectedOrder.customer && selectedOrder.customer.userId) {
+            const userId = selectedOrder.customer.userId;
+            
+            // Create detailed tracking notification
+            const trackingDetails = `Your order #${selectedOrder.orderId} has been shipped and is on its way! Estimated delivery: ${estimatedDelivery}`;
+            
+            // Send order status notification with tracking details
+            await axios.post(
+              `https://it342-g5-cartella.onrender.com/api/notifications/${userId}/order-status?status=SHIPPED`,
+              `${trackingDetails}`,
+              { headers: { Authorization: `Bearer ${authToken}` } }
+            );
+            
+            console.log("Tracking notification sent to user");
+          }
+        } catch (err) {
+          console.error("Error sending tracking notification:", err);
+        }
+      }
+      
       // Show success notification
       setNotification({
         open: true,
