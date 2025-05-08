@@ -47,6 +47,7 @@ const Notification = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const observer = useRef();
   const notificationsPerPage = 10;
+  const scrollContainerRef = useRef(null); // Add ref for scroll container
 
   // Last notification element ref for infinite scrolling
   const lastNotificationRef = useCallback(node => {
@@ -437,6 +438,15 @@ const Notification = () => {
     );
   };
 
+  const scrollToTop = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <AppBar position="fixed" elevation={0}
@@ -480,16 +490,19 @@ const Notification = () => {
       </Drawer>
 
       <Box component="main"
+        ref={scrollContainerRef}
         sx={{
           flexGrow: 1,
           bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
           p: 3,
           mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
-          overflowY: "auto" // Enable scrolling
+          overflowY: "auto", // Enable scrolling
+          height: "calc(100vh - 64px)", // Set a fixed height for scroll container
+          scrollBehavior: "smooth" // Add smooth scrolling
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, position: 'sticky', top: 0, zIndex: 1, bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A", py: 2 }}>
           <div>
             <Typography variant="h4" component="h1">Notifications</Typography>
             <Typography variant="body1" color="text.secondary">
@@ -499,7 +512,10 @@ const Notification = () => {
           <Box>
             <Tooltip title="Refresh notifications">
               <IconButton 
-                onClick={() => fetchNotifications(true)} 
+                onClick={() => {
+                  fetchNotifications(true);
+                  scrollToTop();
+                }} 
                 disabled={loading}
                 sx={{ mr: 1 }}
               >
@@ -524,6 +540,32 @@ const Notification = () => {
           </Box>
         ) : (
           renderNotifications()
+        )}
+        
+        {!loading && !loadingMore && notifications.length > 5 && (
+          <Box sx={{ 
+            position: 'fixed', 
+            bottom: 20, 
+            right: 20, 
+            zIndex: 2 
+          }}>
+            <Tooltip title="Scroll to top">
+              <IconButton 
+                onClick={scrollToTop}
+                sx={{ 
+                  bgcolor: mode === "dark" ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)", 
+                  '&:hover': { 
+                    bgcolor: mode === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.2)" 
+                  },
+                  p: 1.5
+                }}
+              >
+                <Box component="span" role="img" aria-label="up arrow" sx={{ fontSize: '24px' }}>
+                  ↑
+                </Box>
+              </IconButton>
+            </Tooltip>
+          </Box>
         )}
       </Box>
 
