@@ -58,9 +58,7 @@ const MyPurchase = () => {
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
   const [orders, setOrders] = useState([]);
-  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tabValue, setTabValue] = useState(0);
   const [error, setError] = useState(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -78,7 +76,7 @@ const MyPurchase = () => {
       return;
     }
 
-    // Fetch both orders and payments
+    // Fetch orders only
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -99,27 +97,10 @@ const MyPurchase = () => {
           setOrders([]);
         }
         
-        // Fetch payments
-        try {
-          const paymentsResponse = await paymentService.getPaymentsByUserId(userId, token);
-          
-          // Make sure payments is an array before setting state
-          if (Array.isArray(paymentsResponse)) {
-            setPayments(paymentsResponse);
-          } else {
-            console.error("Payments response is not an array:", paymentsResponse);
-            setPayments([]);
-          }
-        } catch (paymentErr) {
-          console.error("Error fetching payments:", paymentErr);
-          setPayments([]);
-        }
-        
       } catch (err) {
         console.error("Error fetching purchase history:", err);
         setError("Failed to load your purchase history. Please try again later.");
         setOrders([]);
-        setPayments([]);
       } finally {
         setLoading(false);
       }
@@ -145,10 +126,6 @@ const MyPurchase = () => {
     if (searchText.trim()) {
       console.log("Searching for:", searchText);
     }
-  };
-
-  const handleChangeTab = (event, newValue) => {
-    setTabValue(newValue);
   };
 
   const logoSrc = mode === "light"
@@ -351,36 +328,6 @@ const MyPurchase = () => {
         <Box maxWidth="1200px" mx="auto">
           <Typography variant="h4" gutterBottom>My Purchases</Typography>
 
-          <Paper 
-            sx={{ 
-              mb: 3, 
-              bgcolor: mode === "light" ? "#FFFFFF" : "#2A2A2A",
-              borderRadius: 2,
-              overflow: "hidden"
-            }}
-          >
-            <Tabs 
-              value={tabValue} 
-              onChange={handleChangeTab}
-              variant="fullWidth"
-              sx={{
-                '& .MuiTab-root': {
-                  color: mode === "light" ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.6)",
-                  fontWeight: 600
-                },
-                '& .Mui-selected': {
-                  color: mode === "light" ? "#D32F2F" : "#F48FB1",
-                },
-                '& .MuiTabs-indicator': {
-                  backgroundColor: mode === "light" ? "#D32F2F" : "#F48FB1",
-                }
-              }}
-            >
-              <Tab icon={<ReceiptIcon />} label="Orders" iconPosition="start" />
-              <Tab icon={<PaymentIcon />} label="Payments" iconPosition="start" />
-            </Tabs>
-          </Paper>
-
           {loading ? (
             <Box display="flex" justifyContent="center" alignItems="center" height="300px">
               <CircularProgress />
@@ -396,8 +343,8 @@ const MyPurchase = () => {
                 Try Again
               </Button>
             </Box>
-          ) : tabValue === 0 ? (
-            // Orders Tab
+          ) : (
+            // Orders Section
             orders.length > 0 ? (
               <Grid container spacing={3}>
                 {/* Make sure to check if orders is an array before calling sort */}
@@ -520,9 +467,6 @@ const MyPurchase = () => {
                                     {order.address ? (
                                       <>
                                         <Typography variant="body2" sx={{ mb: 1 }}>
-                                          <strong>Full Name:</strong> {order.address.fullName || order.user?.username || "Not provided"}
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ mb: 1 }}>
                                           <strong>Street Address:</strong> {order.address.streetAddress || "No street address provided"}
                                         </Typography>
                                         <Typography variant="body2" sx={{ mb: 1 }}>
@@ -627,115 +571,6 @@ const MyPurchase = () => {
                   }}
                 >
                   Browse Products
-                </Button>
-              </Box>
-            )
-          ) : (
-            // Payments Tab
-            payments.length > 0 ? (
-              <Grid container spacing={3}>
-                {/* Make sure to check if payments is an array before calling sort */}
-                {(Array.isArray(payments) ? [...payments].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) : [])
-                  .map((payment) => (
-                    <Grid item xs={12} key={payment.paymentId}>
-                      <Card 
-                        sx={{
-                          bgcolor: mode === "light" ? "#FFFFFF" : "#2A2A2A",
-                          boxShadow: mode === "light" 
-                            ? "0 2px 8px rgba(0,0,0,0.1)" 
-                            : "0 2px 8px rgba(0,0,0,0.3)",
-                          borderRadius: '8px',
-                          p: 2,
-                          position: 'relative',
-                          overflow: 'hidden',
-                          '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: '4px',
-                            backgroundColor: getStatusColor(payment.status)
-                          }
-                        }}
-                      >
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} sm={6}>
-                            <Box display="flex" alignItems="center" mb={1}>
-                              <CreditCardIcon sx={{ mr: 1, color: mode === "light" ? "#757575" : "#BDBDBD" }} />
-                              <Typography variant="h6">
-                                Payment #{payment.paymentId}
-                              </Typography>
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" mb={1}>
-                              Date: {formatDate(payment.createdAt)}
-                            </Typography>
-                            {payment.order && (
-                              <Typography variant="body2" color="text.secondary">
-                                Order Reference: #{payment.order.orderId}
-                              </Typography>
-                            )}
-                          </Grid>
-                          <Grid item xs={12} sm={3}>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              Payment Method
-                            </Typography>
-                            <Typography variant="body1">
-                              {payment.paymentMethod || "Credit Card"}
-                            </Typography>
-                            {payment.stripeSessionId && (
-                              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.75rem' }}>
-                                Stripe Session ID: {payment.stripeSessionId.substring(0, 10)}...
-                              </Typography>
-                            )}
-                          </Grid>
-                          <Grid item xs={12} sm={3} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
-                            <Box display="flex" flexDirection="column" alignItems={{ xs: 'flex-start', sm: 'flex-end' }}>
-                              <Typography variant="h6" color="primary" gutterBottom>
-                                {payment.currency.toUpperCase()} {payment.amount.toLocaleString()}
-                              </Typography>
-                              <Chip 
-                                label={payment.status} 
-                                sx={{ 
-                                  bgcolor: getStatusColor(payment.status) + '20',
-                                  color: getStatusColor(payment.status),
-                                  fontWeight: '600'
-                                }} 
-                              />
-                              {payment.status === 'COMPLETED' && payment.order && payment.order.status === 'DELIVERED' && (
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                                  Payment completed after order delivery
-                                </Typography>
-                              )}
-                            </Box>
-                          </Grid>
-                        </Grid>
-                      </Card>
-                    </Grid>
-                  ))}
-              </Grid>
-            ) : (
-              <Box p={5} textAlign="center" bgcolor={mode === "light" ? "#F5F5F5" : "#2A2A2A"} borderRadius={2}>
-                <PaymentIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>No Payment History</Typography>
-                <Typography variant="body2" color="text.secondary" mb={3}>
-                  You don't have any payment records yet.
-                </Typography>
-                <Button 
-                  variant="contained" 
-                  color="primary"
-                  size="small" 
-                  onClick={() => navigate('/dashboard')}
-                  sx={{ 
-                    bgcolor: "#D32F2F",
-                    "&:hover": { bgcolor: "#B71C1C" },
-                    textTransform: "none",
-                    fontWeight: "100",
-                    fontSize: "1rem",
-                    color: "#fff"
-                  }}
-                >
-                  Start Shopping
                 </Button>
               </Box>
             )

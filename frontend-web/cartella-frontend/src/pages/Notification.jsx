@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
@@ -42,6 +42,25 @@ const Notification = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const observer = useRef();
+  const notificationsPerPage = 10;
+
+  // Last notification element ref for infinite scrolling
+  const lastNotificationRef = useCallback(node => {
+    if (loadingMore) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        loadMoreNotifications();
+      }
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [loadingMore, hasMore]);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -50,28 +69,51 @@ const Notification = () => {
       return;
     }
 
-    fetchNotifications();
+    fetchNotifications(true);
   }, [navigate]);
 
-  const fetchNotifications = async () => {
-    setLoading(true);
+  const fetchNotifications = async (reset = false) => {
+    if (reset) {
+      setLoading(true);
+      setPage(1);
+    }
     setError(null);
 
     try {
       const userId = sessionStorage.getItem("userId");
+      const currentPage = reset ? 1 : page;
       const response = await axios.get(
         `https://it342-g5-cartella.onrender.com/api/notifications/${userId}`,
         {
           headers: { Authorization: `Bearer ${sessionStorage.getItem("authToken")}` },
+          params: { page: currentPage, limit: notificationsPerPage }
         }
       );
-      setNotifications(response.data);
+      
+      const newNotifications = response.data;
+      if (reset) {
+        setNotifications(newNotifications);
+      } else {
+        setNotifications(prev => [...prev, ...newNotifications]);
+      }
+      
+      setHasMore(newNotifications.length === notificationsPerPage);
+      if (newNotifications.length > 0 && !reset) {
+        setPage(prev => prev + 1);
+      }
     } catch (err) {
       console.error("Error fetching notifications:", err);
       setError("Failed to load notifications. Please try again later.");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const loadMoreNotifications = () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    fetchNotifications(false);
   };
 
   const markAsRead = async (notificationId) => {
@@ -184,25 +226,9 @@ const Notification = () => {
     </Box>
   );
 
-  const getTimeSince = (date) => {
-    const seconds = Math.floor((new Date() - date) / 1000);
-    let interval = Math.floor(seconds / 31536000);
-
-    if (interval > 1) return `${interval} years ago`;
-    interval = Math.floor(seconds / 2592000);
-    if (interval > 1) return `${interval} months ago`;
-    interval = Math.floor(seconds / 86400);
-    if (interval > 1) return `${interval} days ago`;
-    interval = Math.floor(seconds / 3600);
-    if (interval > 1) return `${interval} hours ago`;
-    interval = Math.floor(seconds / 60);
-    if (interval > 1) return `${interval} minutes ago`;
-    return `${Math.floor(seconds)} seconds ago`;
-  };
-
   const renderNotifications = () => {
-    if (loading) return <p>Loading notifications...</p>;
-    if (error) return <p>{error}</p>;
+    if (loading && page === 1) return <p>Loading notifications...</p>;
+    if (error && notifications.length === 0) return <p>{error}</p>;
     if (notifications.length === 0) return (
       <Box sx={{ textAlign: 'center', py: 5 }}>
         <NotificationsOffIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
@@ -211,183 +237,204 @@ const Notification = () => {
       </Box>
     );
 
-    return notifications.map((notification) => {
-      // Determine notification type and set appropriate icon and color
-      let icon = <InfoIcon />;
-      let color = "#2196F3"; // default blue
-      let bgColor = `${color}15`; // very light shade of the color
-
-      if (notification.message.includes("Order")) {
-        if (notification.message.includes("PENDING")) {
-          icon = <HourglassEmptyIcon />;
-          color = "#FF9800"; // orange
-        } else if (notification.message.includes("PROCESSING")) {
-          icon = <LocalShippingIcon />;
-          color = "#2196F3"; // blue
-        } else if (notification.message.includes("SHIPPED")) {
-          icon = <LocalShippingIcon />;
-          color = "#9C27B0"; // purple
-        } else if (notification.message.includes("DELIVERED") || notification.message.includes("COMPLETED")) {
-          icon = <CheckCircleIcon />;
-          color = "#4CAF50"; // green
-        } else if (notification.message.includes("CANCELLED")) {
-          icon = <CancelIcon />;
-          color = "#F44336"; // red
-        }
-        bgColor = `${color}15`;
-      } else if (notification.message.includes("Payment")) {
-        icon = <CreditCardIcon />;
-        color = "#D32F2F"; // red
-        bgColor = `${color}15`;
-      }
-
-      const timeSince = getTimeSince(new Date(notification.createdAt));
-
-      return (
-        <Paper 
-          key={notification.notificationId} 
-          elevation={notification.isRead ? 0 : 2}
-          sx={{ 
-            mb: 2, 
-            p: 2, 
-            borderRadius: '12px',
-            position: 'relative', 
-            border: `1px solid ${notification.isRead ? '#e0e0e0' : color}`,
-            backgroundColor: notification.isRead ? 'background.paper' : bgColor,
-            transition: 'all 0.3s ease',
-            '&:hover': { 
-              transform: 'translateY(-2px)',
-              boxShadow: 3 
-            }
-          }}
-        >
-          {!notification.isRead && (
-            <Box 
-              sx={{ 
-                position: 'absolute', 
-                top: 12, 
-                right: 12, 
-                width: 10, 
-                height: 10, 
-                borderRadius: '50%', 
-                backgroundColor: color 
-              }} 
-            />
-          )}
+    return (
+      <>
+        {notifications.map((notification, index) => {
+          // Determine if this is the last notification to observe for infinite scrolling
+          const isLastItem = index === notifications.length - 1;
           
-          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-            <Avatar sx={{ bgcolor: color, mr: 2 }}>
-              {icon}
-            </Avatar>
-            
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" component="div" sx={{ mb: 1, pr: 3 }}>
-                {notification.message}
-              </Typography>
-              
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {timeSince}
-              </Typography>
-              
-              {notification.paymentDetails && (
-                <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
-                  <Typography variant="body2">
-                    <strong>Payment:</strong> {notification.paymentDetails}
-                  </Typography>
-                </Box>
-              )}
-              
-              {notification.orderDetails && (
-                <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
-                  <Typography variant="body2">
-                    <strong>Order:</strong> {notification.orderDetails}
-                  </Typography>
-                </Box>
-              )}
-              
-              {notification.trackingDetails && (
-                <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
-                  <Typography variant="body2">
-                    <strong>Tracking:</strong> {notification.trackingDetails}
-                  </Typography>
-                </Box>
-              )}
-              
-              {notification.estimatedDelivery && (
-                <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
-                  <Typography variant="body2">
-                    <strong>Estimated Delivery:</strong> {notification.estimatedDelivery}
-                  </Typography>
-                </Box>
-              )}
+          // Determine notification type and set appropriate icon and color
+          let icon = <InfoIcon />;
+          let color = "#2196F3"; // default blue
+          let bgColor = `${color}15`; // very light shade of the color
+          
+          if (notification.message.includes("Order")) {
+            if (notification.message.includes("PENDING")) {
+              icon = <HourglassEmptyIcon />;
+              color = "#FF9800"; // orange
+            } else if (notification.message.includes("PROCESSING")) {
+              icon = <LocalShippingIcon />;
+              color = "#2196F3"; // blue
+            } else if (notification.message.includes("SHIPPED")) {
+              icon = <LocalShippingIcon />;
+              color = "#9C27B0"; // purple
+            } else if (notification.message.includes("DELIVERED") || notification.message.includes("COMPLETED")) {
+              icon = <CheckCircleIcon />;
+              color = "#4CAF50"; // green
+            } else if (notification.message.includes("CANCELLED")) {
+              icon = <CancelIcon />;
+              color = "#F44336"; // red
+            }
+            bgColor = `${color}15`;
+          } else if (notification.message.includes("Payment")) {
+            icon = <CreditCardIcon />;
+            color = "#D32F2F"; // red
+            bgColor = `${color}15`;
+          }
 
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
-                {notification.orderId && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<VisibilityIcon />}
-                    onClick={() => navigate(`/order/${notification.orderId}`)}
-                    sx={{ borderColor: '#1976d2', color: '#1976d2' }}
-                  >
-                    View Order
-                  </Button>
-                )}
+          return (
+            <Paper 
+              ref={isLastItem ? lastNotificationRef : null}
+              key={notification.notificationId} 
+              elevation={notification.isRead ? 0 : 2}
+              sx={{ 
+                mb: 2, 
+                p: 2, 
+                borderRadius: '12px',
+                position: 'relative', 
+                border: `1px solid ${notification.isRead ? '#e0e0e0' : color}`,
+                backgroundColor: notification.isRead ? 'background.paper' : bgColor,
+                transition: 'all 0.3s ease',
+                '&:hover': { 
+                  transform: 'translateY(-2px)',
+                  boxShadow: 3 
+                }
+              }}
+            >
+              {!notification.isRead && (
+                <Box 
+                  sx={{ 
+                    position: 'absolute', 
+                    top: 12, 
+                    right: 12, 
+                    width: 10, 
+                    height: 10, 
+                    borderRadius: '50%', 
+                    backgroundColor: color 
+                  }} 
+                />
+              )}
+              
+              <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                <Avatar sx={{ bgcolor: color, mr: 2 }}>
+                  {icon}
+                </Avatar>
                 
-                {notification.trackingDetails && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<LocalShippingIcon />}
-                    onClick={() => navigate(`/tracking/${notification.orderId}`)}
-                    sx={{ borderColor: '#388e3c', color: '#388e3c' }}
-                  >
-                    Track Shipment
-                  </Button>
-                )}
-                
-                {notification.paymentDetails && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<ReceiptIcon />}
-                    onClick={() => navigate(`/receipt/${notification.paymentId}`)}
-                    sx={{ borderColor: '#d32f2f', color: '#d32f2f' }}
-                  >
-                    View Receipt
-                  </Button>
-                )}
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography variant="h6" component="div" sx={{ mb: 1, pr: 3 }}>
+                    {notification.message}
+                  </Typography>
+                  
+                  {notification.paymentDetails && (
+                    <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+                      <Typography variant="body2">
+                        <strong>Payment:</strong> {notification.paymentDetails}
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  {notification.orderDetails && (
+                    <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+                      <Typography variant="body2">
+                        <strong>Order:</strong> {notification.orderDetails}
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  {notification.trackingDetails && (
+                    <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+                      <Typography variant="body2">
+                        <strong>Tracking:</strong> {notification.trackingDetails}
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  {notification.estimatedDelivery && (
+                    <Box sx={{ mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+                      <Typography variant="body2">
+                        <strong>Estimated Delivery:</strong> {notification.estimatedDelivery}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+                    {notification.orderId && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => navigate(`/order/${notification.orderId}`)}
+                        sx={{ borderColor: '#1976d2', color: '#1976d2' }}
+                      >
+                        View Order
+                      </Button>
+                    )}
+                    
+                    {notification.trackingDetails && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<LocalShippingIcon />}
+                        onClick={() => navigate(`/tracking/${notification.orderId}`)}
+                        sx={{ borderColor: '#388e3c', color: '#388e3c' }}
+                      >
+                        Track Shipment
+                      </Button>
+                    )}
+                    
+                    {notification.paymentDetails && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<ReceiptIcon />}
+                        onClick={() => navigate(`/receipt/${notification.paymentId}`)}
+                        sx={{ borderColor: '#d32f2f', color: '#d32f2f' }}
+                      >
+                        View Receipt
+                      </Button>
+                    )}
+                  </Box>
+
+                  <Divider sx={{ my: 2 }} />
+
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                    <Button
+                      size="small"
+                      variant={notification.isRead ? "text" : "outlined"}
+                      color="primary"
+                      disabled={notification.isRead}
+                      onClick={() => markAsRead(notification.notificationId)}
+                      startIcon={<DoneIcon />}
+                    >
+                      {notification.isRead ? "Read" : "Mark as Read"}
+                    </Button>
+                    
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      onClick={() => deleteNotification(notification.notificationId)}
+                      startIcon={<DeleteIcon />}
+                    >
+                      Delete
+                    </Button>
+                  </Box>
+                </Box>
               </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                <Button
-                  size="small"
-                  variant={notification.isRead ? "text" : "outlined"}
-                  color="primary"
-                  disabled={notification.isRead}
-                  onClick={() => markAsRead(notification.notificationId)}
-                  startIcon={<DoneIcon />}
-                >
-                  {notification.isRead ? "Read" : "Mark as Read"}
-                </Button>
-                
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  onClick={() => deleteNotification(notification.notificationId)}
-                  startIcon={<DeleteIcon />}
-                >
-                  Delete
-                </Button>
-              </Box>
-            </Box>
+            </Paper>
+          );
+        })}
+        
+        {loadingMore && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+            <CircularProgress size={30} />
           </Box>
-        </Paper>
-      );
-    });
+        )}
+        
+        {!loading && hasMore && notifications.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 5 }}>
+            <Button 
+              variant="outlined" 
+              onClick={loadMoreNotifications}
+              disabled={loadingMore}
+              startIcon={loadingMore ? <CircularProgress size={20} /> : null}
+            >
+              {loadingMore ? "Loading..." : "Load More"}
+            </Button>
+          </Box>
+        )}
+      </>
+    );
   };
 
   return (
@@ -439,6 +486,7 @@ const Notification = () => {
           p: 3,
           mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
+          overflowY: "auto" // Enable scrolling
         }}
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -451,7 +499,7 @@ const Notification = () => {
           <Box>
             <Tooltip title="Refresh notifications">
               <IconButton 
-                onClick={fetchNotifications} 
+                onClick={() => fetchNotifications(true)} 
                 disabled={loading}
                 sx={{ mr: 1 }}
               >
@@ -470,7 +518,7 @@ const Notification = () => {
           </Box>
         </Box>
         
-        {loading ? (
+        {loading && page === 1 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
             <CircularProgress />
           </Box>
