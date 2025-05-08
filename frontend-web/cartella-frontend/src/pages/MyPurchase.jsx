@@ -91,13 +91,8 @@ const MyPurchase = () => {
         
         // Make sure orders is an array before setting state
         if (Array.isArray(ordersResponse.data)) {
-          // Enhance orders with complete address information
-          let enhancedOrders = await fetchOrderAddresses(ordersResponse.data);
-          
-          // Additionally enhance orders with complete product information
-          enhancedOrders = await enhanceOrderItemsWithProducts(enhancedOrders);
-          
-          console.log("Orders with enhanced address and product info:", enhancedOrders);
+          const enhancedOrders = await enhanceOrdersWithCompleteDetails(ordersResponse.data);
+          console.log("Orders with complete details:", enhancedOrders);
           setOrders(enhancedOrders);
         } else {
           console.error("Orders response is not an array:", ordersResponse.data);
@@ -215,14 +210,15 @@ const MyPurchase = () => {
           type: 'success'
         });
         
-        // Refresh orders list
+        // Refresh orders list with the new endpoint
         const ordersResponse = await axios.get(
           `https://it342-g5-cartella.onrender.com/api/orders/${userId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         
         if (Array.isArray(ordersResponse.data)) {
-          setOrders(ordersResponse.data);
+          const enhancedOrders = await enhanceOrdersWithCompleteDetails(ordersResponse.data);
+          setOrders(enhancedOrders);
         }
       } else {
         // Show error notification
@@ -250,104 +246,8 @@ const MyPurchase = () => {
     setNotification({...notification, open: false});
   };
 
-  // Fetch order addresses and enhance orders with complete address information
-  const fetchOrderAddresses = async (orders) => {
-    try {
-      const token = sessionStorage.getItem("authToken");
-      const userId = sessionStorage.getItem("userId");
-      
-      if (!token || !userId || !Array.isArray(orders)) {
-        return orders;
-      }
-      
-      // Get addresses for the user
-      let addresses = [];
-      const email = sessionStorage.getItem("email");
-      const username = sessionStorage.getItem("username");
-      
-      // Log what we're using to fetch addresses
-      console.log("Fetching addresses with user info:", { userId, email, username });
-      
-      try {
-        if (userId) {
-          // Try first using userId directly if available
-          addresses = await addressService.getAddressesByUserId(userId);
-          console.log(`Found ${addresses.length} addresses by userId`);
-        }
-      } catch (err) {
-        console.log("Error fetching by userId, trying alternative methods:", err.message);
-      }
-      
-      // If no addresses found and we have email, try by email
-      if (addresses.length === 0 && email) {
-        try {
-          addresses = await addressService.getAddressesByEmail(email);
-          console.log(`Found ${addresses.length} addresses by email`);
-        } catch (err) {
-          console.log("Error fetching by email:", err.message);
-        }
-      }
-      
-      // If still no addresses found and we have username, try by username
-      if (addresses.length === 0 && username) {
-        try {
-          addresses = await addressService.getAddressesByUsername(username);
-          console.log(`Found ${addresses.length} addresses by username`);
-        } catch (err) {
-          console.log("Error fetching by username:", err.message);
-        }
-      }
-      
-      console.log("All retrieved addresses:", addresses);
-      
-      // Enhance orders with address details
-      const enhancedOrders = orders.map(order => {
-        // If order already has complete address info, keep it
-        if (order.address && order.address.streetAddress) {
-          console.log(`Order ${order.orderId} already has complete address info`);
-          return order;
-        }
-        
-        console.log(`Enhancing address for order ${order.orderId}`);
-        
-        // Get the order's address ID
-        const orderAddress = order.address || {};
-        const addressId = orderAddress.addressId;
-        
-        console.log(`Looking for address with ID: ${addressId}`);
-        
-        if (addressId) {
-          // Try to find matching address by ID
-          const fullAddress = addresses.find(addr => addr.addressId === addressId);
-          
-          if (fullAddress) {
-            console.log(`Found matching address for order ${order.orderId}:`, fullAddress);
-            return {
-              ...order,
-              address: {
-                ...orderAddress,
-                ...fullAddress
-              }
-            };
-          } else {
-            console.log(`No address with ID ${addressId} found in user addresses`);
-          }
-        } else {
-          console.log(`Order ${order.orderId} has no addressId`);
-        }
-        
-        return order;
-      });
-      
-      return enhancedOrders;
-    } catch (error) {
-      console.error("Error fetching order addresses:", error);
-      return orders;
-    }
-  };
-
-  // Enhance order items with complete product information
-  const enhanceOrderItemsWithProducts = async (orders) => {
+  // Function to enhance orders with complete details from new endpoint
+  const enhanceOrdersWithCompleteDetails = async (orders) => {
     try {
       const token = sessionStorage.getItem("authToken");
       
@@ -355,111 +255,42 @@ const MyPurchase = () => {
         return orders;
       }
       
-      console.log("Starting product enhancement for", orders.length, "orders");
+      console.log("Enhancing orders with complete details...");
       
-      // Process each order to enhance its order items with complete product information
+      // Process each order to fetch complete details
       const enhancedOrders = await Promise.all(orders.map(async (order) => {
-        // Skip if order has no items
-        if (!order.orderItems || !Array.isArray(order.orderItems) || order.orderItems.length === 0) {
-          console.log(`Order ${order.orderId} has no items to enhance`);
-          return order;
+        try {
+          console.log(`Fetching complete details for order ${order.orderId}`);
+          
+          // Fetch complete order details using the new endpoint
+          const completeDetailsResponse = await axios.get(
+            `https://it342-g5-cartella.onrender.com/api/orders/${order.orderId}/complete-details`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          if (completeDetailsResponse.data) {
+            console.log(`Successfully fetched complete details for order ${order.orderId}`);
+            
+            // Merge the complete details with the original order object structure
+            return {
+              ...order,
+              address: completeDetailsResponse.data.address || order.address,
+              orderItems: completeDetailsResponse.data.orderItems || order.orderItems,
+              payment: completeDetailsResponse.data.payment || order.payment
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching complete details for order ${order.orderId}:`, error.message);
         }
         
-        console.log(`Enhancing products for order ${order.orderId} with ${order.orderItems.length} items`);
-        
-        // Process each order item
-        const enhancedItems = await Promise.all(order.orderItems.map(async (item, index) => {
-          // Skip if item already has complete product info
-          if (item.product && item.product.name && item.product.description) {
-            console.log(`Item ${index + 1} already has complete product info:`, item.product.name);
-            return item;
-          }
-          
-          console.log(`Item ${index + 1} needs product enhancement`);
-          
-          // If item has product ID but incomplete product info, fetch the complete product
-          if (item.product && item.product.productId) {
-            try {
-              console.log(`Fetching product ${item.product.productId} from API...`);
-              const productResponse = await axios.get(
-                `https://it342-g5-cartella.onrender.com/api/products/${item.product.productId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-              
-              if (productResponse.data) {
-                console.log(`Successfully retrieved product: ${productResponse.data.name}`);
-                return {
-                  ...item,
-                  product: productResponse.data
-                };
-              } else {
-                console.log(`No data returned for product ${item.product.productId}`);
-              }
-            } catch (productError) {
-              console.error(`Error fetching product ${item.product.productId}:`, productError.message);
-              
-              // Try an alternative approach to get product details if direct fetch fails
-              try {
-                console.log(`Trying alternative method to fetch product ${item.product.productId}...`);
-                // Fetch all products and find the matching one
-                const allProductsResponse = await axios.get(
-                  'https://it342-g5-cartella.onrender.com/api/products',
-                  { headers: { Authorization: `Bearer ${token}` } }
-                );
-                
-                if (allProductsResponse.data && Array.isArray(allProductsResponse.data)) {
-                  const matchingProduct = allProductsResponse.data.find(
-                    p => p.productId === item.product.productId
-                  );
-                  
-                  if (matchingProduct) {
-                    console.log(`Found product ${matchingProduct.name} in all products list`);
-                    return {
-                      ...item,
-                      product: matchingProduct
-                    };
-                  }
-                }
-              } catch (alternativeError) {
-                console.error('Alternative product fetch also failed:', alternativeError.message);
-              }
-            }
-          } else if (item.productId) {
-            // Some items might have productId directly on the item object instead of nested
-            try {
-              console.log(`Item has direct productId ${item.productId}, fetching...`);
-              const productResponse = await axios.get(
-                `https://it342-g5-cartella.onrender.com/api/products/${item.productId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-              
-              if (productResponse.data) {
-                console.log(`Successfully retrieved product for direct productId: ${productResponse.data.name}`);
-                return {
-                  ...item,
-                  product: productResponse.data
-                };
-              }
-            } catch (directProductError) {
-              console.error(`Error fetching product with direct ID ${item.productId}:`, directProductError.message);
-            }
-          }
-          
-          // If we couldn't enhance the product, return the original item
-          return item;
-        }));
-        
-        // Return order with enhanced items
-        return {
-          ...order,
-          orderItems: enhancedItems
-        };
+        // If we couldn't fetch complete details, return the original order
+        return order;
       }));
       
-      console.log("Product enhancement complete");
+      console.log("Order enhancement complete");
       return enhancedOrders;
     } catch (error) {
-      console.error("Error enhancing order items with products:", error);
+      console.error("Error enhancing orders with complete details:", error);
       return orders;
     }
   };

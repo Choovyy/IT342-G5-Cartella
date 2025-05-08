@@ -260,4 +260,87 @@ public class OrderController {
         
         return ResponseEntity.ok(formattedOrders);
     }
+    
+    @GetMapping("/{orderId}/complete-details")
+    public ResponseEntity<Map<String, Object>> getOrderCompleteDetails(@PathVariable Long orderId) {
+        Optional<Order> orderOpt = orderService.getOrderById(orderId);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Order order = orderOpt.get();
+        Map<String, Object> response = new HashMap<>();
+        
+        // Add order details
+        response.put("orderId", order.getOrderId());
+        response.put("status", order.getStatus());
+        response.put("createdAt", order.getCreatedAt());
+        response.put("updatedAt", order.getUpdatedAt());
+        response.put("totalAmount", order.getTotalAmount());
+        
+        // Add address details
+        if (order.getAddress() != null) {
+            Optional<Address> fullAddress = addressService.getAddressById(order.getAddress().getAddressId());
+            if (fullAddress.isPresent()) {
+                Map<String, Object> addressDetails = new HashMap<>();
+                Address address = fullAddress.get();
+                addressDetails.put("addressId", address.getAddressId());
+                addressDetails.put("streetAddress", address.getStreetAddress());
+                addressDetails.put("city", address.getCity());
+                addressDetails.put("state", address.getState());
+                addressDetails.put("postalCode", address.getPostalCode());
+                addressDetails.put("country", address.getCountry());
+                response.put("address", addressDetails);
+            }
+        }
+        
+        // Add order items with complete product details
+        if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
+            List<Map<String, Object>> items = order.getOrderItems().stream()
+                .map(item -> {
+                    Map<String, Object> itemMap = new HashMap<>();
+                    itemMap.put("orderItemId", item.getOrderItemId());
+                    itemMap.put("quantity", item.getQuantity());
+                    itemMap.put("priceAtTimeOfOrder", item.getPriceAtTimeOfOrder());
+                    
+                    if (item.getProduct() != null) {
+                        Optional<Product> fullProduct = productService.getProductById(item.getProduct().getProductId());
+                        if (fullProduct.isPresent()) {
+                            Product product = fullProduct.get();
+                            Map<String, Object> productMap = new HashMap<>();
+                            productMap.put("productId", product.getProductId());
+                            productMap.put("name", product.getName());
+                            productMap.put("description", product.getDescription());
+                            productMap.put("imageUrl", product.getImageUrl());
+                            productMap.put("currentPrice", product.getPrice());
+                            if (product.getVendor() != null) {
+                                productMap.put("vendorName", product.getVendor().getBusinessName());
+                            }
+                            itemMap.put("product", productMap);
+                        }
+                    }
+                    
+                    return itemMap;
+                })
+                .toList();
+            
+            response.put("orderItems", items);
+        }
+        
+        // Add payment information
+        Payment payment = paymentService.findPaymentByOrderId(orderId);
+        if (payment != null) {
+            Map<String, Object> paymentDetails = new HashMap<>();
+            paymentDetails.put("paymentId", payment.getPaymentId());
+            paymentDetails.put("status", payment.getStatus());
+            paymentDetails.put("amount", payment.getAmount());
+            paymentDetails.put("currency", payment.getCurrency());
+            paymentDetails.put("createdAt", payment.getCreatedAt());
+            paymentDetails.put("stripeSessionId", payment.getStripeSessionId());
+            paymentDetails.put("paymentMethod", payment.getPaymentMethod());
+            response.put("payment", paymentDetails);
+        }
+        
+        return ResponseEntity.ok(response);
+    }
 }
