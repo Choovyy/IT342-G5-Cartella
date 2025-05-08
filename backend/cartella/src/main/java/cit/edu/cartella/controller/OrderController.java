@@ -3,8 +3,12 @@ package cit.edu.cartella.controller;
 import cit.edu.cartella.entity.Order;
 import cit.edu.cartella.entity.OrderItem;
 import cit.edu.cartella.entity.Payment;
+import cit.edu.cartella.entity.Address;
+import cit.edu.cartella.entity.Product;
 import cit.edu.cartella.service.OrderService;
 import cit.edu.cartella.service.PaymentService;
+import cit.edu.cartella.service.AddressService;
+import cit.edu.cartella.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,15 +21,21 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/orders")
+@CrossOrigin(origins = "http://localhost:5173")
 public class OrderController {
 
     private final OrderService orderService;
     private final PaymentService paymentService;
+    private final AddressService addressService;
+    private final ProductService productService;
 
     @Autowired
-    public OrderController(OrderService orderService, PaymentService paymentService) {
+    public OrderController(OrderService orderService, PaymentService paymentService, 
+                         AddressService addressService, ProductService productService) {
         this.orderService = orderService;
         this.paymentService = paymentService;
+        this.addressService = addressService;
+        this.productService = productService;
     }
 
     @PostMapping("/{userId}/{addressId}")
@@ -42,35 +52,26 @@ public class OrderController {
     public ResponseEntity<List<Order>> getUserOrders(@PathVariable Long userId) {
         List<Order> orders = orderService.getUserOrders(userId);
         
-        // Log for debugging
-        System.out.println("Returning " + orders.size() + " orders for user ID: " + userId);
-        
-        // Additional verification to ensure data integrity before sending to frontend
-        for (Order order : orders) {
-            // Check and log order details
-            System.out.println("Verifying order ID: " + order.getOrderId());
-            
-            // Ensure address data is available
-            if (order.getAddress() == null) {
-                System.out.println("WARNING: Order " + order.getOrderId() + " has no address data");
-            } else {
-                System.out.println("Address info: " + order.getAddress().getCity() + ", " + order.getAddress().getCountry());
+        // Enhance each order with full address and product details
+        orders.forEach(order -> {
+            // Ensure address object exists
+            if (order.getAddress() != null) {
+                // Re-fetch address to get complete details
+                Optional<Address> fullAddress = addressService.getAddressById(order.getAddress().getAddressId());
+                fullAddress.ifPresent(order::setAddress);
             }
             
-            // Verify order items and product information
-            if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
-                System.out.println("WARNING: Order " + order.getOrderId() + " has no order items");
-            } else {
-                OrderItem firstItem = order.getOrderItems().get(0);
-                if (firstItem.getProduct() == null) {
-                    System.out.println("WARNING: First order item has no product data");
-                } else {
-                    System.out.println("Product info: " + firstItem.getProduct().getName() + " - " + 
-                                      (firstItem.getProduct().getDescription() != null ? 
-                                      firstItem.getProduct().getDescription().substring(0, Math.min(30, firstItem.getProduct().getDescription().length())) + "..." : "No description"));
-                }
+            // Ensure order items have complete product information
+            if (order.getOrderItems() != null) {
+                order.getOrderItems().forEach(item -> {
+                    if (item.getProduct() != null) {
+                        // Re-fetch product to get complete details
+                        Optional<Product> fullProduct = productService.getProductById(item.getProduct().getProductId());
+                        fullProduct.ifPresent(item::setProduct);
+                    }
+                });
             }
-        }
+        });
         
         return ResponseEntity.ok(orders);
     }

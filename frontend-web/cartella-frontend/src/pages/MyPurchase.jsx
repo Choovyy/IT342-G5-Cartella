@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Card, CardContent, 
@@ -26,7 +27,6 @@ import ReceiptIcon from "@mui/icons-material/Receipt";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import axios from "axios";
 import paymentService from "../api/paymentService";
 import addressService from "../api/addressService";
 
