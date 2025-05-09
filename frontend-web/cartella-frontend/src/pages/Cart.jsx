@@ -36,9 +36,9 @@ const Cart = () => {
   const [error, setError] = useState("");
   const [totalPrice, setTotalPrice] = useState(0);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [selectAll, setSelectAll] = useState(false);  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -239,12 +239,9 @@ const Cart = () => {
           address.isDefault === true || address.default === true
         );
         console.log("Default address found:", defaultAddress);
-      }
-
-      if (!defaultAddress) {
+      }      if (!defaultAddress) {
         console.log("No default address found, redirecting to address page...");
-        alert("Please set a default address before proceeding with checkout.");
-        navigate('/address');
+        setIsAddressModalOpen(true);
         return;
       }
 
@@ -637,9 +634,7 @@ const Cart = () => {
             </Button>
           </Box>
         </Box>
-      </Modal>
-
-      {/* Authentication Modal */}
+      </Modal>      {/* Authentication Modal */}
       <Modal
         open={isAuthModalOpen}
         onClose={() => {}}
@@ -676,6 +671,69 @@ const Cart = () => {
           >
             Log In
           </Button>
+        </Box>
+      </Modal>
+
+      {/* Address Modal */}
+      <Modal
+        open={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        aria-labelledby="address-modal"
+        aria-describedby="address-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+            borderRadius: 2,
+          }}
+        >
+          <Typography id="address-modal" variant="h6" component="h2" gutterBottom>
+            No Default Address Found
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            Please set a default address before proceeding with checkout.
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={() => {
+                setIsAddressModalOpen(false);
+                navigate('/address');
+              }}
+            >
+              Go to Addresses
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsAddressModalOpen(false)}
+            >
+              Cancel
+            </Button>
+          </Box>
         </Box>
       </Modal>
     </Box>
