@@ -17,7 +17,7 @@ import cit.edu.cartella.util.JwtUtil;
 import java.util.Map;
 import java.util.Optional;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "https://cartellag5.netlify.app"})
 @RestController
 public class OAuth2Controller {
 

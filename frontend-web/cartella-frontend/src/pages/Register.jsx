@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
 import "./design/Login.css";
-import authService from "../api/authService";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -92,7 +92,10 @@ const Register = () => {
     }
 
     try {
-      await authService.registerUser(formData);
+      const response = await axios.post(
+        "https://it342-g5-cartella.onrender.com/api/users/register",
+        formData
+      );
 
       toast.success("Registration Successful", {
         position: "bottom-right",

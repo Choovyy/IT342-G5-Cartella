@@ -5,7 +5,7 @@ import {
   ListItemText, IconButton, Button, TextField, FormControlLabel,
   Checkbox, CircularProgress, Alert, Card, CardContent, CardActions,
   Grid, Divider, Dialog, DialogActions, DialogContent, DialogTitle, Paper,
-  InputBase
+  InputBase, Modal
 } from "@mui/material";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -39,6 +39,10 @@ const Address = () => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState(null);
   const [formData, setFormData] = useState({
     streetAddress: "",
     city: "",
@@ -54,8 +58,7 @@ const Address = () => {
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setIsModalOpen(true);
       return;
     }
 
@@ -87,8 +90,13 @@ const Address = () => {
     sessionStorage.removeItem("authToken");
     sessionStorage.removeItem("username");
     sessionStorage.removeItem("email");
+    sessionStorage.removeItem("userId");
     navigate("/login");
-    toast.success("Logged out successfully!");
+  };
+
+  const handleLoginRedirect = () => {
+    setIsModalOpen(false);
+    navigate("/login");
   };
 
   const handleSearch = () => {
@@ -149,18 +157,22 @@ const Address = () => {
     });
     setOpenDialog(true);
   };
-
-  const handleDelete = async (addressId) => {
-    if (window.confirm("Are you sure you want to delete this address?")) {
-      try {
-        await addressService.deleteAddress(addressId);
-        setAddresses(addresses.filter(addr => addr.addressId !== addressId));
-        toast.success("Address deleted successfully!");
-      } catch (err) {
-        console.error("Error deleting address:", err);
-        toast.error(`Failed to delete address: ${err.message}`);
-      }
+  const handleDeleteConfirm = async () => {
+    try {
+      await addressService.deleteAddress(addressToDelete);
+      setAddresses(addresses.filter(addr => addr.addressId !== addressToDelete));
+      toast.success("Address deleted successfully!");
+      setIsDeleteModalOpen(false);
+      setAddressToDelete(null);
+    } catch (err) {
+      console.error("Error deleting address:", err);
+      toast.error(`Failed to delete address: ${err.message}`);
     }
+  };
+
+  const handleDelete = (addressId) => {
+    setAddressToDelete(addressId);
+    setIsDeleteModalOpen(true);
   };
 
   const handleSetDefault = async (addressId) => {
@@ -259,13 +271,19 @@ const Address = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
   );
+  // Add a useEffect to show toast when error state changes
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -288,7 +306,7 @@ const Address = () => {
                 placeholder="Search items"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                sx={{ flex: 1, color: "#000" }}
+                sx={{ flex: 1, color: "#000", "& input": { border: "none", outline: "none" } }}
               />
             </Box>
           </Box>
@@ -336,8 +354,6 @@ const Address = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
             <CircularProgress />
           </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ width: '100%', maxWidth: '1000px' }}>{error}</Alert>
         ) : (
           <>
             <Box sx={{ width: '100%', maxWidth: '1000px', mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
@@ -470,81 +486,218 @@ const Address = () => {
             )}
           </>
         )}
-      </Box>
-
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
+      </Box>      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+            overflow: 'hidden',
+            backgroundColor: mode === "dark" ? "#2A2A2A" : "#fff",
+            color: mode === "dark" ? "#fff" : "#000",
+          }
+        }}
+        TransitionProps={{
+          sx: {
+            transition: 'all 0.3s ease-in-out !important'
+          }
+        }}
+      >
+        <Box sx={{ 
+          px: 3, 
+          py: 2, 
+          bgcolor: mode === "dark" ? "#3a3a3a" : "#f5f5f5", 
+          borderBottom: `1px solid ${mode === "dark" ? "#444" : "#e0e0e0"}`,
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <HomeIcon sx={{ color: "#D32F2F", mr: 1.5, fontSize: 28 }} />
+          <Typography variant="h5" component="h2" sx={{ fontWeight: 500 }}>
+            {editingAddress ? 'Edit Address' : 'Add New Address'}
+          </Typography>
+        </Box>
+        
+        <DialogContent sx={{ p: 3, mt: 1 }}>
+          <Typography variant="body2" sx={{ mb: 3, color: mode === "dark" ? "#aaa" : "#666" }}>
+            Enter your address details below. Fields marked with * are required.
+          </Typography>
+          
+          <Box sx={{ pt: 1 }}>
             <TextField
               fullWidth
-              label="Street Address"
+              label="Street Address *"
               name="streetAddress"
               value={formData.streetAddress}
               onChange={handleInputChange}
               margin="normal"
               required
-            />
-            <TextField
-              fullWidth
-              label="City"
-              name="city"
-              value={formData.city}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label="State"
-              name="state"
-              value={formData.state}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label="Postal Code"
-              name="postalCode"
-              value={formData.postalCode}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              inputProps={{
-                pattern: "[0-9]{5,10}",
-                title: "5-10 digit postal code"
+              variant="outlined"
+              InputProps={{
+                sx: { 
+                  borderRadius: 1.5,
+                  '&.Mui-focused': {
+                    boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                  }
+                }
               }}
+              sx={{ mb: 2 }}
             />
-            <TextField
-              fullWidth
-              label="Country"
-              name="country"
-              value={formData.country}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              inputProps={{
-                pattern: "[A-Za-z ]{2,56}",
-                title: "Valid country name (2-56 characters)"
-              }}
-            />
-            <FormControlLabel
-              control={
-                <Checkbox 
-                  checked={formData.isDefault} 
-                  onChange={handleInputChange} 
-                  name="isDefault" 
-                  color="error" 
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="City *"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  required
+                  variant="outlined"
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 1.5,
+                      '&.Mui-focused': {
+                        boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                      }
+                    }
+                  }}
                 />
-              }
-              label="Set as default address"
-              sx={{ mt: 2 }}
-            />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="State/Province *"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleInputChange}
+                  required
+                  variant="outlined"
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 1.5,
+                      '&.Mui-focused': {
+                        boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+            
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Postal Code *"
+                  name="postalCode"
+                  value={formData.postalCode}
+                  onChange={handleInputChange}
+                  required
+                  variant="outlined"
+                  helperText="5-10 digit postal code"
+                  inputProps={{
+                    pattern: "[0-9]{5,10}",
+                    title: "5-10 digit postal code"
+                  }}
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 1.5,
+                      '&.Mui-focused': {
+                        boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Country *"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                  required
+                  variant="outlined"
+                  helperText="Country name (2-56 characters)"
+                  inputProps={{
+                    pattern: "[A-Za-z ]{2,56}",
+                    title: "Valid country name (2-56 characters)"
+                  }}
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 1.5,
+                      '&.Mui-focused': {
+                        boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+            
+            <Paper 
+              sx={{ 
+                p: 2, 
+                mt: 3, 
+                bgcolor: mode === "dark" ? "rgba(211, 47, 47, 0.08)" : "rgba(211, 47, 47, 0.05)",
+                borderRadius: 2,
+                border: `1px solid ${mode === "dark" ? "rgba(211, 47, 47, 0.2)" : "rgba(211, 47, 47, 0.15)"}`,
+              }}
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={formData.isDefault} 
+                    onChange={handleInputChange} 
+                    name="isDefault" 
+                    color="error"
+                    sx={{
+                      '&.Mui-checked': {
+                        color: '#D32F2F',
+                      }
+                    }}
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>Set as default address</Typography>
+                    <Typography variant="body2" sx={{ color: mode === "dark" ? "#aaa" : "#666", fontSize: '0.8rem' }}>
+                      This address will be used as the default for all shipping orders
+                    </Typography>
+                  </Box>
+                }
+              />
+            </Paper>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={isSubmitting}>
+        
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          p: 3,
+          pt: 2,
+          borderTop: `1px solid ${mode === "dark" ? "#444" : "#e0e0e0"}`,
+          gap: 1
+        }}>
+          <Button 
+            onClick={handleCloseDialog} 
+            disabled={isSubmitting}
+            variant="outlined"
+            sx={{ 
+              px: 3,
+              borderRadius: 2,
+              textTransform: 'none',
+              borderColor: mode === "dark" ? "#666" : "#ccc",
+              color: mode === "dark" ? "#ddd" : "#555",
+              '&:hover': {
+                borderColor: mode === "dark" ? "#888" : "#aaa",
+                backgroundColor: mode === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)"
+              }
+            }}
+          >
             Cancel
           </Button>
           <Button 
@@ -552,13 +705,179 @@ const Address = () => {
             variant="contained" 
             color="error"
             disabled={isSubmitting}
+            sx={{ 
+              px: 3,
+              borderRadius: 2,
+              boxShadow: 2,
+              textTransform: 'none',
+              fontWeight: 500,
+              transition: 'all 0.2s',
+              '&:hover': {
+                boxShadow: 4,
+                backgroundColor: '#B71C1C'
+              }
+            }}
           >
             {isSubmitting ? (
               <CircularProgress size={24} sx={{ color: 'white' }} />
-            ) : editingAddress ? 'Update' : 'Add'}
+            ) : editingAddress ? 'Update Address' : 'Add Address'}
           </Button>
-        </DialogActions>
+        </Box>
       </Dialog>
+
+      <Modal
+        open={isModalOpen}
+        onClose={() => {}}
+        aria-labelledby="not-logged-in-modal"
+        aria-describedby="not-logged-in-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="not-logged-in-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>          </Box>
+        </Box>
+      </Modal>
+
+      <Modal
+        open={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        aria-labelledby="delete-address-modal"
+        aria-describedby="delete-address-confirmation"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: mode === "dark" ? "#2A2A2A" : "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+            borderRadius: 2,
+            color: mode === "dark" ? "#fff" : "#000",
+          }}
+        >
+          <DeleteIcon sx={{ color: "#D32F2F", fontSize: 40, mb: 2 }} />
+          <Typography id="delete-address-modal" variant="h6" component="h2" sx={{ mb: 2 }}>
+            Delete Address
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            Are you sure you want to delete this address? This action cannot be undone.
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2F",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleDeleteConfirm}
+            >
+              Delete
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: mode === "dark" ? "rgba(255,255,255,0.05)" : "#ffffff",
+                color: mode === "dark" ? "#ddd" : "#333333",
+                border: `1px solid ${mode === "dark" ? "#666" : "#ccc"}`,
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: mode === "dark" ? "rgba(255,255,255,0.1)" : "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };

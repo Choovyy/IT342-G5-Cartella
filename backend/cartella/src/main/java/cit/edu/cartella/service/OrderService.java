@@ -20,12 +20,13 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final OrderItemRepository orderItemRepository;
     private final PaymentService paymentService;
+    private final NotificationService notificationService;
 
     @Autowired
     public OrderService(OrderRepository orderRepository, CartRepository cartRepository, 
                        AddressRepository addressRepository, CartService cartService,
                        OrderItemRepository orderItemRepository, ProductRepository productRepository,
-                       PaymentService paymentService) {
+                       PaymentService paymentService, NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.addressRepository = addressRepository;
@@ -33,6 +34,7 @@ public class OrderService {
         this.productRepository = productRepository;
         this.orderItemRepository = orderItemRepository;
         this.paymentService = paymentService;
+        this.notificationService = notificationService;
     }
 
     public Order placeOrder(Long userId, Long addressId) {
@@ -133,6 +135,43 @@ public class OrderService {
         // Clear the user's cart after successful order
         cartService.clearCart(userId);
         
+        // Send order confirmation notification
+        try {
+            // Build a summary of ordered items
+            StringBuilder itemsSummary = new StringBuilder();
+            int totalItems = 0;
+            
+            for (OrderItem item : orderItems) {
+                totalItems += item.getQuantity();
+                if (itemsSummary.length() > 0) {
+                    itemsSummary.append(", ");
+                }
+                itemsSummary.append(item.getQuantity()).append("x ").append(item.getProduct().getName());
+            }
+            
+            // Format the notification message
+            String orderDetails = String.format(
+                "Order #%d has been placed successfully. Total: ₱%s for %d item(s): %s",
+                order.getOrderId(),
+                order.getTotalAmount().toString(),
+                totalItems,
+                itemsSummary.toString()
+            );
+            
+            // Send the notification
+            if (notificationService != null) {
+                notificationService.addOrderStatusNotification(
+                    userId,
+                    "PENDING",
+                    orderDetails
+                );
+                System.out.println("Order confirmation notification sent to user ID " + userId);
+            }
+        } catch (Exception e) {
+            // Log the error but don't fail the transaction
+            System.err.println("Failed to send order confirmation notification: " + e.getMessage());
+        }
+        
         // Refresh the order to ensure all relationships are loaded
         return orderRepository.findById(order.getOrderId()).orElse(order);
     }
@@ -222,6 +261,38 @@ public class OrderService {
             }
         }
         
+        // Send notification to user about order status change
+        try {
+            // Create a detailed message for the notification
+            String productInfo = "";
+            if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
+                OrderItem firstItem = order.getOrderItems().get(0);
+                int remainingItems = order.getOrderItems().size() - 1;
+                
+                if (firstItem.getProduct() != null) {
+                    productInfo = firstItem.getProduct().getName();
+                    if (remainingItems > 0) {
+                        productInfo += " and " + remainingItems + " other item" + (remainingItems > 1 ? "s" : "");
+                    }
+                }
+            }
+            
+            String orderDetails = "Order #" + orderId + " - " + productInfo;
+            
+            // If a notification service is available, use it to send a notification
+            if (notificationService != null) {
+                notificationService.addOrderStatusNotification(
+                    order.getUser().getUserId(), 
+                    newStatus.toString(), 
+                    orderDetails
+                );
+                System.out.println("Notification sent to user ID " + order.getUser().getUserId() + " about order " + orderId + " status change to " + newStatus);
+            }
+        } catch (Exception e) {
+            // Log the error but don't fail the transaction
+            System.err.println("Failed to send notification for order " + orderId + ": " + e.getMessage());
+        }
+        
         return orderRepository.save(order);
     }
     
@@ -253,6 +324,41 @@ public class OrderService {
             paymentService.updatePaymentStatus(payment.getPaymentId(), "CANCELLED");
         } else {
             System.out.println("No payment found for cancelled order " + orderId);
+        }
+        
+        // Send cancellation notification to the user
+        try {
+            // Format order details for the notification
+            StringBuilder itemsSummary = new StringBuilder();
+            if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
+                int totalItems = 0;
+                for (OrderItem item : order.getOrderItems()) {
+                    totalItems += item.getQuantity();
+                    if (itemsSummary.length() > 0) {
+                        itemsSummary.append(", ");
+                    }
+                    itemsSummary.append(item.getProduct().getName());
+                }
+                
+                String orderDetails = String.format(
+                    "Order #%d for %s has been cancelled. Your payment of ₱%s will be refunded according to your payment method's policy.",
+                    orderId,
+                    itemsSummary.toString(),
+                    order.getTotalAmount().toString()
+                );
+                
+                if (notificationService != null && order.getUser() != null) {
+                    notificationService.addOrderStatusNotification(
+                        order.getUser().getUserId(),
+                        "CANCELLED",
+                        orderDetails
+                    );
+                    System.out.println("Cancellation notification sent to user ID " + order.getUser().getUserId());
+                }
+            }
+        } catch (Exception e) {
+            // Log error but don't fail the transaction
+            System.err.println("Failed to send cancellation notification: " + e.getMessage());
         }
         
         return true;

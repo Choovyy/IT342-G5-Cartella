@@ -4,9 +4,9 @@ import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, TextField, Button,
   FormControl, FormLabel, RadioGroup, FormControlLabel, Radio,
-  CircularProgress, Alert, InputAdornment, Card, CardContent
+  CircularProgress, Alert, InputAdornment, Card, CardContent, Modal
 } from "@mui/material";
-import { toast } from "react-toastify";
+import { toast, ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -48,7 +48,9 @@ const Profile = () => {
   const [isGoogleUser, setIsGoogleUser] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [defaultAddress, setDefaultAddress] = useState(null);
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
   const fetchDefaultAddress = async (email, username) => {
     try {
       let addresses = [];
@@ -99,8 +101,7 @@ const Profile = () => {
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     if (!token) {
-      toast.error("You must be logged in to access this page.");
-      navigate("/login");
+      setIsModalOpen(true);
       return;
     }
 
@@ -114,10 +115,13 @@ const Profile = () => {
         if (email) {
           console.log("Fetching user data for email:", email);
           setIsGoogleUser(true);
-          // Using the centralized API configuration instead of hardcoded localhost URL
-          const response = await userService.getUserByEmail(email);
-          console.log("User data response:", response);
-          userData = response;
+          const response = await axios.get(`https://it342-g5-cartella.onrender.com/dashboard`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          console.log("Dashboard response:", response.data);
+          userData = response.data;
         } else {
           const username = sessionStorage.getItem("username");
           console.log("Fetching user data for username:", username);
@@ -155,6 +159,12 @@ const Profile = () => {
     sessionStorage.removeItem("authToken");
     sessionStorage.removeItem("username");
     sessionStorage.removeItem("email");
+    sessionStorage.removeItem("userId");
+    navigate("/login");
+  };
+
+  const handleLoginRedirect = () => {
+    setIsModalOpen(false);
     navigate("/login");
   };
 
@@ -174,14 +184,26 @@ const Profile = () => {
   };
 
   const handleSubmit = async (event) => {
-    event.preventDefault(); // Prevents the default form submission behavior
+    event.preventDefault();
     try {
       const token = sessionStorage.getItem("authToken");
       const username = sessionStorage.getItem("username");
       const email = sessionStorage.getItem("email");
 
       if (!token) {
-        toast.error("You must be logged in to update your profile.");
+        toast.error("You must be logged in to update your profile.", {
+          position: "bottom-right",
+          closeButton: false,
+          style: {
+            backgroundColor: "#ffffff",
+            color: "#ff3333",
+            border: "1px solid #cccccc",
+            fontSize: "14px",
+            padding: "10px 15px",
+            borderRadius: "8px",
+            pointerEvents: "none",
+          }
+        });
         navigate("/login");
         return;
       }
@@ -205,11 +227,9 @@ const Profile = () => {
       let response;
 
       if (email) {
-        // Google OAuth user - use the userService
         console.log("Updating Google OAuth user with email:", email);
         response = await userService.updateUserByEmail(email, userData);
       } else if (username) {
-        // Regular user - use the username endpoint
         console.log("Updating regular user with username:", username);
         response = await userService.updateUserByUsername(username, userData);
       } else {
@@ -217,16 +237,39 @@ const Profile = () => {
       }
 
       console.log("Profile update response:", response);
-      toast.success("Profile updated successfully!", { autoClose: 3000 });
+      toast.success("Profile updated successfully!", {
+        position: "bottom-right",
+        closeButton: false,
+        style: {
+          backgroundColor: "#ffffff",
+          color: "#333333",
+          border: "1px solid #cccccc",
+          fontSize: "14px",
+          padding: "10px 15px",
+          borderRadius: "8px",
+          pointerEvents: "none",
+        }
+      });
 
-      // Delay reload until after toast animation completes
       setTimeout(() => {
         window.location.reload();
-      }, 3000); // Matches the toast's autoClose duration
+      }, 2000);
 
     } catch (err) {
       console.error("Error updating profile:", err);
-      toast.error(`Failed to update profile: ${err.response?.data?.error || err.message}`);
+      toast.error(`Failed to update profile: ${err.response?.data?.error || err.message}`, {
+        position: "bottom-right",
+        closeButton: false,
+        style: {
+          backgroundColor: "#ffffff",
+          color: "#ff3333",
+          border: "1px solid #cccccc",
+          fontSize: "14px",
+          padding: "10px 15px",
+          borderRadius: "8px",
+          pointerEvents: "none",
+        }
+      });
     }
   };
 
@@ -251,9 +294,9 @@ const Profile = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -273,14 +316,13 @@ const Profile = () => {
             <Typography variant="h2" sx={{ fontFamily: "GDS Didot, serif", fontSize: "26px", marginRight: 3 }}>
               Cartella
             </Typography>
-            <Box display="flex" alignItems="center"
-              sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}>
+            <Box display="flex" alignItems="center" sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}>
               <IconButton onClick={handleSearch}><SearchIcon sx={{ color: "#1A1A1A" }} /></IconButton>
               <InputBase
                 placeholder="Search items"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                sx={{ flex: 1, color: "#000" }}
+                sx={{ flex: 1, color: "#000", "& input": { border: "none", outline: "none" } }}
               />
             </Box>
           </Box>
@@ -305,95 +347,92 @@ const Profile = () => {
         {drawer}
       </Drawer>
 
-      <Box component="main"
+      <Box
         sx={{
           flexGrow: 1,
           bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
-          p: 3,
-          mt: 8,
           color: mode === "light" ? "#000" : "#FFF",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          height: "calc(100vh - 64px)", // Subtract the AppBar height
-          overflow: "hidden" // Prevent double scrollbars
+          mt: 8,
+          p: 3,
+          overflow: "auto",
+          height: "92vh",
         }}
       >
-        <Box 
-          sx={{ 
-            width: "100%", 
-            maxWidth: "1000px", 
-            overflowY: "auto", 
-            pr: 2, // Add padding for the scrollbar
-            "&::-webkit-scrollbar": {
-              width: "8px",
-            },
-            "&::-webkit-scrollbar-track": {
-              backgroundColor: mode === "dark" ? "#2A2A2A" : "#f0f0f0",
-              borderRadius: "4px",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: mode === "dark" ? "#555" : "#D32F2F",
-              borderRadius: "4px",
-              "&:hover": {
-                backgroundColor: mode === "dark" ? "#777" : "#B71C1C",
-              },
-            },
+        <Typography variant="h4" sx={{ mb: 0 }}>My Profile</Typography>
+        <Typography variant="body2" sx={{ mb: 4, mt: 0.5, color: mode === "light" ? "#000" : "#FFF", textAlign: "left" }}>
+          Manage and protect your account
+        </Typography>
+        <Box
+          component="main"
+          sx={{
+            width: "100%",
+            maxWidth: "1000px",
+            margin: "0 auto",
           }}
         >
-          <Box sx={{ alignSelf: "flex-start" }}>
-            <Typography variant="h4" sx={{ mb: 0 }}>My Profile</Typography>
-            <Typography variant="body2" sx={{ mb: 4, mt: 0.5, color: mode === "light" ? "#000" : "#FFF" }}>
-              Manage and protect your account
-            </Typography>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+            <CircularProgress />
           </Box>
-
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-              <CircularProgress />
+        ) : error ? (
+          <Alert severity="error" sx={{ width: '100%', maxWidth: '1000px' }}>{error}</Alert>
+        ) : (
+          <Box
+            component="form"
+            noValidate
+            autoComplete="off"
+            sx={{
+              width: "100%",
+              maxWidth: "1000px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              bgcolor: mode === "dark" ? "#2A2A2A" : "#f9f9f9",
+              p: 4,
+              borderRadius: 2,
+              boxShadow: 2,
+              position: "relative",
+              color: mode === "dark" ? "#fff" : "#000",
+              mb: 4,
+              margin: "0 auto", 
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000" }}>
+                Username
+              </Typography>
+              <TextField 
+                name="username" 
+                value={formData.username} 
+                onChange={handleChange} 
+                fullWidth
+                variant="outlined"
+                InputLabelProps={{ shrink: true }}
+              />
             </Box>
-          ) : error ? (
-            <Alert severity="error" sx={{ width: '100%', maxWidth: '1000px' }}>{error}</Alert>
-          ) : (
-            <Box
-              component="form"
-              noValidate
-              autoComplete="off"
-              sx={{
-                width: "100%",
-                maxWidth: "1000px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 1,
-                bgcolor: mode === "dark" ? "#2A2A2A" : "#f9f9f9",
-                p: 4,
-                borderRadius: 2,
-                boxShadow: 2,
-                position: "relative",
-                color: mode === "dark" ? "#fff" : "#000",
-                mb: 4 // Add margin at the bottom for better scrolling
-              }}
-            >
-              <TextField label="Username" name="username" value={formData.username} onChange={handleChange} fullWidth />
               
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000", mt: -3 }}>
+                Password
+              </Typography>
               {isGoogleUser ? (
                 <TextField 
-                  label="Password" 
                   name="password" 
                   type="password" 
                   value="********" 
                   disabled 
-                  fullWidth 
+                  fullWidth
+                  variant="outlined"
                   helperText="Password cannot be changed for Google accounts"
                 />
               ) : (
                 <TextField 
-                  label="Password" 
                   name="password" 
                   type={showPassword ? "text" : "password"} 
                   placeholder="Leave blank to keep current password" 
                   onChange={handleChange} 
-                  fullWidth 
+                  fullWidth
+                  variant="outlined"
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -409,25 +448,66 @@ const Profile = () => {
                   }}
                 />
               )}
+            </Box>
               
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000", mt: -3 }}>
+                Email
+              </Typography>
               <TextField 
-                label="Email" 
                 name="email" 
                 value={formData.email} 
                 disabled 
-                fullWidth 
+                fullWidth
+                variant="outlined"
                 helperText="Email cannot be changed"
-                sx={{
-                  '& .MuiInputBase-input.Mui-disabled': {
-                    WebkitTextFillColor: mode === "dark" ? "#aaa" : "#666",
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000" }}>
+                Phone Number
+              </Typography>
+              <TextField 
+                name="phone" 
+                value={formData.phone} 
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                  setFormData(prev => ({ ...prev, phone: value }));
+                }}
+                fullWidth
+                variant="outlined"
+                inputProps={{
+                  maxLength: 11,
+                  pattern: '[0-9]*',
+                  inputMode: 'numeric'
+                }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000" }}>
+                Date of Birth
+              </Typography>
+              <TextField
+                name="dob"
+                type="date"
+                value={formData.dob}
+                onChange={handleChange}
+                fullWidth
+                variant="outlined"
+                sx={{ 
+                  '& input::-webkit-calendar-picker-indicator': {
+                    filter: mode === "dark" ? 'invert(1)' : 'none'
                   },
-                  '& .MuiFormHelperText-root': {
-                    color: mode === "dark" ? "#aaa" : "#666",
+                  '& .MuiInputBase-root': {
+                    color: mode === "dark" ? "#fff" : "#000",
+                    height: '56px !important' 
                   }
                 }}
               />
-              <TextField label="Phone number" name="phone" value={formData.phone} onChange={handleChange} fullWidth />
-              
+            </Box>
+
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="subtitle1">Address</Typography>
                 <Button 
@@ -435,6 +515,7 @@ const Profile = () => {
                   color="error" 
                   startIcon={<LocationOnIcon />}
                   onClick={() => navigate('/address')}
+                  sx={{ textTransform: 'none' }}
                 >
                   Manage Addresses
                 </Button>
@@ -494,23 +575,8 @@ const Profile = () => {
                 </Typography>
               )}
               
-              <Box>
-                <Typography sx={{ color: mode === "dark" ? "#ccc" : "#000", mb: 1 }}>
-                  Date of Birth
-                </Typography>
-                <TextField
-                  name="dob"
-                  type="date"
-                  value={formData.dob}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{ style: { color: mode === "dark" ? "#fff" : "#000" } }}
-                  fullWidth
-                />
-              </Box>
-
               <FormControl>
-                <FormLabel sx={{ color: mode === "dark" ? "#ccc" : undefined }}>Gender</FormLabel>
+                <FormLabel sx={{ color: mode === "dark" ? "#fff" : "#000" }}>Gender</FormLabel>
                 <RadioGroup
                   row
                   name="gender"
@@ -528,14 +594,126 @@ const Profile = () => {
                 color="error"
                 size="small"
                 onClick={handleSubmit}
-                sx={{ alignSelf: "flex-end", mt: 2 }}
+                sx={{ 
+                  alignSelf: "flex-end", 
+                  mt: 2,
+                  textTransform: "none",
+                  fontWeight: "100",
+                  fontSize: "1rem"
+                }}
               >
                 Save Profile
               </Button>
-            </Box>
-          )}
+          </Box>
+        )}
         </Box>
       </Box>
+
+      <ToastContainer
+        hideProgressBar={false}
+        closeButton={false}
+        newestOnTop={false}
+        pauseOnHover={false}
+        draggable={false}
+        autoClose={2000}
+        transition={Slide}
+      />
+
+      {/* Modal for Not Logged In */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => {}}
+        aria-labelledby="not-logged-in-modal"
+        aria-describedby="not-logged-in-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="not-logged-in-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Modal for Logout Confirmation */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };

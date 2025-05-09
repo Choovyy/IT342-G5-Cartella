@@ -113,4 +113,8 @@ public class AddressService {
     public void deleteAddress(Long addressId) {
         addressRepository.deleteById(addressId);
     }
-} 
+
+    public Optional<Address> getAddressById(Long addressId) {
+        return addressRepository.findById(addressId);
+    }
+}

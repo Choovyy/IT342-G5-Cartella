@@ -1,16 +1,12 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
-  AppBar, Toolbar, Typography, Drawer, Box, List, ListItem, 
-  ListItemText, IconButton, InputBase, Card, CardContent, 
-  Grid, Paper, CircularProgress, Alert, Snackbar
+  AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
+  ListItemText, IconButton, InputBase, CircularProgress, Modal, Button
 } from "@mui/material";
+
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
-
-// Import API services
-import vendorService from "../api/vendorService";
-import orderService from "../api/orderService";
-import productService from "../api/productService";
+import { toast, ToastContainer } from "react-toastify";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -23,89 +19,16 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logoLight from "../images/Cartella Logo (Light).jpeg";
 import logoDark from "../images/Cartella Logo (Dark2).jpeg";
 
-
 import {
   LineChart,
   lineElementClasses,
-  axisClasses,
-  legendClasses,
-  chartsGridClasses
 } from "@mui/x-charts";
 
 const drawerWidth = 240;
 
-const gray = {
-  100: "#f5f5f5",
-  200: "#eeeeee",
-  300: "#e0e0e0",
-  500: "#9e9e9e",
-  700: "#616161",
-  900: "#212121"
-};
-
-export const chartsCustomizations = {
-  MuiChartsAxis: {
-    styleOverrides: {
-      root: ({ theme }) => ({
-        [`& .${axisClasses.line}`]: { stroke: gray[300] },
-        [`& .${axisClasses.tick}`]: { stroke: gray[300] },
-        [`& .${axisClasses.tickLabel}`]: {
-          fill: gray[500],
-          fontWeight: 500,
-        },
-        ...(theme.applyStyles && theme.applyStyles("dark", {
-          [`& .${axisClasses.line}`]: { stroke: gray[700] },
-          [`& .${axisClasses.tick}`]: { stroke: gray[700] },
-          [`& .${axisClasses.tickLabel}`]: { fill: gray[300], fontWeight: 500 },
-        })),
-      }),
-    },
-  },
-  MuiChartsTooltip: {
-    styleOverrides: {
-      mark: ({ theme }) => ({
-        ry: 6,
-        boxShadow: "none",
-        border: `1px solid ${(theme.vars || theme).palette.divider}`,
-      }),
-      table: ({ theme }) => ({
-        border: `1px solid ${(theme.vars || theme).palette.divider}`,
-        borderRadius: theme.shape.borderRadius,
-        background: "hsl(0, 0%, 100%)",
-        ...(theme.applyStyles && theme.applyStyles("dark", {
-          background: gray[900],
-        })),
-      }),
-    },
-  },
-  MuiChartsLegend: {
-    styleOverrides: {
-      root: {
-        [`& .${legendClasses.mark}`]: { ry: 6 },
-      },
-    },
-  },
-  MuiChartsGrid: {
-    styleOverrides: {
-      root: ({ theme }) => ({
-        [`& .${chartsGridClasses.line}`]: {
-          stroke: gray[200],
-          strokeDasharray: "4 2",
-          strokeWidth: 0.8,
-        },
-        ...(theme.applyStyles && theme.applyStyles("dark", {
-          [`& .${chartsGridClasses.line}`]: {
-            stroke: gray[700],
-            strokeDasharray: "4 2",
-            strokeWidth: 0.8,
-          },
-        })),
-      }),
-    },
-  },
-};
-
 const VendorDashboard = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [userDetails, setUserDetails] = useState({
     username: "",
     userId: "",
@@ -130,57 +53,66 @@ const VendorDashboard = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [error, setError] = useState("");
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  
+
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
 
   useEffect(() => {
-    // Fetch user details from localStorage
     const username = sessionStorage.getItem("username");
     const userId = sessionStorage.getItem("userId");
     const vendorId = sessionStorage.getItem("vendorId");
     const businessName = sessionStorage.getItem("businessName");
     const joinedDate = sessionStorage.getItem("joinedDate");
     const authToken = sessionStorage.getItem("authToken");
-    
-    // Check if user is authenticated
+
     if (!authToken || !vendorId) {
-      navigate("/vendor-login");
+      setIsModalOpen(true);
       return;
     }
-    
+
     setUserDetails({ username, userId, vendorId, businessName, joinedDate });
-    
-    // Fetch dashboard data
+
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        setError("");
-        
-        // Fetch dashboard summary data using vendorService
-        const summaryData = await vendorService.getVendorDashboardSummary(vendorId);
-        
-        // Update user details with data from API
-        setUserDetails(prev => ({
+
+        const summaryResponse = await fetch(`https://it342-g5-cartella.onrender.com/api/vendor-dashboard/${vendorId}/summary`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (!summaryResponse.ok) {
+          throw new Error("Failed to fetch summary data");
+        }
+
+        const summaryData = await summaryResponse.json();
+
+        setUserDetails((prev) => ({
           ...prev,
           businessName: summaryData.businessName || prev.businessName,
-          joinedDate: summaryData.joinedDate || prev.joinedDate
+          joinedDate: summaryData.joinedDate || prev.joinedDate,
         }));
-        
-        // Set dashboard data
+
         setDashboardData({
           totalProducts: summaryData.totalProducts || 0,
           totalOrders: summaryData.totalOrders || 0,
           totalRevenue: summaryData.totalRevenue || 0,
           totalSoldItems: summaryData.totalSoldItems || 0,
         });
-        
-        // Fetch chart data using vendorService
-        const chartData = await vendorService.getVendorDashboardChartData(vendorId);
-        
-        // Set chart data
+
+        const chartResponse = await fetch(`https://it342-g5-cartella.onrender.com/api/vendor-dashboard/${vendorId}/chart-data`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (!chartResponse.ok) {
+          throw new Error("Failed to fetch chart data");
+        }
+
+        const chartData = await chartResponse.json();
+
         setChartData({
           labels: chartData.labels || ["Jan", "Feb", "Mar", "Apr"],
           products: chartData.products || [0, 0, 0, 0],
@@ -188,16 +120,33 @@ const VendorDashboard = () => {
           revenue: chartData.revenue || [0, 0, 0, 0],
         });
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setError('Failed to load dashboard data. Please try again later.');
-        setOpenSnackbar(true);
+        console.error("Error fetching dashboard data:", error);
+
+        toast.error("Failed to load dashboard data. Please try again later.", {
+          position: "bottom-right",
+          closeButton: false,
+          style: {
+            backgroundColor: "#ffffff",
+            color: "#ff3333",
+            border: "1px solid #cccccc",
+            fontSize: "14px",
+            padding: "10px 15px",
+            borderRadius: "8px",
+            pointerEvents: "none",
+          },
+        });
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchDashboardData();
   }, [navigate]);
+
+  const handleLoginRedirect = () => {
+    setIsModalOpen(false);
+    navigate("/vendor-login");
+  };
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
@@ -206,20 +155,13 @@ const VendorDashboard = () => {
     sessionStorage.removeItem("vendorId");
     sessionStorage.removeItem("businessName");
     sessionStorage.removeItem("joinedDate");
-    console.log("User logged out");
-    alert("You have been logged out successfully.");
     navigate("/vendor-login");
   };
 
   const handleSearch = () => {
     if (searchText.trim()) {
       console.log("Searching for:", searchText);
-      // Implement search functionality here
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
   };
 
   const logoSrc = mode === "light" ? logoLight : logoDark;
@@ -243,9 +185,9 @@ const VendorDashboard = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -265,7 +207,7 @@ const VendorDashboard = () => {
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box display="flex" alignItems="center">
             <img src={logoSrc} alt="Logo" style={{ height: 40, marginRight: 10 }} />
-            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3,  fontFamily: "GDS Didot, serif" }}>
+            <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3, fontFamily: "GDS Didot, serif" }}>
               Cartella
             </Typography>
             <Box
@@ -337,12 +279,11 @@ const VendorDashboard = () => {
         </Typography>
 
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
             <CircularProgress />
           </Box>
         ) : (
           <>
-            {/* Summary Cards */}
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, my: 4, flexWrap: "wrap" }}>
               <Box
                 sx={{
@@ -406,7 +347,6 @@ const VendorDashboard = () => {
               </Box>
             </Box>
 
-            {/* Charts Section */}
             <Box sx={{ display: "flex", justifyContent: "center", gap: 4, my: 4, flexWrap: "wrap" }}>
               <Box
                 sx={{
@@ -419,11 +359,29 @@ const VendorDashboard = () => {
               >
                 <Typography variant="h6" align="center">Total Orders</Typography>
                 <LineChart
-                  xAxis={[{ data: chartData.labels }]}
-                  series={[{ data: chartData.orders, label: "Orders", color: "#F44336" }]}
+                  xAxis={[{ data: chartData.labels, scaleType: 'point' }]}
+                  series={[{
+                    data: chartData.orders,
+                    label: "Orders",
+                    color: "#F44336",
+                    area: true,
+                    showMark: true,
+                    curve: "linear",
+                  }]}
                   width={480}
                   height={280}
-                  sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
+                  sx={{
+                    '.MuiLineElement-root': {
+                      strokeWidth: 2,
+                      strokeLinecap: 'round',
+                    },
+                    '.MuiMarkElement-root': {
+                      stroke: '#F44336',
+                      scale: '0.6',
+                      fill: '#fff',
+                      strokeWidth: 2,
+                    },
+                  }}
                 />
               </Box>
 
@@ -438,11 +396,29 @@ const VendorDashboard = () => {
               >
                 <Typography variant="h6" align="center">Total Products</Typography>
                 <LineChart
-                  xAxis={[{ data: chartData.labels }]}
-                  series={[{ data: chartData.products, label: "Products", color: "#2196F3" }]}
+                  xAxis={[{ data: chartData.labels, scaleType: 'point' }]}
+                  series={[{
+                    data: chartData.products,
+                    label: "Products",
+                    color: "#2196F3",
+                    area: true,
+                    showMark: true,
+                    curve: "linear",
+                  }]}
                   width={480}
                   height={280}
-                  sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
+                  sx={{
+                    '.MuiLineElement-root': {
+                      strokeWidth: 2,
+                      strokeLinecap: 'round',
+                    },
+                    '.MuiMarkElement-root': {
+                      stroke: '#2196F3',
+                      scale: '0.6',
+                      fill: '#fff',
+                      strokeWidth: 2,
+                    },
+                  }}
                 />
               </Box>
             </Box>
@@ -459,29 +435,140 @@ const VendorDashboard = () => {
               >
                 <Typography variant="h6" align="center">Total Revenue</Typography>
                 <LineChart
-                  xAxis={[{ data: chartData.labels }]}
-                  series={[{ data: chartData.revenue, label: "Revenue (₱)", color: "#4CAF50" }]}
+                  xAxis={[{ data: chartData.labels, scaleType: 'point' }]}
+                  series={[{
+                    data: chartData.revenue,
+                    label: "Revenue (₱)",
+                    color: "#4CAF50",
+                    area: true,
+                    showMark: true,
+                    curve: "linear",
+                  }]}
                   width={1000}
                   height={280}
-                  sx={{ [`& .${lineElementClasses.root}`]: { strokeWidth: 2 } }}
+                  sx={{
+                    '.MuiLineElement-root': {
+                      strokeWidth: 2,
+                      strokeLinecap: 'round',
+                    },
+                    '.MuiMarkElement-root': {
+                      stroke: '#4CAF50',
+                      scale: '0.6',
+                      fill: '#fff',
+                      strokeWidth: 2,
+                    },
+                  }}
                 />
               </Box>
             </Box>
           </>
         )}
       </Box>
-      
-      {/* Error Snackbar */}
-      <Snackbar 
-        open={openSnackbar} 
-        autoHideDuration={6000} 
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+
+      {/* Modal for Not Logged In */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => {}}
+        aria-labelledby="not-logged-in-modal"
+        aria-describedby="not-logged-in-description"
       >
-        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="not-logged-in-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Modal for Logout Confirmation */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+      <ToastContainer
+        hideProgressBar={false}
+        closeButton={false}
+        newestOnTop={false}
+        pauseOnHover={false}
+        draggable={false}
+        autoClose={2000}
+      />
     </Box>
   );
 };

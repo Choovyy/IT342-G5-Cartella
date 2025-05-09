@@ -58,8 +58,8 @@ public class PaymentService {
             
             SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl("http://localhost:5173/payment-success?session_id={CHECKOUT_SESSION_ID}")
-                .setCancelUrl("http://localhost:5173/cart")
+                .setSuccessUrl("https://cartellag5.netlify.app/payment-success?session_id={CHECKOUT_SESSION_ID}")
+                .setCancelUrl("https://cartellag5.netlify.app/cart")
                 .addLineItem(
                     SessionCreateParams.LineItem.builder()
                         .setPriceData(

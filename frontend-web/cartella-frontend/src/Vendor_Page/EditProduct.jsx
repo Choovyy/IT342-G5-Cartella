@@ -2,11 +2,11 @@ import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, TextField, Button, Grid, FormControl,
-  InputLabel, Select, MenuItem, CircularProgress, Alert, Paper
+  InputLabel, Select, MenuItem, CircularProgress, Alert, Paper,
+  Modal, InputBase
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
-import productService from "../api/productService";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -17,6 +17,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import SearchIcon from "@mui/icons-material/Search";
 
 const drawerWidth = 240;
 
@@ -30,7 +31,10 @@ const EditProduct = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -41,42 +45,78 @@ const EditProduct = () => {
   });
 
   useEffect(() => {
-    // Check if a productId was provided (edit mode) and fetch data
-    if (location.state?.productId) {
-      setLoading(true);
-      
-      // Fetch the product data using productService
-      productService.getProductById(location.state.productId)
-        .then(data => {
-          setProduct(data);
-          
-          // Set form data
-          setFormData({
-            name: data.name,
-            description: data.description,
-            price: data.price.toString(),
-            stockQuantity: data.stockQuantity.toString(),
-            category: data.category
-          });
-          
-          // Set image preview if available
-          if (data.imageUrl) {
-            setImagePreview(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${data.imageUrl}`);
-          }
-          
-          setLoading(false);
-        })
-        .catch(err => {
-          setError("Failed to load product: " + err.message);
-          setLoading(false);
-        });
+    const authToken = sessionStorage.getItem("authToken");
+    const productId = location.state?.productId;
+    
+    if (!authToken) {
+      setIsModalOpen(true);
+      setLoading(false);
+      return;
     }
+
+    if (!productId) {
+      setError("No product ID provided");
+      setLoading(false);
+      return;
+    }
+
+    // Fetch categories
+    fetch("https://it342-g5-cartella.onrender.com/api/products/categories", {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch categories");
+        return res.json();
+      })
+      .then(data => {
+        setCategories(data);
+      })
+      .catch(err => {
+        setError("Failed to load categories: " + err.message);
+        setLoading(false);
+      });
+
+    // Fetch product details
+    fetch(`https://it342-g5-cartella.onrender.com/api/products/${productId}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch product");
+        return res.json();
+      })
+      .then(data => {
+        setFormData({
+          name: data.name,
+          description: data.description,
+          price: data.price.toString(),
+          stockQuantity: data.stockQuantity.toString(),
+          category: data.category,
+          image: null
+        });
+        if (data.imageUrl) {
+          setImagePreview(`https://it342-g5-cartella.onrender.com${data.imageUrl}`);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        setError("Failed to load product: " + err.message);
+        setLoading(false);
+      });
   }, [location.state]);
+
+  const handleLoginRedirect = () => {
+    setIsModalOpen(false);
+    navigate("/vendor-login");
+  };
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
     sessionStorage.removeItem("vendorId");
-    navigate("/login");
+    sessionStorage.removeItem("userId");
+    sessionStorage.removeItem("username");
+    sessionStorage.removeItem("businessName");
+    sessionStorage.removeItem("joinedDate");
+    navigate("/vendor-login");
   };
 
   const handleChange = (e) => {
@@ -108,10 +148,12 @@ const EditProduct = () => {
     setSubmitting(true);
     setError("");
     
+    const vendorId = sessionStorage.getItem("vendorId");
+    const authToken = sessionStorage.getItem("authToken");
     const productId = location.state?.productId;
     
-    if (!productId) {
-      setError("Missing product ID");
+    if (!vendorId || !authToken || !productId) {
+      setError("Not authenticated or missing product ID");
       setSubmitting(false);
       return;
     }
@@ -136,7 +178,17 @@ const EditProduct = () => {
       productFormData.append("image", formData.image);
     }
 
-    productService.updateProduct(productId, productFormData)
+    fetch(`https://it342-g5-cartella.onrender.com/api/products/${productId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${authToken}`
+      },
+      body: productFormData
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to update product");
+        return res.json();
+      })
       .then(data => {
         setSuccess(true);
         setTimeout(() => {
@@ -151,6 +203,12 @@ const EditProduct = () => {
 
   const handleBack = () => {
     navigate("/vendor-products");
+  };
+
+  const handleSearch = () => {
+    if (searchText.trim()) {
+      console.log("Searching for:", searchText);
+    }
   };
 
   const logoSrc = mode === "light"
@@ -176,9 +234,9 @@ const EditProduct = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -201,6 +259,28 @@ const EditProduct = () => {
             <Typography variant="h2" sx={{ fontSize: "26px", marginRight: 3, fontFamily: "GDS Didot, serif" }}>
               Cartella
             </Typography>
+            <Box
+              display="flex"
+              alignItems="center"
+              sx={{ backgroundColor: "#fff", borderRadius: 2, px: 2, width: 400 }}
+            >
+              <IconButton onClick={handleSearch}>
+                <SearchIcon sx={{ color: "#1A1A1A" }} />
+              </IconButton>
+              <InputBase
+                placeholder="Search items"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                sx={{
+                  flex: 1,
+                  color: "#000",
+                  "& input": {
+                    border: "none",
+                    outline: "none",
+                  },
+                }}
+              />
+            </Box>
           </Box>
           <IconButton sx={{ ml: 2 }} onClick={toggleTheme} color="inherit">
             {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
@@ -236,12 +316,7 @@ const EditProduct = () => {
           height: "92vh",
         }}
       >
-        <Box display="flex" alignItems="center" mb={3}>
-          <IconButton onClick={handleBack} sx={{ mr: 2 }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h4">Edit Product</Typography>
-        </Box>
+        <Typography variant="h4" sx={{ mb: 6 }}>Edit Product</Typography>
 
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
@@ -254,148 +329,310 @@ const EditProduct = () => {
             Product updated successfully! Redirecting to products page...
           </Alert>
         ) : (
-          <Paper elevation={3} sx={{ p: 4, maxWidth: 800, mx: "auto" }}>
-            <form onSubmit={handleSubmit}>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    required
-                    fullWidth
-                    label="Product Name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    required
-                    fullWidth
-                    multiline
-                    rows={4}
-                    label="Description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    required
-                    fullWidth
-                    type="number"
-                    label="Price (₱)"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    required
-                    fullWidth
-                    type="number"
-                    label="Stock Quantity"
-                    name="stockQuantity"
-                    value={formData.stockQuantity}
-                    onChange={handleChange}
-                    inputProps={{ min: 0 }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <FormControl fullWidth required>
-                    <InputLabel id="category-label">Category</InputLabel>
-                    <Select
-                      labelId="category-label"
-                      name="category"
-                      value={formData.category}
-                      label="Category"
-                      onChange={handleChange}
-                    >
-                      {categories.map((category) => (
-                        <MenuItem key={category} value={category}>
-                          {category}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      border: '2px dashed',
-                      borderColor: mode === 'light' ? '#ccc' : '#555',
-                      borderRadius: 1,
-                      p: 3,
-                      textAlign: 'center',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        borderColor: mode === 'light' ? '#999' : '#777',
-                      },
-                    }}
-                  >
-                    <input
-                      type="file"
-                      accept="image/*"
-                      name="image"
-                      onChange={handleChange}
-                      style={{ display: 'none' }}
-                      id="image-upload"
-                    />
-                    <label htmlFor="image-upload">
-                      <Box display="flex" flexDirection="column" alignItems="center">
-                        <CloudUploadIcon sx={{ fontSize: 40, mb: 1 }} />
-                        <Typography variant="body1" gutterBottom>
-                          {imagePreview ? 'Change Image' : 'Upload Product Image'}
-                        </Typography>
-                        {imagePreview && (
-                          <Box
-                            component="img"
-                            src={imagePreview}
-                            alt="Preview"
-                            sx={{
-                              maxWidth: '100%',
-                              maxHeight: 200,
-                              mt: 2,
-                              borderRadius: 1,
-                            }}
-                          />
-                        )}
-                      </Box>
-                    </label>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+              width: "100%",
+              maxWidth: "1000px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              bgcolor: mode === "dark" ? "#2A2A2A" : "#f9f9f9",
+              p: 4,
+              borderRadius: 2,
+              boxShadow: 2,
+              position: "relative",
+              color: mode === "dark" ? "#fff" : "#000",
+              mb: 4,
+              margin: "0 auto",
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000" }}>
+                Product Name
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                variant="outlined"
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000" }}>
+                Description
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                multiline
+                rows={4}
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                variant="outlined"
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000" }}>
+                Price (₱)
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setFormData(prev => ({ ...prev, price: value }));
+                  }
+                }}
+                variant="outlined"
+                inputProps={{
+                  min: 0,
+                  step: 0.01,
+                  pattern: '[0-9]*\.?[0-9]*',
+                  inputMode: 'decimal'
+                }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000" }}>
+                Stock Quantity
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                type="number"
+                name="stockQuantity"
+                value={formData.stockQuantity}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setFormData(prev => ({ ...prev, stockQuantity: value }));
+                }}
+                variant="outlined"
+                inputProps={{
+                  min: 0,
+                  pattern: '[0-9]*',
+                  inputMode: 'numeric'
+                }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000" }}>
+                Category
+              </Typography>
+              <FormControl fullWidth required>
+                <Select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  variant="outlined"
+                >
+                  {categories.map((category) => (
+                    <MenuItem key={category} value={category}>
+                      {category}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ minWidth: '150px', color: mode === "dark" ? "#ccc" : "#000" }}>
+                Product Image
+              </Typography>
+              <Box
+                sx={{
+                  flex: 1,
+                  border: '2px dashed',
+                  borderColor: mode === 'light' ? '#ccc' : '#555',
+                  borderRadius: 1,
+                  p: 3,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    borderColor: mode === 'light' ? '#999' : '#777',
+                  },
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  name="image"
+                  onChange={handleChange}
+                  style={{ display: 'none' }}
+                  id="image-upload"
+                />
+                <label htmlFor="image-upload">
+                  <Box display="flex" flexDirection="column" alignItems="center">
+                    <CloudUploadIcon sx={{ fontSize: 40, mb: 1 }} />
+                    <Typography variant="body1" gutterBottom>
+                      {imagePreview ? 'Change Image' : 'Upload Product Image'}
+                    </Typography>
+                    {imagePreview && (
+                      <Box
+                        component="img"
+                        src={imagePreview}
+                        alt="Preview"
+                        sx={{
+                          maxWidth: '100%',
+                          maxHeight: 200,
+                          mt: 2,
+                          borderRadius: 1,
+                        }}
+                      />
+                    )}
                   </Box>
-                </Grid>
-                <Grid item xs={12}>
-                  <Box display="flex" justifyContent="flex-end" gap={2}>
-                    <Button
-                      variant="outlined"
-                      onClick={handleBack}
-                      disabled={submitting}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      disabled={submitting}
-                      sx={{
-                        backgroundColor: "#D32F2E",
-                        color: "#FFFFFF",
-                        "&:hover": {
-                          backgroundColor: "#b71c1c",
-                        },
-                      }}
-                    >
-                      {submitting ? <CircularProgress size={24} /> : "Update Product"}
-                    </Button>
-                  </Box>
-                </Grid>
-              </Grid>
-            </form>
-          </Paper>
+                </label>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={() => navigate("/vendor-products")}
+                disabled={submitting}
+                size="small"
+                sx={{
+                  textTransform: "none",
+                  fontWeight: "100",
+                  fontSize: "1rem",
+                  height: "36px",
+                  minWidth: "100px"
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={submitting}
+                size="small"
+                sx={{
+                  backgroundColor: "#D32F2E",
+                  color: "#FFFFFF",
+                  "&:hover": {
+                    backgroundColor: "#b71c1c",
+                  },
+                  textTransform: "none",
+                  fontWeight: "100",
+                  fontSize: "1rem",
+                  height: "36px",
+                  minWidth: "100px"
+                }}
+              >
+                {submitting ? <CircularProgress size={24} /> : "Save"}
+              </Button>
+            </Box>
+          </Box>
         )}
       </Box>
+
+      {/* Modal for Not Logged In */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => {}}
+        aria-labelledby="not-logged-in-modal"
+        aria-describedby="not-logged-in-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="not-logged-in-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Modal for Logout Confirmation */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };

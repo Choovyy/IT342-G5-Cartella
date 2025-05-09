@@ -1,18 +1,19 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import productService from "../api/productService";
-import api from "../api/api";
+import axios from "axios";
+import { toast, ToastContainer, Slide } from "react-toastify";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
   CardContent, CircularProgress, Alert, Button, Rating, Dialog,
-  DialogTitle, DialogContent, DialogActions, Divider
+  DialogTitle, DialogContent, DialogActions, Divider, Modal
 } from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import CloseIcon from "@mui/icons-material/Close";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 import { ColorModeContext } from "../ThemeContext";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -41,17 +42,24 @@ const WomenAccessories = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [productQuantities, setProductQuantities] = useState({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setIsModalOpen(true);
       return;
     }
 
-    // Fetch products for Women's Accessories category using productService
-    productService.getProductsByCategory("Women's Accessories")
+    // Fetch products for Women's Accessories category
+    fetch("https://it342-g5-cartella.onrender.com/api/products/category/Women's%20Accessories", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch products");
+        return res.json();
+      })
       .then(data => {
         setProducts(data);
         setFilteredProducts(data);
@@ -63,14 +71,14 @@ const WomenAccessories = () => {
         setLoading(false);
       });
 
-    // Verify authentication using api
-    api.get("/login")
-      .catch((error) => {
-        console.error("Error verifying auth:", error);
-        alert("Session expired. Please log in again.");
-        sessionStorage.removeItem("authToken");
-        navigate("/login");
-      });
+    // Verify authentication
+    axios.get("/login", {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch((error) => {
+      console.error("Error verifying auth:", error);
+      sessionStorage.removeItem("authToken");
+      setIsModalOpen(true);
+    });
   }, [navigate]);
 
   useEffect(() => {
@@ -85,8 +93,16 @@ const WomenAccessories = () => {
     }
   }, [searchText, products]);
 
+  const handleLoginRedirect = () => {
+    setIsModalOpen(false);
+    navigate("/login");
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("email");
+    sessionStorage.removeItem("username");
+    sessionStorage.removeItem("userId");
     navigate("/login");
   };
 
@@ -107,20 +123,63 @@ const WomenAccessories = () => {
     const token = sessionStorage.getItem("authToken");
   
     if (!userId || !token) {
-      alert("You must be logged in to add items to cart.");
+      toast.error("You must be logged in to add items to cart.", {
+        position: "bottom-right",
+        closeButton: false,
+        autoClose: 2000,
+        style: {
+          backgroundColor: "#ffffff",
+          color: "#ff3333",
+          border: "1px solid #cccccc",
+          fontSize: "14px",
+          padding: "10px 15px",
+          borderRadius: "8px",
+          pointerEvents: "none",
+        }
+      });
       return;
     }
 
     // Validate quantity
     if (productQuantity < 1) {
-      alert("Quantity must be at least 1");
+      toast.error("Quantity must be at least 1", {
+        position: "bottom-right",
+        closeButton: false,
+        autoClose: 2000,
+        style: {
+          backgroundColor: "#ffffff",
+          color: "#ff3333",
+          border: "1px solid #cccccc",
+          fontSize: "14px",
+          padding: "10px 15px",
+          borderRadius: "8px",
+          pointerEvents: "none",
+        }
+      });
       return;
     }
   
     try {
-      // Try to add product to cart using productService
-      await productService.addToCart(userId, productId, productQuantity);
-      alert("Product added to cart!");
+      // Try to add product to cart
+      await axios.post(
+        `https://it342-g5-cartella.onrender.com/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Product added to cart!", {
+        position: "bottom-right",
+        closeButton: false,
+        autoClose: 2000,
+        style: {
+          backgroundColor: "#ffffff",
+          color: "#333333",
+          border: "1px solid #cccccc",
+          fontSize: "14px",
+          padding: "10px 15px",
+          borderRadius: "8px",
+          pointerEvents: "none",
+        }
+      });
     } catch (error) {
       console.error("Error adding to cart:", error);
       
@@ -131,25 +190,95 @@ const WomenAccessories = () => {
           (error.response.data && error.response.data.message && error.response.data.message.includes("Cart not found")))
       ) {
         try {
-          // Create cart then retry using productService
-          await productService.createCart(userId);
-          
+          await axios.post(
+            `https://it342-g5-cartella.onrender.com/api/cart/${userId}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
           // Retry adding product
-          await productService.addToCart(userId, productId, productQuantity);
-          alert("Product added to cart!");
+          await axios.post(
+            `https://it342-g5-cartella.onrender.com/api/cart/${userId}/add/${productId}?quantity=${productQuantity}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          toast.success("Product added to cart!", {
+            position: "bottom-right",
+            closeButton: false,
+            autoClose: 2000,
+            style: {
+              backgroundColor: "#ffffff",
+              color: "#333333",
+              border: "1px solid #cccccc",
+              fontSize: "14px",
+              padding: "10px 15px",
+              borderRadius: "8px",
+              pointerEvents: "none",
+            }
+          });
         } catch (err) {
           console.error("Error creating cart or adding product:", err);
           if (err.response && err.response.data && err.response.data.message) {
-            alert(err.response.data.message);
+            toast.error(err.response.data.message, {
+              position: "bottom-right",
+              closeButton: false,
+              autoClose: 2000,
+              style: {
+                backgroundColor: "#ffffff",
+                color: "#ff3333",
+                border: "1px solid #cccccc",
+                fontSize: "14px",
+                padding: "10px 15px",
+                borderRadius: "8px",
+                pointerEvents: "none",
+              }
+            });
           } else {
-            alert("Failed to add product to cart. Please try again.");
+            toast.error("Failed to add product to cart. Please try again.", {
+              position: "bottom-right",
+              closeButton: false,
+              autoClose: 2000,
+              style: {
+                backgroundColor: "#ffffff",
+                color: "#ff3333",
+                border: "1px solid #cccccc",
+                fontSize: "14px",
+                padding: "10px 15px",
+                borderRadius: "8px",
+                pointerEvents: "none",
+              }
+            });
           }
         }
       } else if (error.response && error.response.data && error.response.data.message) {
-        // Display the specific error message from the server
-        alert(error.response.data.message);
+        toast.error(error.response.data.message, {
+          position: "bottom-right",
+          closeButton: false,
+          autoClose: 2000,
+          style: {
+            backgroundColor: "#ffffff",
+            color: "#ff3333",
+            border: "1px solid #cccccc",
+            fontSize: "14px",
+            padding: "10px 15px",
+            borderRadius: "8px",
+            pointerEvents: "none",
+          }
+        });
       } else {
-        alert("Failed to add product to cart. Please try again.");
+        toast.error("Failed to add product to cart. Please try again.", {
+          position: "bottom-right",
+          closeButton: false,
+          autoClose: 2000,
+          style: {
+            backgroundColor: "#ffffff",
+            color: "#ff3333",
+            border: "1px solid #cccccc",
+            fontSize: "14px",
+            padding: "10px 15px",
+            borderRadius: "8px",
+            pointerEvents: "none",
+          }
+        });
       }
     }
   };
@@ -193,7 +322,7 @@ const WomenAccessories = () => {
       <List sx={{ flexGrow: 1 }}>
         {[
 
-          { text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
+{ text: "Categories", path: "/dashboard", icon: <DashboardIcon /> },
           { text: "Cart", path: "/cart", icon: <ShoppingCartIcon /> },
           { text: "My Purchase", path: "/mypurchase", icon: <HistoryIcon /> },
           { text: "Notifications", path: "/notifications", icon: <NotificationsIcon /> },
@@ -206,9 +335,9 @@ const WomenAccessories = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -260,13 +389,25 @@ const WomenAccessories = () => {
         p: 3,
         mt: 8,
         color: mode === "light" ? "#000" : "#FFF",
-        height: "calc(100vh - 64px)", // Subtract AppBar height
-        overflow: "hidden", // Prevent double scrollbars
-        display: "flex",
-        flexDirection: "column"
+        height: "92vh",
+        overflow: "hidden"
       }}>
-        <Typography variant="h4" gutterBottom>Women's Accessories</Typography>
-        
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <IconButton 
+            onClick={() => navigate('/dashboard')}
+            sx={{ 
+              color: mode === "light" ? "#000" : "#FFF",
+              p: 0,
+              mr: 2
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4">
+            Women's Accessories
+          </Typography>
+        </Box>
+
         <Box sx={{
           flex: 1,
           overflowY: "auto",
@@ -278,14 +419,14 @@ const WomenAccessories = () => {
             width: "8px",
           },
           "&::-webkit-scrollbar-track": {
-            background: mode === "light" ? "#f1f1f1" : "#2d2d2d",
+            backgroundColor: mode === "dark" ? "#2A2A2A" : "#f0f0f0",
             borderRadius: "4px",
           },
           "&::-webkit-scrollbar-thumb": {
-            background: mode === "light" ? "#888" : "#555",
+            backgroundColor: mode === "dark" ? "#555" : "#D32F2F",
             borderRadius: "4px",
             "&:hover": {
-              background: mode === "light" ? "#555" : "#777",
+              backgroundColor: mode === "dark" ? "#777" : "#B71C1C",
             },
           },
         }}>
@@ -296,7 +437,7 @@ const WomenAccessories = () => {
           ) : error ? (
             <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
           ) : filteredProducts.length === 0 ? (
-            <Typography align="center" sx={{ mt: 10 }}>
+            <Typography align="center" sx={{ mt: 7 }}>
               No products found in this category.
             </Typography>
           ) : (
@@ -329,7 +470,7 @@ const WomenAccessories = () => {
                       {product.imageUrl ? (
                         <CardMedia
                           component="img"
-                          image={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'}${product.imageUrl}`}
+                          image={`https://it342-g5-cartella.onrender.com${product.imageUrl}`}
                           alt={product.name}
                           sx={{
                             height: 200,
@@ -535,7 +676,7 @@ const WomenAccessories = () => {
                         }}
                       >
                         <img
-                          src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'}${selectedProduct.imageUrl}`}
+                          src={`https://it342-g5-cartella.onrender.com${selectedProduct.imageUrl}`}
                           alt={selectedProduct.name}
                           style={{
                             maxWidth: "100%",
@@ -632,6 +773,111 @@ const WomenAccessories = () => {
           )}
         </Dialog>
       </Box>
+
+      {/* Modal for Not Logged In */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => {}}
+        aria-labelledby="not-logged-in-modal"
+        aria-describedby="not-logged-in-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="not-logged-in-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Modal for Logout Confirmation */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+      <ToastContainer
+        hideProgressBar={false}
+        closeButton={false}
+        newestOnTop={false}
+        pauseOnHover={false}
+        draggable={false}
+        autoClose={2000}
+        transition={Slide}
+      />
     </Box>
   );
 };

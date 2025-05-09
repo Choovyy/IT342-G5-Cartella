@@ -1,15 +1,13 @@
-import React, { useEffect, useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import vendorService from "../api/vendorService";
-import userService from "../api/userService";
-import api from "../api/api";
+import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Button, TextField, CircularProgress,
-  Alert, Grid, Paper, Avatar, Divider, Select, MenuItem, FormControl,
-  InputLabel, FormHelperText, InputAdornment
+  ListItemText, IconButton, InputBase, TextField, Button, 
+  Grid, Paper, CircularProgress, Snackbar, Alert, Divider,
+  InputAdornment, IconButton as MuiIconButton, FormControl,
+  InputLabel, Select, MenuItem, FormHelperText, Modal
 } from "@mui/material";
 
+import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -30,6 +28,8 @@ const drawerWidth = 240;
 const VendorProfile = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -106,7 +106,7 @@ const VendorProfile = () => {
     const vendorId = sessionStorage.getItem("vendorId");
     
     if (!authToken || !vendorId) {
-      navigate("/vendor-login");
+      setIsModalOpen(true);
       return;
     }
     
@@ -123,9 +123,28 @@ const VendorProfile = () => {
     const fetchVendorProfile = async () => {
       try {
         setIsLoading(true);
-        const vendorId = sessionStorage.getItem("vendorId");
+        const response = await fetch(`https://it342-g5-cartella.onrender.com/api/vendors/${vendorId}`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
         
-        const data = await vendorService.getVendorById(vendorId);
+        if (!response.ok) {
+          throw new Error('Failed to fetch vendor profile');
+        }
+        
+        // Get the response text first
+        const responseText = await response.text();
+        let data;
+        
+        try {
+          // Try to parse the response text as JSON
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          console.error('Raw response:', responseText);
+          throw new Error('Invalid response format from server');
+        }
         
         console.log('Vendor data received:', data);
         
@@ -177,6 +196,11 @@ const VendorProfile = () => {
     fetchVendorProfile();
   }, [navigate]);
 
+  const handleLoginRedirect = () => {
+    setIsModalOpen(false);
+    navigate("/vendor-login");
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
     sessionStorage.removeItem("username");
@@ -205,10 +229,23 @@ const VendorProfile = () => {
   const handleSaveProfile = async () => {
     try {
       setIsSaving(true);
+      const authToken = sessionStorage.getItem("authToken");
       const vendorId = sessionStorage.getItem("vendorId");
       
-      // Use vendorService instead of direct fetch
-      const updatedData = await vendorService.updateVendor(vendorId, editedProfile);
+      const response = await fetch(`https://it342-g5-cartella.onrender.com/api/vendors/${vendorId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify(editedProfile)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+      
+      const updatedData = await response.json();
       
       // Update profile data with the response
       setProfileData({
@@ -270,9 +307,9 @@ const VendorProfile = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -341,15 +378,39 @@ const VendorProfile = () => {
       const username = sessionStorage.getItem("username");
       
       // First, verify the current password
-      const verifyResponse = await api.post('/auth/verify-password', {
-        username: username,
-        password: passwordData.currentPassword
+      const verifyResponse = await fetch(`https://it342-g5-cartella.onrender.com/api/auth/verify-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          username: username,
+          password: passwordData.currentPassword
+        })
       });
       
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        throw new Error(errorData.error || 'Current password is incorrect');
+      }
+      
       // If current password is correct, proceed with password change
-      await userService.updateUserByUsername(username, {
-        password: passwordData.newPassword
+      const response = await fetch(`https://it342-g5-cartella.onrender.com/api/users/username/${username}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          password: passwordData.newPassword
+        })
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to change password');
+      }
       
       // Clear password fields
       setPasswordData({
@@ -367,7 +428,7 @@ const VendorProfile = () => {
       console.error('Error changing password:', error);
       
       // Set specific error for current password
-      if (error.response?.data?.error?.includes('Current password is incorrect')) {
+      if (error.message.includes('Current password is incorrect')) {
         setPasswordErrors(prev => ({
           ...prev,
           currentPassword: "Current password is incorrect"
@@ -376,7 +437,7 @@ const VendorProfile = () => {
       
       setSnackbar({
         open: true,
-        message: error.response?.data?.error || "Failed to change password. Please try again.",
+        message: error.message || "Failed to change password. Please try again.",
         severity: "error"
       });
     } finally {
@@ -446,15 +507,27 @@ const VendorProfile = () => {
     
     try {
       setIsSavingPersonalInfo(true);
+      const authToken = sessionStorage.getItem("authToken");
       const username = sessionStorage.getItem("username");
       
-      // Use userService instead of direct fetch
-      const response = await userService.updateUserByUsername(username, {
-        email: editedPersonalInfo.email,
-        phoneNumber: editedPersonalInfo.phoneNumber,
-        dateOfBirth: editedPersonalInfo.dateOfBirth,
-        gender: editedPersonalInfo.gender
+      const response = await fetch(`https://it342-g5-cartella.onrender.com/api/users/username/${username}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          email: editedPersonalInfo.email,
+          phoneNumber: editedPersonalInfo.phoneNumber,
+          dateOfBirth: editedPersonalInfo.dateOfBirth,
+          gender: editedPersonalInfo.gender
+        })
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update personal information');
+      }
       
       // Update personal info with the edited data
       setPersonalInfo({
@@ -470,7 +543,7 @@ const VendorProfile = () => {
       console.error('Error updating personal information:', error);
       setSnackbar({
         open: true,
-        message: error.response?.data?.error || "Failed to update personal information. Please try again.",
+        message: error.message || "Failed to update personal information. Please try again.",
         severity: "error"
       });
     } finally {
@@ -780,13 +853,13 @@ const VendorProfile = () => {
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
-                          <IconButton
+                          <MuiIconButton
                             aria-label="toggle current password visibility"
                             onClick={() => togglePasswordVisibility("currentPassword")}
                             edge="end"
                           >
                             {showPasswords.currentPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
+                          </MuiIconButton>
                         </InputAdornment>
                       ),
                     }}
@@ -807,13 +880,13 @@ const VendorProfile = () => {
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
-                          <IconButton
+                          <MuiIconButton
                             aria-label="toggle new password visibility"
                             onClick={() => togglePasswordVisibility("newPassword")}
                             edge="end"
                           >
                             {showPasswords.newPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
+                          </MuiIconButton>
                         </InputAdornment>
                       ),
                     }}
@@ -834,13 +907,13 @@ const VendorProfile = () => {
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
-                          <IconButton
+                          <MuiIconButton
                             aria-label="toggle confirm password visibility"
                             onClick={() => togglePasswordVisibility("confirmPassword")}
                             edge="end"
                           >
                             {showPasswords.confirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
+                          </MuiIconButton>
                         </InputAdornment>
                       ),
                     }}
@@ -884,6 +957,102 @@ const VendorProfile = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Modal for Not Logged In */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => {}}
+        aria-labelledby="not-logged-in-modal"
+        aria-describedby="not-logged-in-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="not-logged-in-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Modal for Logout Confirmation */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };

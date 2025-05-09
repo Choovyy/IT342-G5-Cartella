@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useContext } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import productService from "../api/productService";
-import cartService from "../api/cartService";
-import orderService from "../api/orderService";
-import addressService from "../api/addressService";
-import paymentService from "../api/paymentService";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { loadStripe } from '@stripe/stripe-js';
+import addressService from '../api/addressService';
+import paymentService from '../api/paymentService';
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Grid, Card, CardMedia, 
-  CardContent, CircularProgress, Alert, Button, Divider, Paper,
-  FormControlLabel, Checkbox
+  CardContent, CircularProgress, Alert, Button, Divider,
+  Checkbox, FormControlLabel, Modal
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -23,14 +22,13 @@ import HistoryIcon from "@mui/icons-material/History";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
-import LightLogo from "../images/Cartella Logo (Light).jpeg";
-import DarkLogo from "../images/Cartella Logo (Dark2).jpeg";
 
 const drawerWidth = 240;
 
+const stripePromise = loadStripe('pk_test_51RH2ZDCoSzNJio8VMI45wqQIhh4Rv7qBoUlOFWZJFOjDd5XU4LbJzPtDE98LsQ8luIwV9Polma5NFnnQHphv9pJ100uNNRnz3A');
+
 const Cart = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
   const [cartItems, setCartItems] = useState([]);
@@ -38,7 +36,9 @@ const Cart = () => {
   const [error, setError] = useState("");
   const [totalPrice, setTotalPrice] = useState(0);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
+  const [selectAll, setSelectAll] = useState(false);  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
@@ -46,14 +46,18 @@ const Cart = () => {
     const userId = sessionStorage.getItem("userId");
     
     if (!token || !email || !userId) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setIsAuthModalOpen(true);
       return;
     }
 
     // Fetch cart items
     fetchCartItems(userId, token);
   }, [navigate]);
+
+  const handleLoginRedirect = () => {
+    setIsAuthModalOpen(false);
+    navigate("/login");
+  };
 
   // Handle selected items and total price updates when cart items change
   useEffect(() => {
@@ -66,12 +70,14 @@ const Cart = () => {
   const fetchCartItems = async (userId, token) => {
     try {
       setLoading(true);
-      // Use cartService instead of direct axios call
-      const data = await cartService.getCartItemsDto(userId);
+      // Use the new DTO endpoint to get cart items with product details
+      const response = await axios.get(`https://it342-g5-cartella.onrender.com/api/cart/items-dto/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
-      if (data) {
-        setCartItems(data);
-        calculateTotalPrice(data);
+      if (response.data) {
+        setCartItems(response.data);
+        calculateTotalPrice(response.data);
       } else {
         setCartItems([]);
         setTotalPrice(0);
@@ -136,8 +142,9 @@ const Cart = () => {
     const userId = sessionStorage.getItem("userId");
     
     try {
-      // Use cartService instead of direct axios call
-      await cartService.removeCartItem(cartItemId);
+      await axios.delete(`https://it342-g5-cartella.onrender.com/api/cart/remove/${cartItemId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
       // Refresh cart after removal
       fetchCartItems(userId, token);
@@ -157,8 +164,9 @@ const Cart = () => {
     }
     
     try {
-      // Use cartService instead of direct axios call
-      await cartService.updateCartItemQuantity(cartItemId, newQuantity);
+      await axios.put(`https://it342-g5-cartella.onrender.com/api/cart/update/${cartItemId}?quantity=${newQuantity}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
       // Refresh cart after update
       fetchCartItems(userId, token);
@@ -231,12 +239,9 @@ const Cart = () => {
           address.isDefault === true || address.default === true
         );
         console.log("Default address found:", defaultAddress);
-      }
-
-      if (!defaultAddress) {
+      }      if (!defaultAddress) {
         console.log("No default address found, redirecting to address page...");
-        alert("Please set a default address before proceeding with checkout.");
-        navigate('/address');
+        setIsAddressModalOpen(true);
         return;
       }
 
@@ -255,17 +260,22 @@ const Cart = () => {
       sessionStorage.setItem('defaultAddressId', defaultAddress.addressId);
       console.log("Stored default address ID in session storage");
 
-      // Create payment intent using paymentService
+      // Create checkout session on the backend
       console.log("Creating payment intent with address ID:", defaultAddress.addressId);
-      const response = await paymentService.createPaymentIntent({
-        amount: totalPrice * 100, // Convert to cents
-        currency: 'php',
-        userId: userId,
-        addressId: defaultAddress.addressId, // Include the default address ID
-        cartItemIds: selectedItems // Include selected cart item IDs
-      }, token);
+      const response = await axios.post(
+        'https://it342-g5-cartella.onrender.com/api/payment/create-payment-intent',
+        {
+          amount: totalPrice * 100, // Convert to cents
+          currency: 'php',
+          userId: userId,
+          addressId: defaultAddress.addressId // Include the default address ID
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-      const { clientSecret: sessionId } = response;
+      const { clientSecret: sessionId } = response.data;
 
       // Load Stripe
       const stripe = await stripePromise;
@@ -286,8 +296,8 @@ const Cart = () => {
 
   const logoSrc =
     mode === "light"
-      ? LightLogo
-      : DarkLogo;
+      ? "src/images/Cartella Logo (Light).jpeg"
+      : "src/images/Cartella Logo (Dark2).jpeg";
 
   const drawer = (
     <Box display="flex" flexDirection="column" height="100%">
@@ -308,9 +318,9 @@ const Cart = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -417,7 +427,22 @@ const Cart = () => {
             <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
           ) : cartItems.length === 0 ? (
             <Typography align="center" sx={{ mt: 10 }}>
-              Your cart is empty. <Button color="primary" onClick={() => navigate("/dashboard")}>Continue Shopping</Button>
+              Your cart is empty. 
+              <Button 
+                color="primary" 
+                onClick={() => navigate("/dashboard")}
+                sx={{ 
+                  bgcolor: "#D32F2F",
+                  "&:hover": { bgcolor: "#B71C1C" },
+                  textTransform: "none",
+                  fontWeight: "100",
+                  fontSize: "1rem",
+                  color: "#fff",
+                  ml: '15px'
+                }}
+              >
+                Continue Shopping
+              </Button>
             </Typography>
           ) : (
             <>
@@ -465,9 +490,7 @@ const Cart = () => {
                       <CardMedia
                         component="img"
                         sx={{ width: 120, height: 120, objectFit: 'contain', mr: 2 }}
-                        image={item.productImageUrl 
-                          ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'}${item.productImageUrl}` 
-                          : 'https://via.placeholder.com/120'}
+                        image={item.productImageUrl ? `https://it342-g5-cartella.onrender.com${item.productImageUrl}` : 'https://via.placeholder.com/120'}
                         alt={item.productName}
                       />
                       <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
@@ -556,6 +579,163 @@ const Cart = () => {
           )}
         </Box>
       </Box>
+
+      {/* Add Logout Modal at the end of the component */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>      {/* Authentication Modal */}
+      <Modal
+        open={isAuthModalOpen}
+        onClose={() => {}}
+        aria-labelledby="auth-modal"
+        aria-describedby="auth-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="auth-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Address Modal */}
+      <Modal
+        open={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        aria-labelledby="address-modal"
+        aria-describedby="address-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+            borderRadius: 2,
+          }}
+        >
+          <Typography id="address-modal" variant="h6" component="h2" gutterBottom>
+            No Default Address Found
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            Please set a default address before proceeding with checkout.
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={() => {
+                setIsAddressModalOpen(false);
+                navigate('/address');
+              }}
+            >
+              Go to Addresses
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsAddressModalOpen(false)}
+            >
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };

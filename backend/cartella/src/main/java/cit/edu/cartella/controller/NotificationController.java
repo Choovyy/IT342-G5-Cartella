@@ -40,4 +40,41 @@ public class NotificationController {
         notificationService.deleteNotification(notificationId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{userId}/payment")
+    public ResponseEntity<Notification> addPaymentNotification(
+            @PathVariable Long userId,
+            @RequestBody String paymentDetails) {
+        notificationService.addPaymentNotification(userId, paymentDetails);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{userId}/order-status")
+    public ResponseEntity<Notification> addOrderStatusNotification(
+            @PathVariable Long userId,
+            @RequestParam String status,
+            @RequestBody String orderDetails) {
+        Notification notification = notificationService.addOrderStatusNotification(userId, status, orderDetails);
+        return ResponseEntity.ok(notification);
+    }
+
+    @PostMapping("/{userId}/order-tracking")
+    public ResponseEntity<Notification> addOrderTrackingNotification(
+            @PathVariable Long userId,
+            @RequestParam String orderId,
+            @RequestParam String estimatedDelivery,
+            @RequestBody String trackingDetails) {
+
+        // Create a tracking notification that includes shipping details
+        String message = String.format("Your order #%s has been SHIPPED. %s", orderId, trackingDetails);
+        Notification notification = notificationService.createTrackingNotification(
+                userId,
+                message,
+                orderId,
+                trackingDetails,
+                estimatedDelivery
+        );
+
+        return ResponseEntity.ok(notification);
+    }
 }

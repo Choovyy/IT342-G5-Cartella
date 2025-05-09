@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { toast, ToastContainer, Slide } from "react-toastify";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
-import authService from "../api/authService";
 
 const VendorLogin = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
@@ -30,8 +30,17 @@ const VendorLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await authService.loginVendor(formData);
-      
+      const response = await axios.post(
+        "https://it342-g5-cartella.onrender.com/api/vendors/login",
+        formData
+      );
+      sessionStorage.setItem("authToken", response.data.token);
+      sessionStorage.setItem("username", formData.username);
+      sessionStorage.setItem("userId", response.data.userId);
+      sessionStorage.setItem("vendorId", response.data.vendorId);
+      sessionStorage.setItem("businessName", response.data.businessName);
+      sessionStorage.setItem("joinedDate", response.data.joinedDate);
+
       toast.success("Logging In", {
         position: "bottom-right",
         closeButton: false,

@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Card, CardContent, 
   Grid, Divider, Chip, CircularProgress, Tabs, Tab, Paper,
   Accordion, AccordionSummary, AccordionDetails, Button,
   Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-  Snackbar, Alert
+  Snackbar, Alert, Modal
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -27,7 +28,7 @@ import CreditCardIcon from "@mui/icons-material/CreditCard";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import paymentService from "../api/paymentService";
-import orderService from "../api/orderService";
+import addressService from "../api/addressService";
 
 const drawerWidth = 240;
 
@@ -57,62 +58,49 @@ const MyPurchase = () => {
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
   const [orders, setOrders] = useState([]);
-  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tabValue, setTabValue] = useState(0);
   const [error, setError] = useState(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notification, setNotification] = useState({open: false, message: '', type: 'info'});
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     const userId = sessionStorage.getItem("userId");
     
     if (!token || !userId) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setIsModalOpen(true);
       return;
     }
 
-    // Fetch both orders and payments
+    // Fetch orders only
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Fetch orders using orderService
-        const ordersResponse = await orderService.getOrdersByUserId(userId, token);
+        // Fetch orders
+        const ordersResponse = await axios.get(
+          `https://it342-g5-cartella.onrender.com/api/orders/${userId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         
         // Make sure orders is an array before setting state
         if (Array.isArray(ordersResponse.data)) {
-          setOrders(ordersResponse.data);
+          const enhancedOrders = await enhanceOrdersWithCompleteDetails(ordersResponse.data);
+          console.log("Orders with complete details:", enhancedOrders);
+          setOrders(enhancedOrders);
         } else {
           console.error("Orders response is not an array:", ordersResponse.data);
           setOrders([]);
-        }
-        
-        // Fetch payments
-        try {
-          const paymentsResponse = await paymentService.getPaymentsByUserId(userId, token);
-          
-          // Make sure payments is an array before setting state
-          if (Array.isArray(paymentsResponse)) {
-            setPayments(paymentsResponse);
-          } else {
-            console.error("Payments response is not an array:", paymentsResponse);
-            setPayments([]);
-          }
-        } catch (paymentErr) {
-          console.error("Error fetching payments:", paymentErr);
-          setPayments([]);
         }
         
       } catch (err) {
         console.error("Error fetching purchase history:", err);
         setError("Failed to load your purchase history. Please try again later.");
         setOrders([]);
-        setPayments([]);
       } finally {
         setLoading(false);
       }
@@ -123,7 +111,14 @@ const MyPurchase = () => {
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("email");
+    sessionStorage.removeItem("username");
     sessionStorage.removeItem("userId");
+    navigate("/login");
+  };
+
+  const handleLoginRedirect = () => {
+    setIsModalOpen(false);
     navigate("/login");
   };
 
@@ -131,10 +126,6 @@ const MyPurchase = () => {
     if (searchText.trim()) {
       console.log("Searching for:", searchText);
     }
-  };
-
-  const handleChangeTab = (event, newValue) => {
-    setTabValue(newValue);
   };
 
   const logoSrc = mode === "light"
@@ -158,9 +149,9 @@ const MyPurchase = () => {
         ))}
       </List>
       <List>
-        <ListItem onClick={handleLogout} component="div">
+        <ListItem onClick={() => setIsLogoutModalOpen(true)} component="div">
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -179,13 +170,16 @@ const MyPurchase = () => {
     const userId = sessionStorage.getItem("userId");
     
     try {
-      // Use orderService instead of direct axios call
-      const response = await orderService.cancelOrder(selectedOrderId, token);
+      const response = await axios.post(
+        `https://it342-g5-cartella.onrender.com/api/orders/${selectedOrderId}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       
       // Close dialog
       setCancelDialogOpen(false);
       
-      if (response.success) {
+      if (response.data.success) {
         // Show success notification
         setNotification({
           open: true,
@@ -193,17 +187,21 @@ const MyPurchase = () => {
           type: 'success'
         });
         
-        // Refresh orders list using orderService
-        const ordersResponse = await orderService.getOrdersByUserId(userId, token);
+        // Refresh orders list with the new endpoint
+        const ordersResponse = await axios.get(
+          `https://it342-g5-cartella.onrender.com/api/orders/${userId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         
         if (Array.isArray(ordersResponse.data)) {
-          setOrders(ordersResponse.data);
+          const enhancedOrders = await enhanceOrdersWithCompleteDetails(ordersResponse.data);
+          setOrders(enhancedOrders);
         }
       } else {
         // Show error notification
         setNotification({
           open: true,
-          message: response.message || 'Failed to cancel order',
+          message: response.data.message || 'Failed to cancel order',
           type: 'error'
         });
       }
@@ -223,6 +221,55 @@ const MyPurchase = () => {
 
   const closeNotification = () => {
     setNotification({...notification, open: false});
+  };
+
+  // Function to enhance orders with complete details from new endpoint
+  const enhanceOrdersWithCompleteDetails = async (orders) => {
+    try {
+      const token = sessionStorage.getItem("authToken");
+      
+      if (!token || !Array.isArray(orders)) {
+        return orders;
+      }
+      
+      console.log("Enhancing orders with complete details...");
+      
+      // Process each order to fetch complete details
+      const enhancedOrders = await Promise.all(orders.map(async (order) => {
+        try {
+          console.log(`Fetching complete details for order ${order.orderId}`);
+          
+          // Fetch complete order details using the new endpoint
+          const completeDetailsResponse = await axios.get(
+            `https://it342-g5-cartella.onrender.com/api/orders/${order.orderId}/complete-details`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          if (completeDetailsResponse.data) {
+            console.log(`Successfully fetched complete details for order ${order.orderId}`);
+            
+            // Merge the complete details with the original order object structure
+            return {
+              ...order,
+              address: completeDetailsResponse.data.address || order.address,
+              orderItems: completeDetailsResponse.data.orderItems || order.orderItems,
+              payment: completeDetailsResponse.data.payment || order.payment
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching complete details for order ${order.orderId}:`, error.message);
+        }
+        
+        // If we couldn't fetch complete details, return the original order
+        return order;
+      }));
+      
+      console.log("Order enhancement complete");
+      return enhancedOrders;
+    } catch (error) {
+      console.error("Error enhancing orders with complete details:", error);
+      return orders;
+    }
   };
 
   return (
@@ -281,36 +328,6 @@ const MyPurchase = () => {
         <Box maxWidth="1200px" mx="auto">
           <Typography variant="h4" gutterBottom>My Purchases</Typography>
 
-          <Paper 
-            sx={{ 
-              mb: 3, 
-              bgcolor: mode === "light" ? "#FFFFFF" : "#2A2A2A",
-              borderRadius: 2,
-              overflow: "hidden"
-            }}
-          >
-            <Tabs 
-              value={tabValue} 
-              onChange={handleChangeTab}
-              variant="fullWidth"
-              sx={{
-                '& .MuiTab-root': {
-                  color: mode === "light" ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.6)",
-                  fontWeight: 600
-                },
-                '& .Mui-selected': {
-                  color: mode === "light" ? "#D32F2F" : "#F48FB1",
-                },
-                '& .MuiTabs-indicator': {
-                  backgroundColor: mode === "light" ? "#D32F2F" : "#F48FB1",
-                }
-              }}
-            >
-              <Tab icon={<ReceiptIcon />} label="Orders" iconPosition="start" />
-              <Tab icon={<PaymentIcon />} label="Payments" iconPosition="start" />
-            </Tabs>
-          </Paper>
-
           {loading ? (
             <Box display="flex" justifyContent="center" alignItems="center" height="300px">
               <CircularProgress />
@@ -326,8 +343,8 @@ const MyPurchase = () => {
                 Try Again
               </Button>
             </Box>
-          ) : tabValue === 0 ? (
-            // Orders Tab
+          ) : (
+            // Orders Section
             orders.length > 0 ? (
               <Grid container spacing={3}>
                 {/* Make sure to check if orders is an array before calling sort */}
@@ -408,10 +425,14 @@ const MyPurchase = () => {
                                   <Grid container spacing={2} alignItems="center">
                                     <Grid item xs={7}>
                                       <Typography variant="body1" fontWeight="600">
-                                        {item.product ? item.product.name : "Product Unavailable"}
+                                        {item.product && (item.product.name || item.product.productId) ? 
+                                          item.product.name : 
+                                          (item.productName || "Product Unavailable")}
                                       </Typography>
                                       <Typography variant="body2" color="text.secondary">
-                                        {item.product ? item.product.description : "No description available"}
+                                        {item.product && item.product.description ? 
+                                          item.product.description : 
+                                          (item.productDescription || "No description available")}
                                       </Typography>
                                     </Grid>
                                     <Grid item xs={2}>
@@ -445,19 +466,29 @@ const MyPurchase = () => {
                                     </Typography>
                                     {order.address ? (
                                       <>
-                                        <Typography variant="body2">
-                                          {order.address.streetAddress || "No street address provided"}
+                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                          <strong>Street Address:</strong> {order.address.streetAddress || "No street address provided"}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                          <strong>City/Region:</strong> {order.address.city ? 
+                                            `${order.address.city}${order.address.state ? `, ${order.address.state}` : ""}` : 
+                                            "No city information provided"}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                          <strong>Postal Code:</strong> {order.address.postalCode || "Not provided"}
                                         </Typography>
                                         <Typography variant="body2">
-                                          {order.address.city ? `${order.address.city}, ${order.address.state || ""} ${order.address.postalCode || ""}` : "No city information provided"}
+                                          <strong>Country:</strong> {order.address.country || "No country information provided"}
                                         </Typography>
-                                        <Typography variant="body2">
-                                          {order.address.country || "No country information provided"}
-                                        </Typography>
+                                        {order.address.phoneNumber && (
+                                          <Typography variant="body2" sx={{ mt: 1 }}>
+                                            <strong>Phone:</strong> {order.address.phoneNumber}
+                                          </Typography>
+                                        )}
                                       </>
                                     ) : (
                                       <Typography variant="body2" color="text.secondary">
-                                        Address information not available
+                                        Address information not available.
                                       </Typography>
                                     )}
                                   </CardContent>
@@ -517,7 +548,6 @@ const MyPurchase = () => {
                       </Accordion>
                     </Grid>
                   ))}
-
               </Grid>
             ) : (
               <Box p={5} textAlign="center" bgcolor={mode === "light" ? "#F5F5F5" : "#2A2A2A"} borderRadius={2}>
@@ -528,118 +558,19 @@ const MyPurchase = () => {
                 </Typography>
                 <Button 
                   variant="contained" 
-                  color="primary" 
+                  color="primary"
+                  size="small" 
                   onClick={() => navigate('/dashboard')}
                   sx={{ 
                     bgcolor: "#D32F2F",
-                    "&:hover": { bgcolor: "#B71C1C" }
+                    "&:hover": { bgcolor: "#B71C1C" },
+                    textTransform: "none",
+                    fontWeight: "100",
+                    fontSize: "1rem",
+                    color: "#fff"
                   }}
                 >
                   Browse Products
-                </Button>
-              </Box>
-            )
-          ) : (
-            // Payments Tab
-            payments.length > 0 ? (
-              <Grid container spacing={3}>
-                {/* Make sure to check if payments is an array before calling sort */}
-                {(Array.isArray(payments) ? [...payments].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) : [])
-                  .map((payment) => (
-                    <Grid item xs={12} key={payment.paymentId}>
-                      <Card 
-                        sx={{
-                          bgcolor: mode === "light" ? "#FFFFFF" : "#2A2A2A",
-                          boxShadow: mode === "light" 
-                            ? "0 2px 8px rgba(0,0,0,0.1)" 
-                            : "0 2px 8px rgba(0,0,0,0.3)",
-                          borderRadius: '8px',
-                          p: 2,
-                          position: 'relative',
-                          overflow: 'hidden',
-                          '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: '4px',
-                            backgroundColor: getStatusColor(payment.status)
-                          }
-                        }}
-                      >
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} sm={6}>
-                            <Box display="flex" alignItems="center" mb={1}>
-                              <CreditCardIcon sx={{ mr: 1, color: mode === "light" ? "#757575" : "#BDBDBD" }} />
-                              <Typography variant="h6">
-                                Payment #{payment.paymentId}
-                              </Typography>
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" mb={1}>
-                              Date: {formatDate(payment.createdAt)}
-                            </Typography>
-                            {payment.order && (
-                              <Typography variant="body2" color="text.secondary">
-                                Order Reference: #{payment.order.orderId}
-                              </Typography>
-                            )}
-                          </Grid>
-                          <Grid item xs={12} sm={3}>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              Payment Method
-                            </Typography>
-                            <Typography variant="body1">
-                              {payment.paymentMethod || "Credit Card"}
-                            </Typography>
-                            {payment.stripeSessionId && (
-                              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.75rem' }}>
-                                Stripe Session ID: {payment.stripeSessionId.substring(0, 10)}...
-                              </Typography>
-                            )}
-                          </Grid>
-                          <Grid item xs={12} sm={3} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
-                            <Box display="flex" flexDirection="column" alignItems={{ xs: 'flex-start', sm: 'flex-end' }}>
-                              <Typography variant="h6" color="primary" gutterBottom>
-                                {payment.currency.toUpperCase()} {payment.amount.toLocaleString()}
-                              </Typography>
-                              <Chip 
-                                label={payment.status} 
-                                sx={{ 
-                                  bgcolor: getStatusColor(payment.status) + '20',
-                                  color: getStatusColor(payment.status),
-                                  fontWeight: '600'
-                                }} 
-                              />
-                              {payment.status === 'COMPLETED' && payment.order && payment.order.status === 'DELIVERED' && (
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                                  Payment completed after order delivery
-                                </Typography>
-                              )}
-                            </Box>
-                          </Grid>
-                        </Grid>
-                      </Card>
-                    </Grid>
-                  ))}
-              </Grid>
-            ) : (
-              <Box p={5} textAlign="center" bgcolor={mode === "light" ? "#F5F5F5" : "#2A2A2A"} borderRadius={2}>
-                <PaymentIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>No Payment History</Typography>
-                <Typography variant="body2" color="text.secondary" mb={3}>
-                  You don't have any payment records yet.
-                </Typography>
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  onClick={() => navigate('/dashboard')}
-                  sx={{ 
-                    bgcolor: "#D32F2F",
-                    "&:hover": { bgcolor: "#B71C1C" }
-                  }}
-                >
-                  Start Shopping
                 </Button>
               </Box>
             )
@@ -699,6 +630,102 @@ const MyPurchase = () => {
           {notification.message}
         </Alert>
       </Snackbar>
+
+      {/* Modal for Not Logged In */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => {}}
+        aria-labelledby="not-logged-in-modal"
+        aria-describedby="not-logged-in-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="not-logged-in-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Modal for Logout Confirmation */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };

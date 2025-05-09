@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
-  ListItemText, IconButton, InputBase, Grid
+  ListItemText, IconButton, InputBase, Grid, Modal, Button
 } from "@mui/material";
 
 import { ColorModeContext } from "../ThemeContext";
@@ -30,13 +30,14 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useContext(ColorModeContext);
   const [searchText, setSearchText] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
 
     if (!token) {
-      alert("You must be logged in to access the dashboard.");
-      navigate("/login");
+      setIsModalOpen(true); // Open the modal if the user is not logged in
       return;
     }
 
@@ -48,14 +49,17 @@ const Dashboard = () => {
       })
       .catch((error) => {
         console.error("Error verifying auth:", error);
-        alert("Session expired. Please log in again.");
+
         sessionStorage.removeItem("authToken");
-        navigate("/login");
+        setIsModalOpen(true); // Open the modal if the session is invalid
       });
   }, [navigate]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("email");
+    sessionStorage.removeItem("username");
+    sessionStorage.removeItem("userId");
     navigate("/login");
   };
 
@@ -65,19 +69,24 @@ const Dashboard = () => {
     }
   };
 
+  const handleLoginRedirect = () => {
+    setIsModalOpen(false);
+    navigate("/login");
+  };
+
   const logoSrc =
     mode === "light"
       ? "src/images/Cartella Logo (Light).jpeg"
       : "src/images/Cartella Logo (Dark2).jpeg";
 
   const categories = [
-  { name: "Clothes", image: ClothesImg, path: "/category/clothes" },
-  { name: "Men's Accessories", image: WatchImg, path: "/category/mens-accessories" },
-  { name: "Mobiles & Gadgets", image: IphoneImg, path: "/category/mobiles-gadgets" },
-  { name: "Home Appliances", image: BlenderImg, path: "/category/home-appliances" },
-  { name: "Women's Accessories", image: ShadesImg, path: "/category/womens-accessories" },
-  { name: "Gaming", image: GamingImg, path: "/category/gaming" },
-];
+    { name: "Clothes", image: ClothesImg, path: "/category/clothes" },
+    { name: "Men's Accessories", image: WatchImg, path: "/category/mens-accessories" },
+    { name: "Mobiles & Gadgets", image: IphoneImg, path: "/category/mobiles-gadgets" },
+    { name: "Home Appliances", image: BlenderImg, path: "/category/home-appliances" },
+    { name: "Women's Accessories", image: ShadesImg, path: "/category/womens-accessories" },
+    { name: "Gaming", image: GamingImg, path: "/category/gaming" },
+  ];
 
   const itemStyle = {
     cursor: "pointer",
@@ -112,9 +121,9 @@ const Dashboard = () => {
         ))}
       </List>
       <List>
-        <ListItem button onClick={handleLogout}>
+        <ListItem button onClick={() => setIsLogoutModalOpen(true)}>
           <LogoutIcon sx={{ mr: 1 }} />
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Log Out" />
         </ListItem>
       </List>
     </Box>
@@ -207,21 +216,21 @@ const Dashboard = () => {
         sx={{
           flexGrow: 1,
           bgcolor: mode === "light" ? "#FFFFFF" : "#1A1A1A",
+          color: mode === "light" ? "#000" : "#FFF",
           p: 3,
           mt: 8,
-          color: mode === "light" ? "#000" : "#FFF",
-          height: "calc(100vh - 64px)", // Subtract the AppBar height
-          overflow: "hidden" // Prevent double scrollbars
+          overflow: "auto",
+          height: "92vh",
         }}
       >
-        <Box 
-          sx={{ 
-            width: "100%", 
-            maxWidth: "1200px", 
+        <Typography variant="h4" gutterBottom>
+          Categories
+        </Typography>
+        <Box
+          sx={{
+            width: "100%",
+            maxWidth: "1200px",
             mx: "auto",
-            overflowY: "auto", 
-            pr: 2, // Add padding for the scrollbar
-            height: "100%",
             "&::-webkit-scrollbar": {
               width: "8px",
             },
@@ -238,13 +247,20 @@ const Dashboard = () => {
             },
           }}
         >
-          <Typography variant="h4" gutterBottom>Categories</Typography>
           <Grid container spacing={20} justifyContent="center">
             {/* Top Row */}
             {[0, 1, 2].map((i) => {
               const { name, image, path } = categories[i];
               return (
-                <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
+                <Grid
+                  item
+                  xs={12}
+                  sm={4}
+                  md={4}
+                  key={name}
+                  onClick={() => navigate(path)}
+                  sx={itemStyle}
+                >
                   <Box component="img" src={image} alt={name} sx={imageStyle} />
                   <Typography variant="subtitle1">{name}</Typography>
                 </Grid>
@@ -257,7 +273,15 @@ const Dashboard = () => {
             {[3, 4, 5].map((i) => {
               const { name, image, path } = categories[i];
               return (
-                <Grid item xs={12} sm={4} md={4} key={name} onClick={() => navigate(path)} sx={itemStyle}>
+                <Grid
+                  item
+                  xs={12}
+                  sm={4}
+                  md={4}
+                  key={name}
+                  onClick={() => navigate(path)}
+                  sx={itemStyle}
+                >
                   <Box component="img" src={image} alt={name} sx={imageStyle} />
                   <Typography variant="subtitle1">{name}</Typography>
                 </Grid>
@@ -266,6 +290,102 @@ const Dashboard = () => {
           </Grid>
         </Box>
       </Box>
+
+      {/* Modal for Not Logged In */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => {}}
+        aria-labelledby="not-logged-in-modal"
+        aria-describedby="not-logged-in-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="not-logged-in-modal" variant="h6" component="h2">
+            You must be logged in to access this page.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              mt: 3,
+              backgroundColor: "#D32F2E",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#B71C1C",
+              },
+            }}
+            onClick={handleLoginRedirect}
+          >
+            Log In
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Modal for Logout Confirmation */}
+      <Modal
+        open={isLogoutModalOpen}
+        onClose={() => {}}
+        aria-labelledby="logout-modal"
+        aria-describedby="logout-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+          }}
+        >
+          <Typography id="logout-modal" variant="h6" component="h2">
+            Do you want to log out?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2E",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleLogout}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: "#333333",
+                border: "1px solid #ccc",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsLogoutModalOpen(false)}
+            >
+              No
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };

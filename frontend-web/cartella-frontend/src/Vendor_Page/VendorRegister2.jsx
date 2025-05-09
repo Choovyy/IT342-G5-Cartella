@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
+import axios from "axios";
 import { toast, ToastContainer, Slide } from "react-toastify";
 import logo from "../images/Cartella Logo (Dark).jpeg";
 import logoLight from "../images/Cartella Logo (Light2).jpeg";
 import "./design/VendorLogin.css";
-import authService from "../api/authService";
 
 const VendorRegister2 = () => {
   const { state: basicData } = useLocation();
@@ -39,13 +39,13 @@ const VendorRegister2 = () => {
         fullData.gender = fullData.gender.toUpperCase();
       }
 
-      const response = await authService.registerVendor(fullData);
+      const response = await axios.post("https://it342-g5-cartella.onrender.com/api/vendors/register", fullData);
 
-      if (response.token) {
-        sessionStorage.setItem("authToken", response.token);
+      if (response.data.token) {
+        sessionStorage.setItem("authToken", response.data.token);
         sessionStorage.setItem("username", fullData.username);
-        sessionStorage.setItem("userId", response.userId);
-        sessionStorage.setItem("vendorId", response.vendorId);
+        sessionStorage.setItem("userId", response.data.userId);
+        sessionStorage.setItem("vendorId", response.data.vendorId);
       }
 
       toast.success("Registration Successful", {

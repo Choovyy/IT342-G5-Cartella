@@ -5,7 +5,6 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext } from "../ThemeContext";
-import productService from "../api/productService";
 
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -37,23 +36,16 @@ const VendorGaming = () => {
       setLoading(false);
       return;
     }
-    
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const categoryName = "Gaming";
-        const data = await productService.getProductsByVendorAndCategory(vendorId, categoryName);
-        setProducts(data);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-        setError("Failed to fetch products. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchProducts();
+    fetch(`https://it342-g5-cartella.onrender.com/api/products/vendor/${vendorId}/category/Gaming`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch products");
+        return res.json();
+      })
+      .then(data => setProducts(data))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleLogout = () => {
@@ -223,7 +215,7 @@ const VendorGaming = () => {
                   {product.imageUrl ? (
                     <CardMedia
                       component="img"
-                      image={`http://localhost:8080${product.imageUrl}`}
+                      image={`https://it342-g5-cartella.onrender.com${product.imageUrl}`}
                       alt={product.name}
                       sx={{
                         maxHeight: 210,
