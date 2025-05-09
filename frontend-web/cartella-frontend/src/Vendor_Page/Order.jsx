@@ -92,14 +92,14 @@ const getNextStatusOptions = (currentStatus) => {
   }
 };
 
-// Helper function to get a user-friendly status description
+  // Helper function to get a user-friendly status description
 const getStatusDescription = (status) => {
   const descriptions = {
     PENDING: "Order received and awaiting processing",
-    PROCESSING: "Order is being processed",
-    SHIPPED: "Order has been shipped",
+    PROCESSING: "Order is being prepared for shipment",
+    SHIPPED: "Order has been shipped to the customer",
     DELIVERED: "Order has been delivered to the customer",
-    COMPLETED: "Order has been completed",
+    COMPLETED: "Order has been completed successfully",
     CANCELLED: "Order has been cancelled"
   };
   return descriptions[status] || status;
@@ -258,6 +258,7 @@ const Order = () => {
     
     // Set the status based on the action (accept or cancel)
     let suggestedStatus = "";
+    let availableStatuses = [];
     
     if (action === "cancel") {
       // If already shipped, don't allow cancellation
@@ -270,24 +271,31 @@ const Order = () => {
         return;
       }
       suggestedStatus = "CANCELLED";
+      availableStatuses = ["CANCELLED"];
     } else {
-      // Set the logical next status based on current status (sequential flow)
+      // Only allow progression to the next logical status (no skipping steps)
       switch(order.status) {
         case "PENDING":
           suggestedStatus = "PROCESSING";
+          availableStatuses = ["PROCESSING", "CANCELLED"];
           break;
         case "PROCESSING":
           suggestedStatus = "SHIPPED";
+          availableStatuses = ["SHIPPED", "CANCELLED"];
           break;
         case "SHIPPED":
           suggestedStatus = "DELIVERED";
+          availableStatuses = ["DELIVERED"];
           break;
         default:
           suggestedStatus = order.status;
+          availableStatuses = [order.status];
       }
     }
     
     setNewStatus(suggestedStatus);
+    // Store the available status options to limit what can be selected in the dialog
+    sessionStorage.setItem("availableStatuses", JSON.stringify(availableStatuses));
     setUpdateStatusDialog(true);
   };
 
@@ -874,20 +882,30 @@ const Order = () => {
                                 Payment Info
                               </Button>
                               
-                              {['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status) && (
-                                <Stack direction="row" spacing={1} width="100%">
+                {['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status) && (
+                                <Stack direction="row" spacing={1} width="100%" sx={{ mt: 1 }}>
                                   <Button 
                                     variant="contained" 
                                     color="primary"
                                     size="small"
                                     onClick={() => handleUpdateStatus(order, "proceed")}
                                     fullWidth
+                                    startIcon={
+                                      order.status === "PENDING" ? <HourglassEmptyIcon />
+                                      : order.status === "PROCESSING" ? <LocalShippingIcon />
+                                      : order.status === "SHIPPED" ? <CheckCircleIcon />
+                                      : null
+                                    }
                                     sx={{
                                       bgcolor: "#D32F2F",
-                                      "&:hover": { bgcolor: "#B71C1C" }
+                                      "&:hover": { bgcolor: "#B71C1C" },
+                                      py: 1
                                     }}
                                   >
-                                    Update Status
+                                    {order.status === "PENDING" ? "Process" : 
+                                     order.status === "PROCESSING" ? "Ship" : 
+                                     order.status === "SHIPPED" ? "Deliver" : 
+                                     "Update"}
                                   </Button>
                                   {['PENDING', 'PROCESSING'].includes(order.status) && (
                                     <Button 
@@ -896,6 +914,8 @@ const Order = () => {
                                       size="small"
                                       onClick={() => handleUpdateStatus(order, "cancel")}
                                       fullWidth
+                                      startIcon={<CancelIcon />}
+                                      sx={{ py: 1 }}
                                     >
                                       Cancel
                                     </Button>
@@ -918,40 +938,181 @@ const Order = () => {
       <Dialog
         open={updateStatusDialog}
         onClose={() => !processingUpdate && setUpdateStatusDialog(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            maxWidth: '450px',
+            width: '100%'
+          }
+        }}
       >
-        <DialogTitle>{newStatus === "CANCELLED" ? "Cancel Order" : "Update Order Status"}</DialogTitle>
-        <DialogContent>
+        <DialogTitle sx={{ 
+          borderBottom: '1px solid', 
+          borderColor: mode === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+          pb: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5
+        }}>
           {newStatus === "CANCELLED" ? (
-            <DialogContentText>
-              Are you sure you want to cancel Order #{selectedOrder?.orderId}? This action cannot be undone.
-            </DialogContentText>
+            <>
+              <CancelIcon color="error" />
+              <Typography variant="h6">Cancel Order</Typography>
+            </>
           ) : (
             <>
-              <DialogContentText>
-                Change the status for Order #{selectedOrder?.orderId}.
-              </DialogContentText>
-              <FormControl fullWidth margin="dense">
-                <InputLabel>New Status</InputLabel>
-                <Select
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                  label="New Status"
-                  disabled={processingUpdate}
+              {newStatus === "PROCESSING" && <HourglassEmptyIcon sx={{ color: '#2196F3' }} />}
+              {newStatus === "SHIPPED" && <LocalShippingIcon sx={{ color: '#9C27B0' }} />}
+              {newStatus === "DELIVERED" && <CheckCircleIcon sx={{ color: '#4CAF50' }} />}
+              <Typography variant="h6">Update Order Status</Typography>
+            </>
+          )}
+        </DialogTitle>
+        
+        <DialogContent sx={{ py: 3 }}>
+          {newStatus === "CANCELLED" ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
+              <Box 
+                sx={{ 
+                  bgcolor: '#FFEBEE', 
+                  borderRadius: '50%', 
+                  p: 2, 
+                  mb: 2,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: 80,
+                  height: 80
+                }}
+              >
+                <CancelIcon sx={{ fontSize: 40, color: '#F44336' }} />
+              </Box>
+              <Typography variant="h6" align="center" gutterBottom>
+                Are you sure?
+              </Typography>
+              <Typography align="center" color="text.secondary" sx={{ maxWidth: '350px' }}>
+                Cancelling Order #{selectedOrder?.orderId} is permanent and cannot be undone. The customer will be notified.
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <Box mb={3}>
+                <Typography variant="body1" gutterBottom>
+                  Current Status: <Chip 
+                    label={selectedOrder?.status} 
+                    size="small"
+                    sx={{ 
+                      bgcolor: getStatusColor(selectedOrder?.status) + '20',
+                      color: getStatusColor(selectedOrder?.status),
+                      fontWeight: 500,
+                      ml: 1
+                    }}
+                  />
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Order #{selectedOrder?.orderId} • Created on {selectedOrder?.createdAt ? formatDate(selectedOrder.createdAt) : 'N/A'}
+                </Typography>
+              </Box>
+              
+              <Typography variant="subtitle2" gutterBottom>
+                Choose the next status for this order:
+              </Typography>
+              
+              <Box sx={{ mt: 2 }}>
+                {[...JSON.parse(sessionStorage.getItem("availableStatuses") || '[]')].map((status) => (
+                  <Box 
+                    key={status}
+                    onClick={() => setNewStatus(status)}
+                    sx={{
+                      borderRadius: 1.5,
+                      border: '2px solid',
+                      borderColor: newStatus === status 
+                        ? getStatusColor(status) 
+                        : mode === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                      p: 2,
+                      mb: 2,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      bgcolor: newStatus === status 
+                        ? getStatusColor(status) + '10' 
+                        : 'transparent',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        borderColor: getStatusColor(status),
+                        bgcolor: getStatusColor(status) + '08'
+                      }
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1.5}>
+                      {status === "PROCESSING" && <HourglassEmptyIcon sx={{ color: '#2196F3' }} />}
+                      {status === "SHIPPED" && <LocalShippingIcon sx={{ color: '#9C27B0' }} />}
+                      {status === "DELIVERED" && <CheckCircleIcon sx={{ color: '#4CAF50' }} />}
+                      {status === "CANCELLED" && <CancelIcon sx={{ color: '#F44336' }} />}
+                      <Box>
+                        <Typography variant="subtitle2">{status}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {getStatusDescription(status)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    {newStatus === status && (
+                      <Box 
+                        sx={{ 
+                          width: 24, 
+                          height: 24, 
+                          borderRadius: '50%', 
+                          bgcolor: getStatusColor(status),
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <CheckCircleIcon sx={{ fontSize: 18 }} />
+                      </Box>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+              
+              {newStatus === "SHIPPED" && (
+                <Box 
+                  sx={{ 
+                    bgcolor: mode === 'light' ? '#f5f5f5' : '#333', 
+                    p: 2, 
+                    borderRadius: 1.5,
+                    mt: 2,
+                    border: '1px dashed',
+                    borderColor: mode === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                  }}
                 >
-                  <MenuItem value="PENDING">Pending</MenuItem>
-                  <MenuItem value="PROCESSING">Processing</MenuItem>
-                  <MenuItem value="SHIPPED">Shipped</MenuItem>
-                  <MenuItem value="DELIVERED">Delivered</MenuItem>
-                  <MenuItem value="CANCELLED">Cancelled</MenuItem>
-                </Select>
-              </FormControl>
+                  <Typography variant="caption" color="text.secondary">
+                    The customer will be notified with estimated delivery details when you mark this order as shipped.
+                  </Typography>
+                </Box>
+              )}
             </>
           )}
         </DialogContent>
-        <DialogActions>
+        
+        <DialogActions sx={{ 
+          px: 3, 
+          py: 2, 
+          borderTop: '1px solid', 
+          borderColor: mode === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' 
+        }}>
           <Button 
             onClick={() => setUpdateStatusDialog(false)} 
             disabled={processingUpdate}
+            sx={{ 
+              color: mode === 'light' ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)',
+              '&:hover': {
+                bgcolor: mode === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'
+              }
+            }}
           >
             {newStatus === "CANCELLED" ? "No, Keep Order" : "Cancel"}
           </Button>
@@ -959,7 +1120,15 @@ const Order = () => {
             onClick={confirmStatusUpdate} 
             color={newStatus === "CANCELLED" ? "error" : "primary"} 
             variant="contained"
-            disabled={processingUpdate}            startIcon={processingUpdate ? <CircularProgress size={20} /> : null}
+            disabled={processingUpdate}
+            startIcon={processingUpdate ? <CircularProgress size={20} /> : null}
+            sx={{ 
+              bgcolor: newStatus === "CANCELLED" ? "#F44336" : "#D32F2F",
+              "&:hover": { 
+                bgcolor: newStatus === "CANCELLED" ? "#D32F2F" : "#B71C1C"
+              },
+              px: 3
+            }}
           >
             {processingUpdate ? 'Processing...' : newStatus === "CANCELLED" ? 'Yes, Cancel Order' : 'Update Status'}
           </Button>
