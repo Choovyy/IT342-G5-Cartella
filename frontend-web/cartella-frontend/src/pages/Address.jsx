@@ -476,81 +476,218 @@ const Address = () => {
             )}
           </>
         )}
-      </Box>
-
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
+      </Box>      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+            overflow: 'hidden',
+            backgroundColor: mode === "dark" ? "#2A2A2A" : "#fff",
+            color: mode === "dark" ? "#fff" : "#000",
+          }
+        }}
+        TransitionProps={{
+          sx: {
+            transition: 'all 0.3s ease-in-out !important'
+          }
+        }}
+      >
+        <Box sx={{ 
+          px: 3, 
+          py: 2, 
+          bgcolor: mode === "dark" ? "#3a3a3a" : "#f5f5f5", 
+          borderBottom: `1px solid ${mode === "dark" ? "#444" : "#e0e0e0"}`,
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <HomeIcon sx={{ color: "#D32F2F", mr: 1.5, fontSize: 28 }} />
+          <Typography variant="h5" component="h2" sx={{ fontWeight: 500 }}>
+            {editingAddress ? 'Edit Address' : 'Add New Address'}
+          </Typography>
+        </Box>
+        
+        <DialogContent sx={{ p: 3, mt: 1 }}>
+          <Typography variant="body2" sx={{ mb: 3, color: mode === "dark" ? "#aaa" : "#666" }}>
+            Enter your address details below. Fields marked with * are required.
+          </Typography>
+          
+          <Box sx={{ pt: 1 }}>
             <TextField
               fullWidth
-              label="Street Address"
+              label="Street Address *"
               name="streetAddress"
               value={formData.streetAddress}
               onChange={handleInputChange}
               margin="normal"
               required
-            />
-            <TextField
-              fullWidth
-              label="City"
-              name="city"
-              value={formData.city}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label="State"
-              name="state"
-              value={formData.state}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label="Postal Code"
-              name="postalCode"
-              value={formData.postalCode}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              inputProps={{
-                pattern: "[0-9]{5,10}",
-                title: "5-10 digit postal code"
+              variant="outlined"
+              InputProps={{
+                sx: { 
+                  borderRadius: 1.5,
+                  '&.Mui-focused': {
+                    boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                  }
+                }
               }}
+              sx={{ mb: 2 }}
             />
-            <TextField
-              fullWidth
-              label="Country"
-              name="country"
-              value={formData.country}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              inputProps={{
-                pattern: "[A-Za-z ]{2,56}",
-                title: "Valid country name (2-56 characters)"
-              }}
-            />
-            <FormControlLabel
-              control={
-                <Checkbox 
-                  checked={formData.isDefault} 
-                  onChange={handleInputChange} 
-                  name="isDefault" 
-                  color="error" 
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="City *"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  required
+                  variant="outlined"
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 1.5,
+                      '&.Mui-focused': {
+                        boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                      }
+                    }
+                  }}
                 />
-              }
-              label="Set as default address"
-              sx={{ mt: 2 }}
-            />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="State/Province *"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleInputChange}
+                  required
+                  variant="outlined"
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 1.5,
+                      '&.Mui-focused': {
+                        boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+            
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Postal Code *"
+                  name="postalCode"
+                  value={formData.postalCode}
+                  onChange={handleInputChange}
+                  required
+                  variant="outlined"
+                  helperText="5-10 digit postal code"
+                  inputProps={{
+                    pattern: "[0-9]{5,10}",
+                    title: "5-10 digit postal code"
+                  }}
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 1.5,
+                      '&.Mui-focused': {
+                        boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Country *"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                  required
+                  variant="outlined"
+                  helperText="Country name (2-56 characters)"
+                  inputProps={{
+                    pattern: "[A-Za-z ]{2,56}",
+                    title: "Valid country name (2-56 characters)"
+                  }}
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 1.5,
+                      '&.Mui-focused': {
+                        boxShadow: `0 0 0 2px ${mode === "dark" ? "rgba(211, 47, 47, 0.3)" : "rgba(211, 47, 47, 0.2)"}`
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+            
+            <Paper 
+              sx={{ 
+                p: 2, 
+                mt: 3, 
+                bgcolor: mode === "dark" ? "rgba(211, 47, 47, 0.08)" : "rgba(211, 47, 47, 0.05)",
+                borderRadius: 2,
+                border: `1px solid ${mode === "dark" ? "rgba(211, 47, 47, 0.2)" : "rgba(211, 47, 47, 0.15)"}`,
+              }}
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={formData.isDefault} 
+                    onChange={handleInputChange} 
+                    name="isDefault" 
+                    color="error"
+                    sx={{
+                      '&.Mui-checked': {
+                        color: '#D32F2F',
+                      }
+                    }}
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>Set as default address</Typography>
+                    <Typography variant="body2" sx={{ color: mode === "dark" ? "#aaa" : "#666", fontSize: '0.8rem' }}>
+                      This address will be used as the default for all shipping orders
+                    </Typography>
+                  </Box>
+                }
+              />
+            </Paper>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={isSubmitting}>
+        
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          p: 3,
+          pt: 2,
+          borderTop: `1px solid ${mode === "dark" ? "#444" : "#e0e0e0"}`,
+          gap: 1
+        }}>
+          <Button 
+            onClick={handleCloseDialog} 
+            disabled={isSubmitting}
+            variant="outlined"
+            sx={{ 
+              px: 3,
+              borderRadius: 2,
+              textTransform: 'none',
+              borderColor: mode === "dark" ? "#666" : "#ccc",
+              color: mode === "dark" ? "#ddd" : "#555",
+              '&:hover': {
+                borderColor: mode === "dark" ? "#888" : "#aaa",
+                backgroundColor: mode === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)"
+              }
+            }}
+          >
             Cancel
           </Button>
           <Button 
@@ -558,12 +695,24 @@ const Address = () => {
             variant="contained" 
             color="error"
             disabled={isSubmitting}
+            sx={{ 
+              px: 3,
+              borderRadius: 2,
+              boxShadow: 2,
+              textTransform: 'none',
+              fontWeight: 500,
+              transition: 'all 0.2s',
+              '&:hover': {
+                boxShadow: 4,
+                backgroundColor: '#B71C1C'
+              }
+            }}
           >
             {isSubmitting ? (
               <CircularProgress size={24} sx={{ color: 'white' }} />
-            ) : editingAddress ? 'Update' : 'Add'}
+            ) : editingAddress ? 'Update Address' : 'Add Address'}
           </Button>
-        </DialogActions>
+        </Box>
       </Dialog>
 
       <Modal
