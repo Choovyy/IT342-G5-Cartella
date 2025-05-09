@@ -41,6 +41,8 @@ const Address = () => {
   const [editingAddress, setEditingAddress] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState(null);
   const [formData, setFormData] = useState({
     streetAddress: "",
     city: "",
@@ -155,18 +157,22 @@ const Address = () => {
     });
     setOpenDialog(true);
   };
-
-  const handleDelete = async (addressId) => {
-    if (window.confirm("Are you sure you want to delete this address?")) {
-      try {
-        await addressService.deleteAddress(addressId);
-        setAddresses(addresses.filter(addr => addr.addressId !== addressId));
-        toast.success("Address deleted successfully!");
-      } catch (err) {
-        console.error("Error deleting address:", err);
-        toast.error(`Failed to delete address: ${err.message}`);
-      }
+  const handleDeleteConfirm = async () => {
+    try {
+      await addressService.deleteAddress(addressToDelete);
+      setAddresses(addresses.filter(addr => addr.addressId !== addressToDelete));
+      toast.success("Address deleted successfully!");
+      setIsDeleteModalOpen(false);
+      setAddressToDelete(null);
+    } catch (err) {
+      console.error("Error deleting address:", err);
+      toast.error(`Failed to delete address: ${err.message}`);
     }
+  };
+
+  const handleDelete = (addressId) => {
+    setAddressToDelete(addressId);
+    setIsDeleteModalOpen(true);
   };
 
   const handleSetDefault = async (addressId) => {
@@ -272,6 +278,12 @@ const Address = () => {
       </List>
     </Box>
   );
+  // Add a useEffect to show toast when error state changes
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -342,8 +354,6 @@ const Address = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
             <CircularProgress />
           </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ width: '100%', maxWidth: '1000px' }}>{error}</Alert>
         ) : (
           <>
             <Box sx={{ width: '100%', maxWidth: '1000px', mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
@@ -804,6 +814,66 @@ const Address = () => {
               onClick={() => setIsLogoutModalOpen(false)}
             >
               No
+            </Button>          </Box>
+        </Box>
+      </Modal>
+
+      <Modal
+        open={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        aria-labelledby="delete-address-modal"
+        aria-describedby="delete-address-confirmation"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: mode === "dark" ? "#2A2A2A" : "background.paper",
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+            borderRadius: 2,
+            color: mode === "dark" ? "#fff" : "#000",
+          }}
+        >
+          <DeleteIcon sx={{ color: "#D32F2F", fontSize: 40, mb: 2 }} />
+          <Typography id="delete-address-modal" variant="h6" component="h2" sx={{ mb: 2 }}>
+            Delete Address
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            Are you sure you want to delete this address? This action cannot be undone.
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#D32F2F",
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: "#B71C1C",
+                },
+              }}
+              onClick={handleDeleteConfirm}
+            >
+              Delete
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                backgroundColor: mode === "dark" ? "rgba(255,255,255,0.05)" : "#ffffff",
+                color: mode === "dark" ? "#ddd" : "#333333",
+                border: `1px solid ${mode === "dark" ? "#666" : "#ccc"}`,
+                textTransform: "none",
+                "&:hover": {
+                  backgroundColor: mode === "dark" ? "rgba(255,255,255,0.1)" : "#f5f5f5",
+                },
+              }}
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              Cancel
             </Button>
           </Box>
         </Box>
