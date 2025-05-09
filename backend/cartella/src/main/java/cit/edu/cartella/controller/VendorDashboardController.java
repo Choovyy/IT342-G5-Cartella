@@ -54,19 +54,23 @@ public class VendorDashboardController {
                     .map(OrderItem::getOrder)
                     .collect(Collectors.toSet());
             
-            // Calculate total revenue
+            // Calculate total revenue (exclude orders with CANCELLED status)
             BigDecimal totalRevenue = orderItems.stream()
+                    .filter(item -> item.getOrder().getStatus() != OrderStatus.CANCELLED) // Filter out cancelled orders
                     .map(item -> item.getPriceAtTimeOfOrder().multiply(BigDecimal.valueOf(item.getQuantity())))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             
             // Calculate total products
             int totalProducts = products.size();
             
-            // Calculate total orders
-            int totalOrders = orders.size();
+            // Calculate total orders (exclude orders with CANCELLED status)
+            int totalOrders = (int) orders.stream()
+                    .filter(order -> order.getStatus() != OrderStatus.CANCELLED) // Filter out cancelled orders
+                    .count();
             
-            // Calculate total sold items
+            // Calculate total sold items (exclude orders with CANCELLED status)
             int totalSoldItems = orderItems.stream()
+                    .filter(item -> item.getOrder().getStatus() != OrderStatus.CANCELLED) // Filter out cancelled orders
                     .mapToInt(OrderItem::getQuantity)
                     .sum();
             
@@ -127,14 +131,18 @@ public class VendorDashboardController {
             List<BigDecimal> revenueData = new ArrayList<>();
             
             for (String month : last4Months) {
-                // Orders count
-                ordersData.add(ordersByMonth.getOrDefault(month, Collections.emptyList()).size());
+                // Orders count (exclude orders with CANCELLED status)
+                int validOrdersCount = (int) ordersByMonth.getOrDefault(month, Collections.emptyList()).stream()
+                        .filter(order -> order.getStatus() != OrderStatus.CANCELLED)
+                        .count();
+                ordersData.add(validOrdersCount);
                 
                 // Products count
                 productsData.add(productsByMonth.getOrDefault(month, Collections.emptyList()).size());
                 
-                // Revenue
+                // Revenue (exclude orders with CANCELLED status)
                 BigDecimal monthRevenue = orderItemsByMonth.getOrDefault(month, Collections.emptyList()).stream()
+                        .filter(item -> item.getOrder().getStatus() != OrderStatus.CANCELLED) // Filter out cancelled orders
                         .map(item -> item.getPriceAtTimeOfOrder().multiply(BigDecimal.valueOf(item.getQuantity())))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
                 revenueData.add(monthRevenue);

@@ -2,10 +2,9 @@ import React, { useContext, useState, useEffect } from "react";
 import {
   AppBar, Toolbar, Typography, Drawer, Box, List, ListItem,
   ListItemText, IconButton, InputBase, Card, CardContent, CardActionArea,
-  CircularProgress, Alert, Chip, Grid, Select, MenuItem, FormControl,
-  InputLabel, Tab, Tabs, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, 
+  CircularProgress, Alert, Chip, Grid, Select, MenuItem, FormControl,  InputLabel, Tab, Tabs, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, 
   Snackbar, Badge, Divider, Paper, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Modal
+  TableHead, TableRow, Modal, Stack
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -218,10 +217,9 @@ const Order = () => {
       // Active orders (PENDING, PROCESSING, SHIPPED)
       filtered = filtered.filter(order => 
         ['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status)
-      );
-    } else if (tabValue === 1) {
-      // Completed orders
-      filtered = filtered.filter(order => order.status === 'DELIVERED' || order.status === 'COMPLETED');
+      );    } else if (tabValue === 1) {
+      // Delivered orders
+      filtered = filtered.filter(order => order.status === 'DELIVERED');
     } else if (tabValue === 2) {
       // Cancelled orders
       filtered = filtered.filter(order => order.status === 'CANCELLED');
@@ -255,24 +253,38 @@ const Order = () => {
     
     setFilteredOrders(filtered);
   };
-
-  const handleUpdateStatus = (order) => {
+  const handleUpdateStatus = (order, action) => {
     setSelectedOrder(order);
     
-    // Set the logical next status based on current status
+    // Set the status based on the action (accept or cancel)
     let suggestedStatus = "";
-    switch(order.status) {
-      case "PENDING":
-        suggestedStatus = "PROCESSING";
-        break;
-      case "PROCESSING":
-        suggestedStatus = "SHIPPED";
-        break;
-      case "SHIPPED":
-        suggestedStatus = "DELIVERED";
-        break;
-      default:
-        suggestedStatus = order.status;
+    
+    if (action === "cancel") {
+      // If already shipped, don't allow cancellation
+      if (order.status === "SHIPPED") {
+        setNotification({
+          open: true,
+          message: "Orders that have been shipped cannot be cancelled.",
+          type: "error"
+        });
+        return;
+      }
+      suggestedStatus = "CANCELLED";
+    } else {
+      // Set the logical next status based on current status (sequential flow)
+      switch(order.status) {
+        case "PENDING":
+          suggestedStatus = "PROCESSING";
+          break;
+        case "PROCESSING":
+          suggestedStatus = "SHIPPED";
+          break;
+        case "SHIPPED":
+          suggestedStatus = "DELIVERED";
+          break;
+        default:
+          suggestedStatus = order.status;
+      }
     }
     
     setNewStatus(suggestedStatus);
@@ -297,24 +309,20 @@ const Order = () => {
       
       // Determine a user-friendly status message based on the new status
       let statusMessage = "";
-      switch(newStatus) {
-        case "PROCESSING":
-          statusMessage = "Your order is now being processed and prepared for shipping.";
+      switch(newStatus) {        case "PROCESSING":
+          statusMessage = "Order is now being processed and prepared for shipping.";
           break;
         case "SHIPPED":
-          statusMessage = "Your order has been shipped and is on its way to you!";
+          statusMessage = "Order has been shipped and is on its way to the customer!";
           break;
         case "DELIVERED":
-          statusMessage = "Your order has been delivered. Thank you for shopping with us!";
-          break;
-        case "COMPLETED":
-          statusMessage = "Your order is now complete. We hope you enjoyed your purchase!";
+          statusMessage = "Order has been delivered. Thank you for confirming!";
           break;
         case "CANCELLED":
-          statusMessage = "Your order has been cancelled. Please contact support if you have any questions.";
+          statusMessage = "Order has been cancelled.";
           break;
         default:
-          statusMessage = `Your order status is now: ${newStatus}`;
+          statusMessage = `Order status is now: ${newStatus}`;
       }
       
       // Add additional details for shipping
@@ -648,8 +656,7 @@ const Order = () => {
                     </Badge>
                   </Box>
                 } 
-              />
-              <Tab label="Completed" />
+              />              <Tab label="Delivered" />
               <Tab label="Cancelled" />
             </Tabs>
             
@@ -868,19 +875,32 @@ const Order = () => {
                               </Button>
                               
                               {['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status) && (
-                                <Button 
-                                  variant="contained" 
-                                  color="primary"
-                                  size="small"
-                                  onClick={() => handleUpdateStatus(order)}
-                                  fullWidth
-                                  sx={{
-                                    bgcolor: "#D32F2F",
-                                    "&:hover": { bgcolor: "#B71C1C" }
-                                  }}
-                                >
-                                  Update Status
-                                </Button>
+                                <Stack direction="row" spacing={1} width="100%">
+                                  <Button 
+                                    variant="contained" 
+                                    color="primary"
+                                    size="small"
+                                    onClick={() => handleUpdateStatus(order, "proceed")}
+                                    fullWidth
+                                    sx={{
+                                      bgcolor: "#D32F2F",
+                                      "&:hover": { bgcolor: "#B71C1C" }
+                                    }}
+                                  >
+                                    Update Status
+                                  </Button>
+                                  {['PENDING', 'PROCESSING'].includes(order.status) && (
+                                    <Button 
+                                      variant="outlined" 
+                                      color="error"
+                                      size="small"
+                                      onClick={() => handleUpdateStatus(order, "cancel")}
+                                      fullWidth
+                                    >
+                                      Cancel
+                                    </Button>
+                                  )}
+                                </Stack>
                               )}
                             </Box>
                           </Box>
@@ -894,49 +914,54 @@ const Order = () => {
           )}
         </Box>
       </Box>
-      
-      {/* Update Status Dialog */}
+        {/* Update Status Dialog */}
       <Dialog
         open={updateStatusDialog}
         onClose={() => !processingUpdate && setUpdateStatusDialog(false)}
       >
-        <DialogTitle>Update Order Status</DialogTitle>
+        <DialogTitle>{newStatus === "CANCELLED" ? "Cancel Order" : "Update Order Status"}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Change the status for Order #{selectedOrder?.orderId}.
-          </DialogContentText>
-          <FormControl fullWidth margin="dense">
-            <InputLabel>New Status</InputLabel>
-            <Select
-              value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value)}
-              label="New Status"
-              disabled={processingUpdate}
-            >
-              <MenuItem value="PENDING">Pending</MenuItem>
-              <MenuItem value="PROCESSING">Processing</MenuItem>
-              <MenuItem value="SHIPPED">Shipped</MenuItem>
-              <MenuItem value="DELIVERED">Delivered</MenuItem>
-              <MenuItem value="COMPLETED">Completed</MenuItem>
-              <MenuItem value="CANCELLED">Cancelled</MenuItem>
-            </Select>
-          </FormControl>
+          {newStatus === "CANCELLED" ? (
+            <DialogContentText>
+              Are you sure you want to cancel Order #{selectedOrder?.orderId}? This action cannot be undone.
+            </DialogContentText>
+          ) : (
+            <>
+              <DialogContentText>
+                Change the status for Order #{selectedOrder?.orderId}.
+              </DialogContentText>
+              <FormControl fullWidth margin="dense">
+                <InputLabel>New Status</InputLabel>
+                <Select
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  label="New Status"
+                  disabled={processingUpdate}
+                >
+                  <MenuItem value="PENDING">Pending</MenuItem>
+                  <MenuItem value="PROCESSING">Processing</MenuItem>
+                  <MenuItem value="SHIPPED">Shipped</MenuItem>
+                  <MenuItem value="DELIVERED">Delivered</MenuItem>
+                  <MenuItem value="CANCELLED">Cancelled</MenuItem>
+                </Select>
+              </FormControl>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button 
             onClick={() => setUpdateStatusDialog(false)} 
             disabled={processingUpdate}
           >
-            Cancel
+            {newStatus === "CANCELLED" ? "No, Keep Order" : "Cancel"}
           </Button>
           <Button 
             onClick={confirmStatusUpdate} 
-            color="primary" 
+            color={newStatus === "CANCELLED" ? "error" : "primary"} 
             variant="contained"
-            disabled={processingUpdate}
-            startIcon={processingUpdate ? <CircularProgress size={20} /> : null}
+            disabled={processingUpdate}            startIcon={processingUpdate ? <CircularProgress size={20} /> : null}
           >
-            {processingUpdate ? 'Updating...' : 'Update'}
+            {processingUpdate ? 'Processing...' : newStatus === "CANCELLED" ? 'Yes, Cancel Order' : 'Update Status'}
           </Button>
         </DialogActions>
       </Dialog>
