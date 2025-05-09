@@ -4,38 +4,38 @@ plugins {
 }
 
 android {
-    namespace "com.example.cartella"
-    compileSdk 35
+    namespace = "com.example.cartella"
+    compileSdk = 35  // Consider updating to a higher SDK version
 
     defaultConfig {
-        applicationId "com.example.cartella"
-        minSdk 24
-        targetSdk 35
-        versionCode 1
-        versionName "1.0"
+        applicationId = "com.example.cartella"
+        minSdk = 24
+        targetSdk = 35  // Consider updating to a higher SDK version
+        versionCode = 1
+        versionName = "1.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
+                    "proguard-rules.pro" // Make sure to customize this for your libraries
             )
         }
         debug {
-            minifyEnabled false
-            debuggable true
+            minifyEnabled = false
+            debuggable = true
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_11  // Consider using VERSION_1_8 if you don't need Java 11 features
+        targetCompatibility = JavaVersion.VERSION_11  // Same here
     }
 
     kotlinOptions {
@@ -43,35 +43,47 @@ android {
     }
 
     buildFeatures {
-        viewBinding true
+        viewBinding = true
     }
 
     packagingOptions {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"  // Exclude unnecessary licenses
         }
     }
 }
 
 dependencies {
+    // Core libraries
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+
+    // Networking and API requests
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.gson)
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
+    implementation libs.androidx.browser
+
+    // Google Play Services for authentication
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation(libs.play.services.auth)
-    implementation "com.google.android.gms:play-services-auth:20.7.0"
+
+    // Coroutines (for asynchronous programming)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
+
+    // Lifecycle components
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
 
+    // Testing dependencies
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
 }

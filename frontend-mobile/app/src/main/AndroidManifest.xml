@@ -25,12 +25,24 @@
             </intent-filter>
         </activity>
 
+        <!-- Login activity with deep link for Google OAuth2 -->
+        <activity android:name=".Login" android:exported="true">
+            <intent-filter android:label="oauth2redirect">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="cartella"
+                    android:host="oauth2"
+                    android:path="/redirect" />
+            </intent-filter>
+        </activity>
+
         <!-- Other activities -->
-        <activity android:name=".Login" android:exported="true" />
         <activity android:name=".Register" android:exported="true" />
         <activity android:name=".VendorLogin" android:exported="true" />
         <activity android:name=".VendorDashboard" android:exported="true" />
-        <activity android:name="Dashboard" android:exported="true" />
+        <activity android:name=".Dashboard" android:exported="true" />
 
     </application>
 

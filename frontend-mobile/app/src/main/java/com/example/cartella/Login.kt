@@ -1,19 +1,23 @@
 package com.example.cartella
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.browser.customtabs.CustomTabsIntent
 import org.json.JSONObject
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
 
 class Login : AppCompatActivity() {
+
     private lateinit var emailField: EditText
     private lateinit var passwordField: EditText
     private lateinit var loginBtn: Button
     private lateinit var goToRegisterBtn: TextView
+    private lateinit var googleLoginBtn: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,6 +27,7 @@ class Login : AppCompatActivity() {
         passwordField = findViewById(R.id.editTextPassword)
         loginBtn = findViewById(R.id.btnSignUp)
         goToRegisterBtn = findViewById(R.id.bottomLinks)
+        googleLoginBtn = findViewById(R.id.btnGoogle)
 
         loginBtn.setOnClickListener {
             val email = emailField.text.toString().trim()
@@ -37,6 +42,34 @@ class Login : AppCompatActivity() {
 
         goToRegisterBtn.setOnClickListener {
             startActivity(Intent(this, Register::class.java))
+        }
+
+        googleLoginBtn.setOnClickListener {
+            val authUri = Uri.parse("https://it342-g5-cartella.onrender.com/oauth2/authorization/google")
+            val customTabsIntent = CustomTabsIntent.Builder().build()
+            customTabsIntent.launchUrl(this, authUri)
+        }
+
+        // Handle redirect if activity is started by a URI
+        intent?.data?.let { handleOAuthRedirect(it) }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.data?.let { handleOAuthRedirect(it) }
+    }
+
+    private fun handleOAuthRedirect(uri: Uri) {
+        if (uri.toString().startsWith("cartella://oauth2/redirect")) {
+            val token = uri.getQueryParameter("token")
+            if (token != null) {
+                Toast.makeText(this, "Google login successful", Toast.LENGTH_SHORT).show()
+                // Optional: Save token to SharedPreferences if needed
+                startActivity(Intent(this, Dashboard::class.java))
+                finish()
+            } else {
+                Toast.makeText(this, "Failed to get token", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
