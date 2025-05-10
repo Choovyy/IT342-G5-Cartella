@@ -34,7 +34,8 @@ class Dashboard : AppCompatActivity() {
         }
 
         cartIcon.setOnClickListener {
-            // Your logic for cart icon click
+            val intent = Intent(this, Cart::class.java)
+            startActivity(intent)
         }
 
         ordersIcon.setOnClickListener {

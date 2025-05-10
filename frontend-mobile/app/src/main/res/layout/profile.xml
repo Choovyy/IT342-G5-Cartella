@@ -65,10 +65,10 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
-            android:id="@+id/textBusinessName"
+            android:id="@+id/textName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Business Name"
+            android:text="Name"
             android:textSize="18sp"
             android:textColor="#000000" />
 
@@ -91,10 +91,19 @@
             android:layout_marginTop="8dp" />
 
         <TextView
-            android:id="@+id/textJoinedDate"
+            android:id="@+id/textDob"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Joined Date"
+            android:text="Date of Birth"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:id="@+id/textGender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Gender"
             android:textSize="16sp"
             android:textColor="#333333"
             android:layout_marginTop="8dp" />
