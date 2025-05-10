@@ -72,6 +72,7 @@ dependencies {
     // Google Play Services for authentication
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation(libs.play.services.auth)
+    
 
     // Coroutines (for asynchronous programming)
     implementation(libs.kotlinx.coroutines.android)
