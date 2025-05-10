@@ -6,6 +6,7 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import android.content.Intent
 
 class Dashboard : AppCompatActivity() {
 
@@ -45,7 +46,8 @@ class Dashboard : AppCompatActivity() {
         }
 
         profileIcon.setOnClickListener {
-            // Your logic for profile icon click
+            val intent = Intent(this, Profile::class.java)
+            startActivity(intent)
         }
     }
 }
