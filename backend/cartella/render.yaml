@@ -2,6 +2,7 @@ services:
   - type: web
     name: cartella-backend
     env: docker
+    root: backend/cartella
     plan: free
     region: singapore
     buildCommand: "./mvnw clean package -DskipTests"
