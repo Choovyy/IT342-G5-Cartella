@@ -9,10 +9,10 @@ services:
     healthCheckPath: /actuator/health
     envVars:
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:mysql://cartella1-miloboycup2121-e1f3.j.aivencloud.com:27345/defaultdb?ssl-mode=REQUIRED
+        value: jdbc:mysql://mysql-106a5a24-miloboycup2121-e1f3.k.aivencloud.com:27345/defaultdb?ssl-mode=REQUIRED
       - key: SPRING_DATASOURCE_USERNAME
         value: avnadmin
       - key: SPRING_DATASOURCE_PASSWORD
-        value: AVNS_eUunVOEcsgxifw0pkYI
+        value: AVNS_nteyR0PSm_heCKxTHQq
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
