@@ -13,6 +13,6 @@ services:
       - key: SPRING_DATASOURCE_USERNAME
         value: avnadmin
       - key: SPRING_DATASOURCE_PASSWORD
-        value: AVNS_eUunVOEcsgxifw0pkYI
+        value: AVNS_nteyR0PSm_heCKxTHQq
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
